@@ -1,0 +1,1678 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0A6E8A">
+<link rel="icon" type="image/png" href="logo.png"><link rel="apple-touch-icon" href="logo.png">
+<style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<title>SplitCoach</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="sc-supabase.js"></script>
+</head><body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,500;0,600;0,700;1,700&family=Montserrat:wght@700;800&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: app de entrenador en una columna; cabecera fija con logo, franja de corchera y 7 pestañas; tarjetas sobrias, tiempos en monoespaciada */
+:root{
+  --bg:#EEF4F5; --surface:#FFFFFF; --ink:#0E2A33; --muted:#557079; --line:#D3E1E4; --soft:#E1EEF1;
+  --accent:#0A6E8A; --accent-ink:#FFFFFF; --rope:#D9443A; --rope2:#F2F6F7;
+  --gold:#B88A12; --silver:#7C8B92; --bronze:#A8622E; --good:#1F8A5B; --bad:#C0392B;
+  --z1:#7FB7C9; --z2:#2E93B0; --z3:#1F8A5B; --z4:#D99A1E; --z5:#D9443A; --zrp:#7A3FB0;
+  --veil:rgba(238,244,245,.62); --glass:rgba(255,255,255,.76); --brand:#0B2A4A; --shadow:0 1px 2px rgba(11,42,74,.05),0 10px 28px -12px rgba(11,42,74,.18);
+  --f-brand:"Montserrat","Public Sans",system-ui,sans-serif;
+  --f-display:"Barlow Condensed","Arial Narrow",sans-serif;
+  --f-body:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --veil:rgba(10,24,28,.70) !important; --glass:rgba(16,36,42,.74) !important;
+  --bg:#0A181C; --surface:#10242A; --ink:#E3EEF0; --muted:#8CA6AD; --line:#21393F; --soft:#163039;
+  --accent:#4CC3E0; --accent-ink:#06222A; --rope:#FF6B5E; --rope2:#16323A;
+  --gold:#E2B743; --silver:#A9B8BE; --bronze:#D58A52; --good:#4CC28B; --bad:#FF7A6B;
+  --z1:#5E9BAD; --z2:#3BAACB; --z3:#4CC28B; --z4:#E8B04A; --z5:#FF6B5E; --zrp:#B58AE6; --veil:rgba(10,24,28,.90); --glass:rgba(16,36,42,.80); --brand:#E3EEF0; --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 28px -14px rgba(0,0,0,.6); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --veil:rgba(10,24,28,.70) !important; --glass:rgba(16,36,42,.74) !important;
+  --bg:#0A181C; --surface:#10242A; --ink:#E3EEF0; --muted:#8CA6AD; --line:#21393F; --soft:#163039;
+  --accent:#4CC3E0; --accent-ink:#06222A; --rope:#FF6B5E; --rope2:#16323A;
+  --gold:#E2B743; --silver:#A9B8BE; --bronze:#D58A52; --good:#4CC28B; --bad:#FF7A6B;
+  --z1:#5E9BAD; --z2:#3BAACB; --z3:#4CC28B; --z4:#E8B04A; --z5:#FF6B5E; --zrp:#B58AE6; --veil:rgba(10,24,28,.90); --glass:rgba(16,36,42,.80); --brand:#E3EEF0; --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 28px -14px rgba(0,0,0,.6); color-scheme:dark}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45;min-height:100vh;
+  background:linear-gradient(var(--veil),var(--veil)) fixed,repeating-linear-gradient(90deg,transparent 0 calc(20% - 3px),rgba(8,70,95,.16) calc(20% - 3px) 20%) fixed,radial-gradient(90% 60% at 15% 0%,rgba(255,255,255,.55),transparent 70%) fixed,radial-gradient(70% 50% at 90% 100%,rgba(255,255,255,.25),transparent 70%) fixed,linear-gradient(180deg,#8FD3E4 0%,#47A9C4 100%) fixed,var(--bg)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--glass)}
+.wrap{max-width:900px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--glass);-webkit-backdrop-filter:blur(14px) saturate(1.2);backdrop-filter:blur(14px) saturate(1.2);border-bottom:1px solid var(--line)}
+.rope{height:5px;background:repeating-linear-gradient(90deg,var(--rope) 0 14px,var(--rope2) 14px 28px)}
+.brand{display:flex;align-items:center;gap:12px;padding-block:12px 6px}
+.brand img{flex:none;width:50px;height:50px;border-radius:12px;object-fit:contain;background:#fff;padding:2px;box-shadow:0 0 0 1px var(--line)}
+.word{font-family:var(--f-brand);font-weight:800;font-size:25px;line-height:1;letter-spacing:-.01em;color:var(--brand)}
+.word small{display:block;font-family:var(--f-body);font-weight:500;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:5px}
+.tag{margin-left:auto;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;white-space:nowrap}
+nav.tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;margin-inline:-6px}
+nav.tabs::-webkit-scrollbar{display:none}
+nav.tabs a{flex:none;text-decoration:none;color:var(--muted);font-family:var(--f-display);font-weight:600;font-size:16.5px;letter-spacing:.04em;text-transform:uppercase;padding:8px 9px 9px;border-bottom:3px solid transparent;white-space:nowrap}
+nav.tabs a[aria-current="page"]{color:var(--ink);border-bottom-color:var(--accent)}
+main{padding-block:18px 56px;display:grid;gap:16px}
+h2{font-family:var(--f-display);font-weight:700;font-size:23px;text-transform:uppercase;letter-spacing:.02em;margin:0;line-height:1.1;text-wrap:balance}
+h3{font-family:var(--f-display);font-weight:600;font-size:19px;margin:0;letter-spacing:.01em;line-height:1.15}
+p{margin:0}
+.muted{color:var(--muted)} .small{font-size:13px}
+select,input,textarea,button{font:inherit;color:inherit}
+select,input,textarea{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-width:0;width:100%}
+input[type=range]{padding:0;border:0;accent-color:var(--accent)}
+input[type=checkbox]{width:auto;accent-color:var(--accent)}
+select:focus-visible,input:focus-visible,textarea:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+textarea{min-height:84px;resize:vertical}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:12px;min-width:0;box-shadow:var(--shadow)}
+.card > *{min-width:0}
+.head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.row > *{min-width:0}
+.grow{flex:1 1 160px}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:560px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;box-shadow:var(--shadow)}
+.stat b{display:block;font-family:var(--f-display);font-size:32px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.stat span{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.btn{background:var(--accent);color:var(--accent-ink);border:0;border-radius:8px;padding:9px 14px;font-weight:600;cursor:pointer;white-space:nowrap}
+.btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--line)}
+.btn.sm{padding:5px 10px;font-size:13px}
+.btn.danger{background:var(--bad);color:#fff}
+.btn.on{background:var(--ink);color:var(--surface)}
+.btn:disabled{opacity:.5;cursor:default}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;flex-wrap:wrap}
+.seg button{background:transparent;border:0;padding:6px 11px;cursor:pointer;font-size:13.5px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.list{display:grid}
+.item{display:flex;align-items:center;gap:12px;padding:11px 2px;border-top:1px solid var(--line);min-width:0;width:100%;background:none;border-left:0;border-right:0;border-bottom:0;text-align:left;color:inherit;text-decoration:none}
+.list > .item:first-child{border-top:0}
+a.item,button.item{cursor:pointer}
+a.item:hover .nm,button.item:hover .nm{color:var(--accent)}
+.item .main{flex:1;min-width:0}
+.item .main > div{overflow-wrap:anywhere}
+.nm{font-weight:600}
+.date{font-family:var(--f-mono);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.time{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-weight:500;white-space:nowrap}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:2px 8px;border-radius:99px;background:var(--soft);color:var(--ink);white-space:nowrap}
+.chip.mine{background:var(--rope);color:#fff}
+.zb{display:inline-block;font-family:var(--f-display);font-weight:700;font-size:13px;padding:1px 7px;border-radius:5px;color:#fff}
+.medal{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;font-family:var(--f-display);font-weight:700;font-size:14px;color:#fff;flex:none}
+.m1{background:var(--gold)}.m2{background:var(--silver)}.m3{background:var(--bronze)}.mx{background:var(--soft);color:var(--muted)}
+.avatar{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--soft);color:var(--accent);font-family:var(--f-display);font-weight:700;font-size:16px;flex:none}
+.tablewrap{overflow-x:auto;margin-inline:-4px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;text-align:left;padding:6px;border-bottom:1px solid var(--line);white-space:nowrap}
+th button{background:none;border:0;padding:0;font:inherit;color:inherit;letter-spacing:inherit;text-transform:inherit;cursor:pointer}
+td{padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:middle}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+tr.mine td{background:color-mix(in srgb,var(--rope) 10%,transparent)}
+td.best .time{color:var(--accent);font-weight:700}
+.up{color:var(--good)}.down{color:var(--bad)}
+.form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.form.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.form .full{grid-column:1/-1}
+@media (max-width:520px){.form,.form.three{grid-template-columns:minmax(0,1fr)}}
+label{display:grid;gap:4px;font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;min-width:0}
+label > *{text-transform:none;letter-spacing:0;color:var(--ink);font-size:15px}
+.msg{font-size:14px;padding:10px 12px;border-radius:8px;background:var(--soft)}
+.msg.err{background:color-mix(in srgb,var(--bad) 14%,transparent)}
+.msg.ok{background:color-mix(in srgb,var(--good) 16%,transparent)}
+.note{font-size:13px;color:var(--muted)}
+code{font-family:var(--f-mono);font-size:12.5px;background:var(--soft);padding:1px 5px;border-radius:4px}
+.empty{text-align:center;padding:26px 16px;display:grid;gap:8px;justify-items:center}
+.empty svg{color:var(--accent)}
+.back{background:none;border:0;color:var(--accent);padding:0;cursor:pointer;font-weight:600;justify-self:start;text-decoration:none}
+.ev{display:grid;gap:8px;padding-block:12px;border-top:1px solid var(--line)}
+.ev:first-child{border-top:0;padding-top:0}
+.best{font-family:var(--f-mono);font-size:21px;font-weight:500;font-variant-numeric:tabular-nums}
+.spark{width:100%;height:44px;display:block}
+.chart{width:100%;display:block;overflow:visible}
+.legend{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+.serie{display:grid;grid-template-columns:56px 70px minmax(0,1.3fr) 70px 78px 32px;gap:6px;align-items:end}
+.serie .x{background:none;border:0;color:var(--muted);font-size:20px;cursor:pointer;padding:6px 0}
+@media (max-width:560px){.serie{grid-template-columns:repeat(4,minmax(0,1fr))}.serie .wide{grid-column:span 2}.serie .x{grid-column:4;justify-self:end}}
+.serie label{font-size:10.5px}
+.out{display:grid;gap:14px}
+.out h3 .zb{margin-left:6px;vertical-align:2px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chips label{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:99px;padding:4px 10px 4px 8px;text-transform:none;letter-spacing:0;font-size:13.5px;color:var(--ink);cursor:pointer}
+.foda{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (max-width:520px){.foda{grid-template-columns:minmax(0,1fr)}}
+.foda label{border-radius:10px;padding:10px;border:1px solid var(--line)}
+.foda .f{background:color-mix(in srgb,var(--good) 9%,transparent)}
+.foda .o{background:color-mix(in srgb,var(--accent) 9%,transparent)}
+.foda .d{background:color-mix(in srgb,var(--z4) 12%,transparent)}
+.foda .a{background:color-mix(in srgb,var(--bad) 9%,transparent)}
+.foda textarea{background:var(--surface);min-height:90px}
+.rpe{display:flex;align-items:center;gap:10px}
+.rpe output{font-family:var(--f-display);font-weight:700;font-size:22px;width:28px;text-align:center}
+.sens{display:grid;grid-template-columns:minmax(0,1fr) 120px;gap:8px;align-items:center;padding-block:8px;border-top:1px solid var(--line)}
+.sens .full{grid-column:1/-1}
+.ai{white-space:pre-wrap;font-size:14.5px;line-height:1.55;background:var(--soft);border-radius:10px;padding:12px 14px}
+.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px}
+.kpi div{background:var(--soft);border-radius:10px;padding:9px 11px}
+.kpi b{display:block;font-family:var(--f-mono);font-size:18px;font-weight:500;font-variant-numeric:tabular-nums}
+.kpi span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+/* video */
+.vgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.vcard{display:grid;gap:6px;text-decoration:none;color:inherit;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface)}
+.vcard video{width:100%;aspect-ratio:16/9;object-fit:cover;background:#000;display:block;max-width:100%}
+.vcard div{padding:0 10px 10px}
+.stage{display:flex;justify-content:center;background:#000;border-radius:10px;overflow:hidden;touch-action:none}
+.vbox{position:relative;max-width:100%}
+.vbox video{display:block;max-width:100%;width:auto;max-height:62vh;background:#000}
+.stage canvas{position:absolute;inset:0;width:100%;height:100%}
+.stage canvas.arm{cursor:crosshair}
+.ctrl{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.ctrl .time{font-size:13px}
+.tools{display:flex;gap:6px;flex-wrap:wrap}
+.marks .item{padding:7px 2px}
+.splits{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:6px}
+.splits div{background:var(--soft);border-radius:8px;padding:6px 8px;display:grid;gap:1px}
+.splits span{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.splits b{font-family:var(--f-mono);font-weight:500;font-size:15px;font-variant-numeric:tabular-nums}
+.splits i{font-style:normal;font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+.splits .fast b{color:var(--good)}.splits .slow b{color:var(--bad)}
+.chatbox{display:grid;gap:10px;max-height:62vh;overflow-y:auto;padding:2px;align-content:start}
+.bub{max-width:min(540px,90%);justify-self:start;background:var(--soft);border-radius:12px 12px 12px 4px;padding:9px 12px;display:grid;gap:6px;min-width:0}
+.bub.mine{justify-self:end;background:color-mix(in srgb,var(--accent) 13%,var(--surface));border:1px solid var(--line);border-radius:12px 12px 4px 12px}
+.bh{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.bh .x{margin-left:auto;background:none;border:0;color:var(--muted);cursor:pointer;font-size:14px;padding:0 2px}
+.bt{white-space:pre-wrap;overflow-wrap:anywhere}
+.bv{display:grid;gap:4px}.bv video{width:100%;max-height:340px;border-radius:8px;background:#000;display:block}
+.item .main{flex:1 1 auto;min-width:min(52%,170px)}
+.item>.chip{flex:0 1 auto;min-width:0;max-width:46%;display:block;overflow:hidden;text-overflow:ellipsis}
+.item .side{display:grid;justify-items:end;gap:4px;flex:none}
+@media (max-width:620px){nav.tabs{-webkit-mask-image:linear-gradient(90deg,#000 82%,transparent);mask-image:linear-gradient(90deg,#000 82%,transparent);padding-right:28px}}
+#nb:not(:empty){display:inline-grid;place-items:center;min-width:18px;height:18px;margin-left:5px;padding:0 5px;border-radius:9px;background:var(--rope);color:#fff;font-family:var(--f-body);font-size:11px;font-weight:700;vertical-align:2px}
+@media (prefers-reduced-motion:no-preference){.btn,a.item,button.item{transition:color .15s,background .15s}}
+</style>
+
+<header class="top">
+  <div class="rope" aria-hidden="true"></div>
+  <div class="wrap">
+    <div class="brand">
+      <img src="logo.png" alt="SplitCoach" width="50" height="50"><svg hidden aria-hidden="true"><rect x="20" y="1.5" width="8" height="5" rx="1.5" fill="currentColor"/><circle cx="24" cy="27" r="19" fill="none" stroke="currentColor" stroke-width="3.6"/><path d="M33.5 18.2c-2.1-2.6-5.5-3.9-9.2-3.7-4.6.3-7.7 3.1-7.2 6.4.5 3.4 4.4 4.1 7.7 4.8 3.6.8 7.3 1.9 7.6 5.6.3 3.7-3.4 6.6-8.4 6.6-3.9 0-7.1-1.6-8.8-4.2" fill="none" stroke="var(--rope)" stroke-width="4" stroke-linecap="round"/><path d="M24 8v4M43 27h-4M24 46v-4M5 27h4" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+      <div class="word">SplitCoach<small>Natación Master</small></div>
+      <div class="tag" id="tag">Entrenador</div>
+    </div>
+    <nav class="tabs" id="tabs" hidden>
+      <a href="#plantel" data-v="plantel">Plantel</a>
+      <a href="#tiempos" data-v="tiempos">Mejores tiempos</a>
+      <a href="#resultados" data-v="resultados">Resultados</a>
+      <a href="#entrenos" data-v="entrenos">Entrenos</a>
+      <a href="#resumen" data-v="resumen">Resumen</a>
+      <a href="#evolucion" data-v="evolucion">Evolución</a>
+      <a href="#calculadora" data-v="calculadora">Calculadora</a>
+      <a href="#videos" data-v="videos">Videos</a>
+      <a href="#mensajes" data-v="mensajes">Mensajes<span id="nb"></span></a>
+    </nav>
+  </div>
+</header>
+<main class="wrap" id="view"></main>
+
+<script>
+(function(){
+"use strict";
+/* ================= constantes ================= */
+const ESTILOS=["Libre","Espalda","Pecho","Mariposa","Combinado"];
+const PRUEBAS=["50 Libre","100 Libre","200 Libre","400 Libre","800 Libre","1500 Libre","50 Espalda","100 Espalda","200 Espalda","50 Pecho","100 Pecho","200 Pecho","50 Mariposa","100 Mariposa","200 Mariposa","100 Combinado","200 Combinado","400 Combinado"];
+const PUNTOS=[9,7,6,5,4,3,2,1];
+const Z_DEF=[{z:"Z1",n:"Recuperación",min:70,max:75},{z:"Z2",n:"Aeróbico",min:75,max:80},{z:"Z3",n:"Umbral",min:80,max:90},{z:"Z4",n:"VO2 máx",min:90,max:95},{z:"Z5",n:"Velocidad",min:95,max:100}];
+const ZCOL={Z1:"var(--z1)",Z2:"var(--z2)",Z3:"var(--z3)",Z4:"var(--z4)",Z5:"var(--z5)",RP:"var(--zrp)"};
+const RIEGEL=1.06;
+
+/* ================= estado ================= */
+const S={nad:[],res:[],ses:[],vid:[],par:[],cfg:{miClub:"",zonas:Z_DEF},
+  db:null,assets:null,sample:null,dbState:"cargando",got:{},
+  view:"plantel",param:"",pending:false,
+  q:"",newNad:false,fd:null,
+  mt:{estilo:"Libre",pisc:"25",rama:"",scope:"plantel",sort:""},
+  rTab:"torneos",year:null,rv:{prueba:"",sexo:"",cat:""},
+  ed:null, rd:null, rsel:"",
+  calc:{nad:"",estilo:"Espalda",dist:100,pb:"1:24.00",sets:"4x50\n6x25\n2x100",pisc:"25"},
+  dps:{largo:25,cuenta:"ciclos",sub:5,txt:"18.6;9\n19.1;9\n19.8;10\n20.4;10"},
+  split:{dist:200,t:"2:30.00",tramo:50},
+  int:{estilo:"Libre",pisc:"25",nad:"",man:{}},
+  pace:{d1:200,t1:"2:30.00",d2:400,p2:"1:30.00",obj:"1:50",real:"1:31"},
+  vp:null,buz:{},chat:null,mode:"?",me:null,user:null,myThread:null,gotThread:false,ctipo:"mensaje",cvid:"",ctxt:""};
+
+/* ================= utilidades ================= */
+const $=s=>document.querySelector(s);
+const $$=s=>[...document.querySelectorAll(s)];
+const esc=v=>String(v==null?"":v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const norm=s=>String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/\s+/g," ").trim();
+const uniq=a=>[...new Set(a.filter(x=>x!==""&&x!=null))];
+function parseT(t){
+  t=String(t==null?"":t).trim().replace(",",".");
+  if(!t||/^(nt|ns|dq|dsq|dnf)$/i.test(t))return null;
+  let m=t.match(/^(\d+)[:.](\d{1,2})[.](\d{1,2})$/);
+  if(m)return +m[1]*60+ +m[2]+ +(m[3].padEnd(2,"0"))/100;
+  m=t.match(/^(\d+):(\d{1,2})$/); if(m)return +m[1]*60+ +m[2];
+  m=t.match(/^(\d{1,2})\.(\d{2})$/); if(m&&+m[1]<15)return +m[1]*60+ +m[2]; // "1.24" = 1:24
+  m=t.match(/^(\d+(?:\.\d{1,2})?)$/); if(m)return +m[1];
+  return null;
+}
+function fmtT(s,dec){
+  if(s==null||!isFinite(s))return "—";
+  dec=dec==null?2:dec;
+  const f=Math.pow(10,dec);s=Math.round(s*f)/f;
+  const m=Math.floor(s/60),r=s-m*60;
+  const rs=r.toFixed(dec);
+  return m?m+":"+(r<10?"0":"")+rs:rs;
+}
+const fmtD=d=>{if(!d)return "";const p=String(d).split("-");return p.length===3?p[2]+"-"+p[1]+"-"+p[0]:d};
+const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+const estiloOf=p=>String(p||"").split(" ").slice(1).join(" ");
+const distOf=p=>parseInt(p,10)||0;
+function ordPrueba(p){const i=ESTILOS.indexOf(estiloOf(p));return (i<0?9:i)*10000+distOf(p)}
+function catDe(e){e=parseInt(e,10);if(isNaN(e))return "";if(e<25)return "Pre Master";const a=Math.floor((e-25)/5)*5+25;return a+"-"+(a+4)}
+function edadMaster(nac){const y=parseInt(String(nac||"").slice(0,4),10);return isNaN(y)?null:new Date().getFullYear()-y}
+const ordCat=c=>c==="Pre Master"?0:(parseInt(c,10)||999);
+const initials=n=>String(n||"?").split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join("");
+const sx=x=>x==="F"?"Damas":x==="M"?"Varones":"—";
+const yearOf=r=>String(r.fecha||"").slice(0,4);
+const isMine=r=>!!S.cfg.miClub&&norm(r.club).includes(norm(S.cfg.miClub));
+const zonas=()=>(Array.isArray(S.cfg.zonas)&&S.cfg.zonas.length?S.cfg.zonas:Z_DEF);
+function zb(z){return `<span class="zb" style="background:${ZCOL[z]||ZCOL[zoneKey(z)]||"var(--muted)"}">${esc(z)}</span>`}
+function weekStart(d){const x=new Date(d+"T12:00:00");if(isNaN(x))return "";const w=(x.getDay()+6)%7;x.setDate(x.getDate()-w);return x.toISOString().slice(0,10)}
+async function copyText(t,btn){try{await navigator.clipboard.writeText(t);if(btn){const o=btn.textContent;btn.textContent="Copiado";setTimeout(()=>btn.textContent=o,1400)}}catch(e){if(btn)btn.textContent="No se pudo copiar"}}
+
+/* ================= datos derivados ================= */
+// nombres con los que aparece un nadador (nombre + alias separados por coma)
+const keysOf=n=>new Set([n.nombre,...String(n.alias||"").split(",")].map(norm).filter(Boolean));
+const nadByName=name=>{const k=norm(name);return S.nad.find(n=>keysOf(n).has(k))};
+const resOf=nombre=>{const n=nadByName(nombre);const ks=n?keysOf(n):new Set([norm(nombre)]);return S.res.filter(r=>ks.has(norm(r.nadador)))};
+const nadById=id=>S.nad.find(n=>n.id===id);
+function pbsOf(nombre,pisc){ // prueba -> mejor fila (opcional filtro piscina)
+  const out={};
+  resOf(nombre).forEach(r=>{if(r.seg==null)return;if(pisc&&String(r.piscina)!==String(pisc))return;const k=r.prueba;if(!out[k]||r.seg<out[k].seg)out[k]=r});
+  return out;
+}
+function refPB(nombre,estilo,dist,pisc){
+  const rows=resOf(nombre).filter(r=>r.seg!=null&&estiloOf(r.prueba)===estilo);
+  if(!rows.length)return null;
+  let best=null;
+  rows.forEach(r=>{const d=distOf(r.prueba);if(!d)return;
+    const score=Math.abs(Math.log(d/dist))+(String(r.piscina)===String(pisc)?0:0.3);
+    if(!best||score<best.score-1e-9||(Math.abs(score-best.score)<1e-9&&r.seg<best.r.seg))best={score,r,d}});
+  if(!best)return null;
+  return {t:best.r.seg*Math.pow(dist/best.d,RIEGEL),d:best.d,r:best.r,exact:best.d===dist};
+}
+const PCTS=["70%","75%","80%","85%","90%","95%"];
+function zoneKey(z){const m=String(z||"").match(/^(\d+)%$/);if(!m)return z;const p=+m[1];const Z=zonas().find(x=>p>=x.min&&p<x.max)||zonas()[zonas().length-1];return Z.z}
+function zoneRange(t,z){
+  if(z==="RP")return [t,t];
+  const pm=String(z||"").match(/^(\d+)%$/);if(pm)return [t/(+pm[1]/100),t/(+pm[1]/100)];
+  const Z=zonas().find(x=>x.z===z); if(!Z)return null;
+  return [t/(Z.max/100),t/(Z.min/100)];
+}
+const volOf=s=>(s.series||[]).reduce((a,x)=>a+(+x.reps||0)*(+x.dist||0),0);
+
+/* ================= navegación ================= */
+const VIEWS=["plantel","tiempos","resultados","entrenos","resumen","evolucion","calculadora","videos","mensajes"];
+function route(){
+  const h=decodeURIComponent((location.hash||"#plantel").slice(1));
+  let v=h,p="";
+  if(h.startsWith("ficha-")){v="ficha";p=h.slice(6)}
+  else if(h.startsWith("video-")){v="video";p=h.slice(6)}
+  else if(h.startsWith("chat-")){v="chat";p=h.slice(5)}
+  else if(!VIEWS.includes(h))v="plantel";
+  if(S.mode==="nadador"){v=h==="mensajes"?"yo":"mificha";p=""}
+  S.view=v;S.param=p;
+  if(S.mode==="coach"&&S.db&&(v==="resultados"||(v==="tiempos"&&S.mt.scope!=="plantel")))loadFullTor();
+  const tab=v==="ficha"?"plantel":v==="video"?"videos":v==="chat"||v==="yo"?"mensajes":v;
+  $$("#tabs a").forEach(a=>a.setAttribute("aria-current",a.dataset.v===tab?"page":"false"));
+  if(v!=="video")stopVideo();
+  S.pending=false;
+  render(true);
+  window.scrollTo(0,0);
+}
+window.addEventListener("hashchange",route);
+function typing(){const a=document.activeElement;return a&&$("#view").contains(a)&&(a.tagName==="TEXTAREA"||(a.tagName==="INPUT"&&!["checkbox","range","button","file"].includes(a.type)))}
+function render(force){
+  if(!force&&(typing()||(S.view==="video"&&S.vp))){S.pending=true;if(S.view==="video")refreshMarks();return}
+  S.pending=false;
+  const fn=S.mode==="?"?{html:()=>emptyBox("Cargando…","")}:(R[S.view]||R.plantel);
+  $("#view").innerHTML=banner()+fn.html();
+  if(S.mode==="coach"){$("#nb").textContent=String(S.nad.filter(n=>unread(S.buz[tk(n)],"coach")).length||"");scheduleSync()}
+  else if(S.mode==="nadador"&&$("#nb"))$("#nb").textContent=unread(S.myThread,"nadador")?"1":"";
+  fn.bind&&fn.bind();
+}
+document.addEventListener("focusout",()=>setTimeout(()=>{if(S.pending&&!typing()&&!(S.view==="video"&&S.vp))render()},30));
+function banner(){
+  if(S.fullTor==="loading"&&(S.view==="resultados"||(S.view==="tiempos"&&S.mt.scope!=="plantel")))return `<div class="msg">Cargando todos los torneos…</div>`;
+  if(S.dbState==="sin-db")return `<div class="msg err">La base de datos no está disponible en esta vista. Revisa tu conexión y recarga la página.</div>`;
+  return "";
+}
+function emptyBox(title,text){
+  return `<section class="card empty"><svg width="44" height="44" viewBox="0 0 44 44" fill="none" aria-hidden="true"><path d="M3 30c4 0 4-3 8-3s4 3 8 3 4-3 8-3 4 3 8 3 4-3 6-3" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M3 37c4 0 4-3 8-3s4 3 8 3 4-3 8-3 4 3 8 3 4-3 6-3" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" opacity=".45"/><circle cx="27" cy="13" r="4" fill="currentColor"/><path d="M10 22l9-6 6 5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><h3>${title}</h3><div class="muted small" style="max-width:46ch">${text}</div></section>`;
+}
+const loading=()=>!S.got.res&&S.dbState==="cargando";
+async function dbWrite(fn,msgEl){
+  if(!S.db){if(msgEl)msgEl.innerHTML=`<span class="down">La base de datos no está disponible.</span>`;return false}
+  try{await fn(S.db);return true}catch(e){if(msgEl)msgEl.innerHTML=`<span class="down">No se pudo guardar: ${esc(e&&e.message||e&&e.code||e)}</span>`;return false}
+}
+
+/* ================= gráficos ================= */
+function spark(pts){
+  {const byD={};pts.forEach(p=>{const k=p.fecha||"";if(!byD[k]||p.seg<byD[k].seg)byD[k]=p});pts=Object.values(byD).sort((a,b)=>(a.fecha||"").localeCompare(b.fecha||""))}
+  if(pts.length<2)return "";
+  const W=300,H=44,P=6,xs=pts.map(p=>Date.parse(p.fecha)||0),ys=pts.map(p=>p.seg);
+  const x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
+  const X=x=>P+(x1===x0?.5:(x-x0)/(x1-x0))*(W-2*P),Y=y=>P+(y1===y0?.5:(y-y0)/(y1-y0))*(H-2*P);
+  const li=pts.length-1;
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Evolución de tiempos (arriba es más rápido)">
+    <line x1="0" x2="${W}" y1="${Y(y0)}" y2="${Y(y0)}" stroke="var(--line)" stroke-dasharray="3 3" vector-effect="non-scaling-stroke"/>
+    <path d="${pts.map((p,i)=>(i?"L":"M")+X(xs[i]).toFixed(1)+" "+Y(ys[i]).toFixed(1)).join(" ")}" fill="none" stroke="var(--accent)" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
+    ${pts.map((p,i)=>`<circle cx="${X(xs[i]).toFixed(1)}" cy="${Y(ys[i]).toFixed(1)}" r="${i===li?3.5:2}" fill="${i===li?"var(--rope)":"var(--accent)"}"/>`).join("")}</svg>`;
+}
+function barChart(items,{h=150,fmt=v=>v,color="var(--accent)"}={}){
+  // items: [{label, value, stack?:[{v,c}]}]
+  const W=Math.max(300,items.length*44),P={l:8,r:8,t:18,b:22};
+  const max=Math.max(1,...items.map(i=>i.value));
+  const bw=(W-P.l-P.r)/items.length;
+  const Y=v=>P.t+(1-v/max)*(h-P.t-P.b);
+  const bars=items.map((it,i)=>{
+    const x=P.l+i*bw+bw*.18,w=bw*.64;
+    let y=h-P.b,segs="";
+    if(it.stack){it.stack.forEach(s=>{const hh=(s.v/max)*(h-P.t-P.b);y-=hh;segs+=`<rect x="${x}" y="${y}" width="${w}" height="${Math.max(0,hh)}" fill="${s.c}"/>`})}
+    else segs=`<rect x="${x}" y="${Y(it.value)}" width="${w}" height="${Math.max(0,h-P.b-Y(it.value))}" rx="3" fill="${color}"/>`;
+    return segs+`<text x="${x+w/2}" y="${(it.stack?y:Y(it.value))-5}" text-anchor="middle" font-size="11" fill="var(--ink)" font-family="var(--f-mono)">${it.value?fmt(it.value):""}</text>
+      <text x="${x+w/2}" y="${h-6}" text-anchor="middle" font-size="10.5" fill="var(--muted)">${esc(it.label)}</text>`;
+  }).join("");
+  return `<div class="tablewrap"><svg class="chart" viewBox="0 0 ${W} ${h}" style="min-width:${Math.min(W,560)}px" role="img"><line x1="${P.l}" x2="${W-P.r}" y1="${h-P.b}" y2="${h-P.b}" stroke="var(--line)"/>${bars}</svg></div>`;
+}
+function lineChart(pts,{h=130,min=0,max=10,fmt=v=>v}={}){
+  if(!pts.length)return "";
+  const W=320,P={l:22,r:12,t:12,b:22};
+  const X=i=>P.l+(pts.length===1?.5:i/(pts.length-1))*(W-P.l-P.r),Y=v=>P.t+(1-(v-min)/(max-min))*(h-P.t-P.b);
+  const grid=[min,(min+max)/2,max].map(v=>`<line x1="${P.l}" x2="${W-P.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)" stroke-dasharray="2 3"/><text x="${P.l-5}" y="${Y(v)+3.5}" text-anchor="end" font-size="10" fill="var(--muted)">${fmt(v)}</text>`).join("");
+  const d=pts.map((p,i)=>(i?"L":"M")+X(i).toFixed(1)+" "+Y(p.v).toFixed(1)).join(" ");
+  const area=d+` L${X(pts.length-1)} ${h-P.b} L${X(0)} ${h-P.b} Z`;
+  const li=pts.length-1;
+  return `<svg class="chart" viewBox="0 0 ${W} ${h}" role="img">${grid}
+    <path d="${area}" fill="var(--accent)" opacity=".12"/><path d="${d}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>
+    ${pts.map((p,i)=>`<circle cx="${X(i)}" cy="${Y(p.v)}" r="${i===li?4:2.5}" fill="${i===li?"var(--rope)":"var(--accent)"}"/>`).join("")}
+    <text x="${X(0)}" y="${h-6}" font-size="10" fill="var(--muted)" text-anchor="start">${esc(pts[0].label)}</text>
+    <text x="${X(li)}" y="${h-6}" font-size="10" fill="var(--muted)" text-anchor="end">${esc(pts[li].label)}</text></svg>`;
+}
+
+/* ================= vistas ================= */
+const R={};
+
+/* ---------- PLANTEL ---------- */
+R.plantel={html(){
+  const q=norm(S.q);
+  let list=S.nad.slice().sort((a,b)=>String(a.nombre).localeCompare(String(b.nombre),"es"));
+  if(q)list=list.filter(n=>norm(n.nombre).includes(q)||norm(n.club).includes(q));
+  const sugeridos=S.cfg.miClub?uniq(S.res.filter(isMine).map(r=>r.nadador)).filter(n=>!nadByName(n)):[];
+  const ses7=S.ses.filter(s=>s.fecha&&(Date.now()-Date.parse(s.fecha+"T12:00:00"))/864e5<=7);
+  const stats=`<div class="stats">
+    <div class="stat"><b>${S.nad.length}</b><span>Nadadores</span></div>
+    <div class="stat"><b>${ses7.length}</b><span>Sesiones 7 días</span></div>
+    <div class="stat"><b>${(ses7.reduce((a,s)=>a+volOf(s),0)/1000).toFixed(1)}</b><span>Km 7 días</span></div>
+    <div class="stat"><b>${S.vid.length}</b><span>Videos</span></div></div>`;
+  return stats+`<section class="card">
+    <div class="head"><h2>Plantel</h2><button class="btn" id="nn">${S.newNad?"Cerrar":"Nuevo nadador"}</button></div>
+    ${S.newNad?`<div class="form">
+      <label class="full">Nombre completo<input id="n-nom" autocomplete="off"></label>
+      <label>Rama<select id="n-sexo"><option value="F">Damas</option><option value="M">Varones</option></select></label>
+      <label>Nacimiento<input id="n-nac" type="date"></label>
+      <label class="full">Club<input id="n-club" value="${esc(S.cfg.miClub)}" autocomplete="off"></label>
+      <div class="row full"><button class="btn" id="n-save">Guardar nadador</button><span id="n-msg" class="small"></span></div></div>`:""}
+    <input id="q" type="search" placeholder="Buscar nadador" value="${esc(S.q)}" autocomplete="off" aria-label="Buscar nadador">
+    <div class="list">${list.map(n=>{
+      const e=edadMaster(n.nacimiento),pb=Object.keys(pbsOf(n.nombre)).length;
+      return `<a class="item" href="#ficha-${encodeURIComponent(n.id)}"><span class="avatar">${esc(initials(n.nombre))}</span>
+        <div class="main"><div class="nm">${esc(n.nombre)}</div><div class="small muted">${sx(n.sexo)}${e!=null?" · "+esc(catDe(e)):""} · ${pb} PB</div></div>
+        ${n.club?`<span class="chip">${esc(n.club)}</span>`:""}</a>`}).join("")
+      ||(loading()?`<div class="muted small">Cargando…</div>`:`<div class="muted small">${S.nad.length?"Sin coincidencias.":"Aún no hay nadadores. Agrega el primero con “Nuevo nadador”."}</div>`)}</div>
+  </section>
+  ${sugeridos.length?`<section class="card"><div class="head"><h3>Nadadores de ${esc(S.cfg.miClub)} en resultados</h3><button class="btn ghost sm" id="addall">Agregar todos</button></div>
+    <div class="chips">${sugeridos.map(n=>`<button class="chip" data-add="${esc(n)}" style="border:0;cursor:pointer">+ ${esc(n)}</button>`).join("")}</div></section>`:""}`;
+},bind(){
+  $("#nn").onclick=()=>{S.newNad=!S.newNad;render(true)};
+  $("#q").oninput=e=>{S.q=e.target.value;const p=e.target.selectionStart;render(true);const i=$("#q");i.focus();i.setSelectionRange(p,p)};
+  if($("#n-save"))$("#n-save").onclick=async()=>{
+    const nom=$("#n-nom").value.trim();if(!nom){$("#n-msg").innerHTML=`<span class="down">Falta el nombre.</span>`;return}
+    const d={nombre:nom,sexo:$("#n-sexo").value,nacimiento:$("#n-nac").value,club:$("#n-club").value.trim(),telefono:"",emergencia:"",objetivos:"",notas:"",creado:today()};
+    if(await dbWrite(db=>db.collection("nadadores").add(d),$("#n-msg"))){S.newNad=false;render(true)}
+  };
+  const add=async names=>{for(const n of names){const r=S.res.find(x=>norm(x.nadador)===norm(n))||{};
+    await dbWrite(db=>db.collection("nadadores").add({nombre:n,sexo:r.sexo||"",nacimiento:r.edad?(new Date().getFullYear()-r.edad)+"-01-01":"",club:r.club||S.cfg.miClub,telefono:"",emergencia:"",objetivos:"",notas:"",creado:today()}))}};
+  $$("[data-add]").forEach(b=>b.onclick=()=>{b.disabled=true;add([b.dataset.add])});
+  if($("#addall"))$("#addall").onclick=e=>{e.target.disabled=true;add($$("[data-add]").map(b=>b.dataset.add))};
+}};
+
+/* ---------- FICHA PERSONAL ---------- */
+R.ficha={html(){
+  const n=nadById(S.param);
+  if(!n)return `<section class="card"><a class="back" href="#plantel">← Plantel</a><div class="muted">${loading()?"Cargando…":"Nadador no encontrado."}</div></section>`;
+  if(!S.fd||S.fd.id!==n.id)S.fd=Object.assign({},n);
+  const f=S.fd,e=edadMaster(n.nacimiento);
+  const rows=resOf(n.nombre);
+  const byP={};rows.forEach(r=>{if(r.seg!=null)(byP[r.prueba]=byP[r.prueba]||[]).push(r)});
+  const ps=Object.keys(byP).sort((a,b)=>ordPrueba(a)-ordPrueba(b));
+  const pb25=pbsOf(n.nombre,"25"),pb50=pbsOf(n.nombre,"50");
+  const pbTable=ps.length?`<div class="tablewrap"><table><thead><tr><th>Prueba</th><th class="num">PB 25 m</th><th class="num">PB 50 m</th><th class="num">Ritmo /100</th></tr></thead><tbody>
+    ${ps.map(p=>{const a=pb25[p],b=pb50[p],best=[a,b].filter(Boolean).sort((x,y)=>x.seg-y.seg)[0];
+      return `<tr><td>${esc(p)}</td><td class="num time">${a?fmtT(a.seg):"—"}</td><td class="num time">${b?fmtT(b.seg):"—"}</td><td class="num time muted">${best?fmtT(best.seg/distOf(p)*100):"—"}</td></tr>`}).join("")}
+    </tbody></table></div>`:`<div class="muted small">Sin marcas todavía. Agrega una abajo o carga resultados de torneos.</div>`;
+  const prog=ps.filter(p=>byP[p].length>1).map(p=>{const rs=byP[p].slice().sort((a,b)=>(a.fecha||"").localeCompare(b.fecha||""));
+    return `<div class="ev"><div class="head"><h3>${esc(p)}</h3><span class="small muted">${rs.length} nadadas · última ${fmtT(rs[rs.length-1].seg)}</span></div>${spark(rs)}</div>`}).join("");
+  const sens=S.ses.filter(s=>s.resumen&&s.resumen.sens&&s.resumen.sens[n.id]).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).slice(0,6);
+  const vids=S.vid.filter(v=>v.nadadorId===n.id);
+  return `<section class="card">
+    <a class="back" href="#plantel">← Plantel</a>
+    <div class="row" style="gap:14px"><span class="avatar" style="width:56px;height:56px;font-size:22px">${esc(initials(n.nombre))}</span>
+      <div class="grow"><h2>${esc(n.nombre)}</h2><div class="chips" style="margin-top:6px">
+        ${n.club?`<span class="chip ${isMine(n)?"mine":""}">${esc(n.club)}</span>`:""}<span class="chip">${sx(n.sexo)}</span>
+        ${e!=null?`<span class="chip">${e} años · ${esc(catDe(e))}</span>`:""}</div></div>
+      <a class="btn ghost sm" href="#chat-${encodeURIComponent(n.id)}">Mensajes${unread(S.buz[tk(n)],"coach")?" · nuevo":""}</a></div>
+  </section>
+  <section class="card"><h3>Mejores tiempos</h3>${pbTable}
+    <details><summary class="small" style="cursor:pointer;color:var(--accent);font-weight:600">Agregar marca (control o test)</summary>
+      <div class="form three" style="margin-top:10px">
+        <label>Prueba<select id="m-p">${PRUEBAS.map(p=>`<option>${p}</option>`).join("")}</select></label>
+        <label>Piscina<select id="m-pi"><option value="25">25 m</option><option value="50">50 m</option></select></label>
+        <label>Tiempo<input id="m-t" placeholder="1:24.00" inputmode="decimal"></label>
+        <label>Fecha<input id="m-f" type="date" value="${today()}"></label>
+        <label class="full">Origen<input id="m-o" value="Control interno"></label>
+        <div class="row full"><button class="btn" id="m-save">Guardar marca</button><span id="m-msg" class="small"></span></div>
+      </div></details></section>
+  ${prog?`<section class="card"><h3>Progresión</h3><div>${prog}</div></section>`:""}
+  ${pasadasHTML(n)}
+  ${imHTML(n)}
+  <section class="card"><div class="head"><h3>Datos</h3><span id="f-msg" class="small"></span></div>
+    <div class="form">
+      <label class="full">Nombre<input data-f="nombre" value="${esc(f.nombre)}"></label>
+      <label>Rama<select data-f="sexo"><option value="F" ${f.sexo==="F"?"selected":""}>Damas</option><option value="M" ${f.sexo==="M"?"selected":""}>Varones</option></select></label>
+      <label>Nacimiento<input data-f="nacimiento" type="date" value="${esc(f.nacimiento)}"></label>
+      <label>Club<input data-f="club" value="${esc(f.club)}"></label>
+      <label>Teléfono<input data-f="telefono" value="${esc(f.telefono)}" inputmode="tel"></label>
+      <label class="full">Correo (para entrar a SplitCoach)<input data-f="email" type="email" value="${esc(f.email)}" placeholder="nadador@correo.cl" autocomplete="off"></label>
+      <label class="full">Contacto de emergencia<input data-f="emergencia" value="${esc(f.emergencia)}"></label>
+      <label class="full">Otros nombres en resultados (separados por coma)<input data-f="alias" value="${esc(f.alias)}" placeholder="Florencia Emilfork"></label>
+      <label class="full">Pruebas principales<input data-f="pruebasFav" value="${esc(f.pruebasFav)}" placeholder="100 Espalda, 200 Libre"></label>
+      <label class="full">Objetivos de temporada<textarea data-f="objetivos">${esc(f.objetivos)}</textarea></label>
+      <label class="full">Notas técnicas<textarea data-f="notas">${esc(f.notas)}</textarea></label>
+    </div>
+    <div class="row"><button class="btn" id="f-save">Guardar cambios</button><span class="grow"></span><button class="btn ghost sm" id="f-del">Eliminar nadador</button></div>
+  </section>
+  <section class="card"><h3>Sensaciones recientes</h3>
+    ${sens.length?`<div class="list">${sens.map(s=>{const x=s.resumen.sens[n.id];return `<a class="item" href="#resumen" data-ses="${esc(s.id)}"><div class="main"><div class="nm">${esc(s.titulo||"Sesión")}</div><div class="small muted">${esc(x.txt||"Sin comentario")}</div></div>${x.rpe?`<span class="chip">RPE ${esc(x.rpe)}</span>`:""}<span class="date">${fmtD(s.fecha)}</span></a>`}).join("")}</div>`:`<div class="muted small">Se registran en Resumen de entrenamiento.</div>`}
+  </section>
+  <section class="card"><h3>Videos</h3>${vids.length?`<div class="list">${vids.map(v=>`<a class="item" href="#video-${encodeURIComponent(v.id)}"><div class="main"><div class="nm">${esc(v.prueba||"Video")}</div><div class="small muted">${esc(v.notas||"")}</div></div><span class="date">${fmtD(v.fecha)}</span></a>`).join("")}</div>`:`<div class="muted small">Sin videos. Súbelos en la pestaña Videos.</div>`}</section>`;
+},bind(){
+  const n=nadById(S.param);if(!n)return;
+  $$("[data-f]").forEach(i=>i.addEventListener("input",()=>{S.fd[i.dataset.f]=i.value}));
+  $$("[data-ses]").forEach(a=>a.onclick=()=>{S.rsel=a.dataset.ses;S.rd=null});
+  $("#f-save").onclick=async()=>{const d={};$$("[data-f]").forEach(i=>{const v=S.fd[i.dataset.f];d[i.dataset.f]=v==null?"":v});
+    if(await dbWrite(db=>db.collection("nadadores").doc(n.id).update(d),$("#f-msg")))$("#f-msg").innerHTML=`<span class="up">Guardado</span>`};
+  $("#f-del").onclick=async e=>{const b=e.target;if(b.dataset.c!=="1"){b.dataset.c="1";b.textContent="¿Eliminar ficha? Los resultados se mantienen";b.className="btn danger sm";return}
+    if(await dbWrite(db=>db.collection("nadadores").doc(n.id).delete(),$("#f-msg")))location.hash="#plantel"};
+  bindPasadas(n);bindIM(n);
+  $("#m-save").onclick=async()=>{const t=$("#m-t").value,seg=parseT(t);if(seg==null){$("#m-msg").innerHTML=`<span class="down">Tiempo no reconocido. Usa 1:24.00 o 31.45.</span>`;return}
+    const e=edadMaster(n.nacimiento);
+    const r={torneo:$("#m-o").value.trim()||"Control interno",fecha:$("#m-f").value||today(),piscina:$("#m-pi").value,nadador:n.nombre,sexo:n.sexo||"",edad:e,categoria:catDe(e),club:n.club||"",prueba:$("#m-p").value,tiempo:t.trim(),seg,lugar:null,tipo:"control"};
+    if(await dbWrite(db=>db.collection("resultados").add(r),$("#m-msg")))$("#m-msg").innerHTML=`<span class="up">Marca guardada</span>`};
+}};
+
+
+/* ---------- PASADAS (parciales) ---------- */
+const PCOL=["var(--accent)","var(--rope)","var(--z4)","var(--zrp)"];
+function parOf(n){const ks=keysOf(n);return S.par.filter(p=>ks.has(norm(p.nadador))).map(p=>Object.assign({},p,{sp:(p.splits||[]).map(parseT)})).filter(p=>p.sp.length>1&&p.sp.every(x=>x!=null))}
+function splitChart(series,tramo){
+  const W=Math.round(Math.max(330,Math.min(560,innerWidth-70))),H=210,P={l:44,r:16,t:22,b:30};
+  const all=series.flatMap(s=>s.sp),n=Math.max(...series.map(s=>s.sp.length));
+  let lo=Math.min(...all),hi=Math.max(...all);const pad=Math.max(.6,(hi-lo)*.25);lo=Math.floor(lo-pad);hi=Math.ceil(hi+pad);
+  const X=i=>P.l+(n===1?.5:i/(n-1))*(W-P.l-P.r),Y=v=>P.t+(1-(v-lo)/(hi-lo))*(H-P.t-P.b);
+  const step=Math.max(1,Math.round((hi-lo)/4));const ticks=[];for(let v=lo;v<=hi;v+=step)ticks.push(v);
+  const grid=ticks.map(v=>`<line x1="${P.l}" x2="${W-P.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="${P.l-8}" y="${Y(v)+4}" text-anchor="end" font-size="11" fill="var(--muted)" font-family="var(--f-mono)">${v}s</text>`).join("");
+  const xl=Array.from({length:n},(_,i)=>`<text x="${X(i)}" y="${H-8}" text-anchor="middle" font-size="11" fill="var(--muted)">${(i+1)*tramo}</text>`).join("");
+  const main=series[0];const avg=main.sp.reduce((a,b)=>a+b,0)/main.sp.length;
+  const lines=series.slice().reverse().map((s,ri)=>{const k=series.length-1-ri,c=PCOL[k%PCOL.length],first=k===0;
+    const d=s.sp.map((v,i)=>(i?"L":"M")+X(i).toFixed(1)+" "+Y(v).toFixed(1)).join(" ");
+    return `<path d="${d}" fill="none" stroke="${c}" stroke-width="${first?2.6:1.8}" ${first?"":'stroke-dasharray="5 4" opacity=".85"'} stroke-linejoin="round"/>`+
+      s.sp.map((v,i)=>`<circle cx="${X(i)}" cy="${Y(v)}" r="${first?4.5:3}" fill="${c}"/>`+(first?`<text x="${X(i)}" y="${Y(v)+(i%2?-10:18)}" text-anchor="middle" font-size="11.5" font-weight="600" fill="${c}" font-family="var(--f-mono)">${fmtT(v)}</text>`:"")).join("")}).join("");
+  return `<div class="tablewrap"><svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Gráfico de pasadas">${grid}
+    <line x1="${P.l}" x2="${W-P.r}" y1="${Y(avg)}" y2="${Y(avg)}" stroke="var(--muted)" stroke-dasharray="2 4"/><text x="${W-P.r}" y="${Y(avg)-5}" text-anchor="end" font-size="10.5" fill="var(--muted)">prom. ${fmtT(avg)}</text>
+    ${lines}${xl}</svg></div>`;
+}
+function pasadasHTML(n){
+  const list=parOf(n).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""));
+  const groups={};list.forEach(p=>{const k=p.prueba+"|"+p.piscina;(groups[k]=groups[k]||[]).push(p)});
+  const blocks=Object.keys(groups).sort((a,b)=>ordPrueba(a.split("|")[0])-ordPrueba(b.split("|")[0])).map(k=>{
+    const g=groups[k],p=g[0],sp=p.sp,tot=sp.reduce((a,b)=>a+b,0),h=Math.floor(sp.length/2);
+    const m1=sp.slice(0,h).reduce((a,b)=>a+b,0),m2=sp.slice(sp.length-h).reduce((a,b)=>a+b,0);
+    const mid=sp.slice(1,-1),best=Math.min(...mid.length?mid:sp),worst=Math.max(...mid.length?mid:sp);
+    const avg=tot/sp.length,sd=Math.sqrt(sp.slice(1).reduce((a,b)=>a+(b-avg)*(b-avg),0)/Math.max(1,sp.length-1));
+    let acc=0;
+    const cells=sp.map((v,i)=>{acc+=v;const cls=i>0&&i<sp.length-1?(v===best?"fast":v===worst?"slow":""):"";return `<div class="${cls}"><span>${(i+1)*p.tramo} m</span><b>${fmtT(v)}</b><i>${fmtT(acc)}</i></div>`}).join("");
+    const comp=g.slice(0,4);
+    return `<div class="ev"><div class="head"><h3>${esc(p.prueba)} <span class="small muted" style="font-family:var(--f-body)">· piscina ${esc(p.piscina)} m</span></h3><span class="time">${fmtT(tot)}</span></div>
+      <div class="small muted">${esc(p.torneo||"")} · ${fmtD(p.fecha)}</div>
+      ${splitChart(comp,p.tramo)}
+      ${comp.length>1?`<div class="legend">${comp.map((c,i)=>`<span><i style="background:${PCOL[i]}"></i>${fmtD(c.fecha)} · ${fmtT(c.sp.reduce((a,b)=>a+b,0))}</span>`).join("")}</div>`:""}
+      <div class="kpi"><div><b>${fmtT(m1)}</b><span>1ª mitad</span></div><div><b>${fmtT(m2)}</b><span>2ª mitad</span></div>
+        <div><b class="${m2<m1?"up":"down"}">${m2<m1?"−":"+"}${Math.abs(m2-m1).toFixed(2)}</b><span>${m2<m1?"Split negativo":"Split positivo"}</span></div>
+        <div><b>${fmtT(worst-best)}</b><span>Rango pasadas*</span></div><div><b>±${sd.toFixed(2)}</b><span>Regularidad*</span></div></div>
+      <div class="splits">${cells}</div>
+      <div class="row"><span class="note grow">* sin la primera pasada (salida). Verde: pasada más rápida; rojo: más lenta. Debajo, el acumulado.</span>${S.mode==="nadador"?"":`<button class="btn ghost sm" data-pdel="${esc(p.id)}">Borrar</button>`}</div></div>`}).join("");
+  if(S.mode==="nadador")return `<section class="card"><h3>Pasadas</h3>${blocks}</section>`;
+  return `<section class="card"><div class="head"><h3>Pasadas</h3><button class="btn ghost sm" id="p-tog">Agregar parciales</button></div>
+    <div id="p-form" hidden><div class="form three">
+      <label>Prueba<select id="p-p">${PRUEBAS.concat(["400 Libre","800 Libre","1500 Libre"]).filter((x,i,a)=>a.indexOf(x)===i).map(x=>`<option>${x}</option>`).join("")}</select></label>
+      <label>Piscina<select id="p-pi"><option value="25">25 m</option><option value="50">50 m</option></select></label>
+      <label>Cada<select id="p-tr"><option value="50">50 m</option><option value="25">25 m</option><option value="100">100 m</option></select></label>
+      <label class="full">Torneo o control<input id="p-t" placeholder="Panamericano Master 2026"></label>
+      <label>Fecha<input id="p-f" type="date" value="${today()}"></label>
+      <label class="full">Parciales (separados por /)<input id="p-s" placeholder="38.43/41.05/42.41/42.65" inputmode="decimal" style="font-family:var(--f-mono)"></label>
+      <div class="row full"><button class="btn" id="p-save">Guardar parciales</button><span id="p-msg" class="small"></span></div></div></div>
+    ${blocks||`<div class="muted small">Sin parciales todavía. Agrégalos con el botón o envíame el pantallazo de Meet Mobile o el PDF con parciales.</div>`}</section>`;
+}
+function bindPasadas(n){
+  const t=$("#p-tog");if(!t)return;
+  t.onclick=()=>{const f=$("#p-form");f.hidden=!f.hidden;t.textContent=f.hidden?"Agregar parciales":"Cerrar"};
+  $("#p-save").onclick=async()=>{const m=$("#p-msg"),raw=$("#p-s").value.split(/[\/\s,;]+/).filter(Boolean),sp=raw.map(parseT);
+    const pr=$("#p-p").value,tr=+$("#p-tr").value;
+    if(sp.length<2||sp.some(x=>x==null)){m.innerHTML=`<span class="down">Escribe al menos 2 parciales, por ejemplo 38.43/41.05.</span>`;return}
+    if(sp.length*tr!==distOf(pr)){m.innerHTML=`<span class="down">${sp.length} parciales de ${tr} m suman ${sp.length*tr} m, pero la prueba es de ${distOf(pr)} m.</span>`;return}
+    const d={nadador:n.nombre,prueba:pr,piscina:$("#p-pi").value,tramo:tr,torneo:$("#p-t").value.trim(),fecha:$("#p-f").value||today(),splits:raw};
+    if(await dbWrite(db=>db.collection("parciales").add(d),m))render(true)};
+  $$("[data-pdel]").forEach(b=>b.onclick=async()=>{if(b.dataset.c!=="1"){b.dataset.c="1";b.textContent="¿Borrar?";b.className="btn danger sm";return}
+    await dbWrite(db=>db.collection("parciales").doc(b.dataset.pdel).delete())});
+}
+
+/* ---------- COMBINADO POR ESTILOS (historial, gráfico y escenarios) ---------- */
+const EST4=["Mariposa","Espalda","Pecho","Libre"],ECOL=["var(--zrp)","var(--z2)","var(--z3)","var(--z4)"];
+const mesA=d=>{const m=String(d||"").match(/^(\d{4})-(\d{2})/);return m?["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"][+m[2]-1]+"-"+m[1].slice(2):""};
+function imGroups(n){
+  const G={};
+  parOf(n).filter(p=>/Combinado/.test(p.prueba)&&p.sp.length%4===0).forEach(p=>{
+    const k=p.sp.length/4,st=[0,1,2,3].map(i=>p.sp.slice(i*k,i*k+k).reduce((a,b)=>a+b,0));
+    const r=Object.assign({},p,{st,tot:st.reduce((a,b)=>a+b,0)});const key=p.prueba+"|"+p.piscina;(G[key]=G[key]||[]).push(r)});
+  Object.values(G).forEach(g=>g.sort((a,b)=>(a.fecha||"").localeCompare(b.fecha||"")));
+  return G;
+}
+function imMeta(n,key,pb){
+  const m=(n.metas||{})[key];if(!m)return null;
+  const sp=(m.sp||[]).map(parseT);
+  if(sp.length===4&&sp.every(x=>x!=null))return {st:sp,tot:sp.reduce((a,b)=>a+b,0),rep:false};
+  const t=parseT(m.total);if(t==null)return null;
+  return pb?{st:pb.st.map(x=>x*t/pb.tot),tot:t,rep:true}:{st:null,tot:t,rep:true};
+}
+function imChart(g,meta){
+  const bars=g.map(r=>({lab:mesA(r.fecha),sub:r.torneo||"",st:r.st,tot:r.tot,meta:false}));
+  if(meta&&meta.st)bars.push({lab:"Meta",sub:"",st:meta.st,tot:meta.tot,meta:true});
+  const W=Math.round(Math.max(330,Math.min(Math.max(560,bars.length*70+60),innerWidth-70))),H=250,P={l:40,r:8,t:24,b:34},slot=(W-P.l-P.r)/bars.length,narrow=slot<62;
+  const hi=Math.ceil(Math.max(...bars.map(b=>b.tot))/30)*30;
+  const Y=v=>P.t+(1-v/hi)*(H-P.t-P.b),bw=Math.min(46,(W-P.l-P.r)/bars.length*.62),X=i=>P.l+(i+.5)*(W-P.l-P.r)/bars.length;
+  const grid=[];for(let v=0;v<=hi;v+=30)grid.push(`<line x1="${P.l}" x2="${W-P.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="${P.l-6}" y="${Y(v)+4}" text-anchor="end" font-size="10.5" fill="var(--muted)" font-family="var(--f-mono)">${fmtT(v,0)}</text>`);
+  const body=bars.map((b,i)=>{let acc=0;const x=X(i)-bw/2;
+    const segs=b.st.map((v,j)=>{const y0=Y(acc),y1=Y(acc+v);acc+=v;const h=y0-y1;
+      return `<rect x="${x}" y="${y1}" width="${bw}" height="${h}" fill="${ECOL[j]}" ${b.meta?'fill-opacity=".28" stroke="'+ECOL[j]+'" stroke-dasharray="3 2"':''} stroke-width="1.2"><title>${EST4[j]} ${fmtT(v)}</title></rect>`+
+        (h>15&&bw>=26?`<text x="${X(i)}" y="${(y0+y1)/2+4}" text-anchor="middle" font-size="${bw<34?9.5:10.5}" font-family="var(--f-mono)" fill="${b.meta?"var(--ink)":"var(--accent-ink)"}">${v.toFixed(1)}</text>`:"")}).join("");
+    return segs+`<text x="${X(i)}" y="${Y(b.tot)-6}" text-anchor="middle" font-size="${narrow?10:11.5}" font-weight="600" font-family="var(--f-mono)" fill="var(--ink)">${fmtT(b.tot,narrow?1:2)}</text>
+      <text x="${X(i)}" y="${H-16}" text-anchor="middle" font-size="11" fill="${b.meta?"var(--rope)":"var(--muted)"}" font-weight="${b.meta?700:400}">${esc(b.lab)}</text><title>${esc(b.sub)}</title>`}).join("");
+  return `<div class="tablewrap"><svg class="chart" viewBox="0 0 ${W} ${H}" style="min-width:${W}px" role="img" aria-label="Parciales por estilo en cada competencia">${grid.join("")}${body}</svg></div>
+    <div class="legend">${EST4.map((e,j)=>`<span><i style="background:${ECOL[j]}"></i>${e}</span>`).join("")}${meta&&meta.st?`<span><i style="background:transparent;border:1px dashed var(--muted)"></i>Meta${meta.rep?" (repartida según su PB)":""}</span>`:""}</div>`;
+}
+function imHTML(n){
+  const G=imGroups(n),keys=Object.keys(G).sort();
+  if(!keys.length)return "";
+  return `<section class="card"><div class="head"><h3>Combinado por estilos</h3></div>`+keys.map(key=>{
+    const g=G[key],[prueba,pisc]=key.split("|");
+    const best=[0,1,2,3].map(j=>Math.min(...g.map(r=>r.st[j])));
+    const pb=g.reduce((a,r)=>r.tot<a.tot?r:a,g[0]);
+    const meta=imMeta(n,key,pb),m0=(n.metas||{})[key]||{};
+    const last3=g.slice(-3),avg3=[0,1,2,3].map(j=>last3.reduce((a,r)=>a+r.st[j],0)/last3.length);
+    const sc=[{n:"Suma de mejores parciales",st:best,note:"Techo teórico con lo ya nadado"},
+      {n:"PB "+mesA(pb.fecha),st:pb.st,note:pb.torneo||""},
+      ...(g.length>1?[{n:"Promedio últimas "+last3.length,st:avg3,note:"Nivel actual"}]:[]),
+      ...(meta?[{n:"Meta",st:meta.st,tot:meta.tot,note:meta.rep?"Total fijado; parciales repartidos según el PB":"Parciales fijados"}]:[])];
+    const dif=(a,b)=>{const d=a-b;return `<span class="${d<=0?"up":"down"}">${d>0?"+":"−"}${Math.abs(d).toFixed(2)}</span>`};
+    const hist=g.slice().reverse().map(r=>{const gap=r.st.map((v,j)=>v-best[j]),w=gap.indexOf(Math.max(...gap));
+      return `<tr><td><div class="nm">${esc(r.torneo||"—")}</div><div class="date">${fmtD(r.fecha)}</div></td><td class="num time">${fmtT(r.tot)}</td>
+        ${r.st.map((v,j)=>`<td class="num time" style="${v===best[j]?"color:var(--good);font-weight:700":j===w&&gap[w]>.3?"color:var(--bad)":""}">${v.toFixed(2)}</td>`).join("")}
+        <td class="num time">${r===pb?`<span class="chip">PB</span>`:dif(r.tot,pb.tot)}</td><td>${gap[w]>.3?EST4[w]+` <span class="small muted">+${gap[w].toFixed(2)}</span>`:"—"}</td></tr>`}).join("");
+    const scen=sc.map(s=>{const t=s.tot!=null?s.tot:s.st?s.st.reduce((a,b)=>a+b,0):null;
+      return `<tr><td><div class="nm">${esc(s.n)}</div><div class="small muted">${esc(s.note)}</div></td>${(s.st||[null,null,null,null]).map(v=>`<td class="num time">${v==null?"—":v.toFixed(2)}</td>`).join("")}
+        <td class="num time"><b>${fmtT(t)}</b></td><td class="num time">${meta&&t!=null&&s.n!=="Meta"?dif(t,meta.tot):"—"}</td><td class="num time">${s.n.startsWith("PB")?"—":dif(t,pb.tot)}</td></tr>`}).join("");
+    const th=EST4.map(e=>`<th class="num">${e.slice(0,3)}.</th>`).join("");
+    return `<div class="ev"><div class="head"><h3>${esc(prueba)} <span class="small muted" style="font-family:var(--f-body)">· piscina ${esc(pisc)} m · ${g.length} carrera${g.length>1?"s":""}</span></h3><span class="time">PB ${fmtT(pb.tot)}</span></div>
+      ${imChart(g,meta)}
+      <h3 style="font-size:16px;margin-top:4px">Historial</h3>
+      <div class="tablewrap"><table><thead><tr><th>Competencia</th><th class="num">Total</th>${th}<th class="num">vs PB</th><th>Más lejos de su mejor</th></tr></thead><tbody>${hist}</tbody></table></div>
+      <div class="note">Verde: su mejor parcial histórico en ese estilo. Rojo: el estilo que más se alejó de su mejor en esa carrera.</div>
+      <h3 style="font-size:16px;margin-top:4px">Escenarios</h3>
+      <div class="tablewrap"><table><thead><tr><th>Escenario</th>${th}<th class="num">Total</th><th class="num">vs meta</th><th class="num">vs PB</th></tr></thead><tbody>${scen}</tbody></table></div>
+      ${S.mode==="nadador"?"":`<details><summary class="small" style="cursor:pointer;color:var(--accent);font-weight:600">${meta?"Cambiar meta":"Fijar meta"} de ${esc(prueba)} (${esc(pisc)} m)</summary>
+        <div class="form three" style="margin-top:10px" data-imk="${esc(key)}">
+          <label>Total<input data-im="total" value="${esc(m0.total||"")}" placeholder="3:15.00" inputmode="decimal"></label>
+          ${EST4.map((e,j)=>`<label>${e} (opcional)<input data-im="${j}" value="${esc((m0.sp||[])[j]||"")}" placeholder="—" inputmode="decimal"></label>`).join("")}
+          <div class="row full"><button class="btn sm" data-imsave="${esc(key)}">Guardar meta</button>${meta?`<button class="btn ghost sm" data-imdel="${esc(key)}">Quitar meta</button>`:""}<span class="small" data-immsg="${esc(key)}"></span></div>
+          <div class="note full">Si completas los 4 parciales, el total se calcula solo. Si pones solo el total, se reparte según la proporción de su PB.</div>
+        </div></details>`}</div>`}).join("")+(S.mode==="nadador"?"":`<div class="note">Se arma solo con los parciales de combinado cargados en Pasadas (cada 25, 50 o 100 m).</div>`)+`</section>`;
+}
+function bindIM(n){
+  const save=async(key,val,msg)=>{const metas=Object.assign({},n.metas||{});if(val)metas[key]=val;else delete metas[key];
+    if(await dbWrite(db=>db.collection("nadadores").doc(n.id).update({metas}),msg))msg.innerHTML=`<span class="up">Guardada</span>`};
+  $$("[data-imsave]").forEach(b=>b.onclick=()=>{const key=b.dataset.imsave,box=b.closest("[data-imk]"),msg=box.querySelector("[data-immsg]");
+    const sp=EST4.map((_,j)=>box.querySelector(`[data-im="${j}"]`).value.trim()),tot=box.querySelector('[data-im="total"]').value.trim();
+    const full=sp.every(x=>parseT(x)!=null);
+    if(!full&&sp.some(Boolean)){msg.innerHTML=`<span class="down">Completa los 4 parciales o deja solo el total.</span>`;return}
+    if(!full&&parseT(tot)==null){msg.innerHTML=`<span class="down">Escribe el total, por ejemplo 3:15.00.</span>`;return}
+    save(key,full?{sp,total:fmtT(sp.reduce((a,x)=>a+parseT(x),0))}:{total:tot},msg)});
+  $$("[data-imdel]").forEach(b=>b.onclick=()=>{const key=b.dataset.imdel;save(key,null,b.parentNode.querySelector("[data-immsg]"))});
+}
+
+/* ---------- MENSAJES coach ↔ nadador ---------- */
+const TIPOS={mensaje:"Mensaje",instruccion:"Instrucción",analisis:"Análisis",drill:"Drill de video",respuesta:"Respuesta"};
+const TCOL={mensaje:"var(--accent)",instruccion:"var(--z4)",analisis:"var(--zrp)",drill:"var(--rope)",respuesta:"var(--z3)"};
+const tk=n=>n.uid||("n_"+n.id);
+const fmtTs=t=>{if(!t)return "";const d=new Date(t);return d.toLocaleDateString("es-CL",{day:"2-digit",month:"short"})+" "+d.toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"})};
+const fmtShort=t=>{const d=new Date(t),n=new Date();return d.toDateString()===n.toDateString()?d.toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"}):d.toLocaleDateString("es-CL",{day:"2-digit",month:"short"})};
+const unread=(th,who)=>!!(th&&th.ultimo&&th.ultimo.de!==who&&th.ultimo.t>(who==="coach"?th.leidoCoach||0:th.leidoNad||0));
+function newCode(){const a="ABCDEFGHJKMNPQRSTUVWXYZ23456789";let s="";const r=crypto.getRandomValues(new Uint32Array(6));r.forEach(x=>s+=a[x%a.length]);return s}
+function bubbles(msgs,me){
+  if(!msgs.length)return `<div class="muted small" style="text-align:center;padding:16px">Aún no hay mensajes.</div>`;
+  return msgs.map(m=>{const mine=m.de===me;
+    return `<div class="bub ${mine?"mine":""}"><div class="bh"><span class="zb" style="background:${TCOL[m.tipo]||"var(--muted)"}">${esc(TIPOS[m.tipo]||"Mensaje")}</span><span class="date">${fmtTs(m.t)}</span>
+      ${mine&&me==="coach"?`<button class="x" data-mdel="${esc(m.id)}" aria-label="Borrar mensaje" title="Borrar">×</button>`:""}</div>
+      ${m.texto?`<div class="bt">${esc(m.texto)}</div>`:""}
+      ${m.assetId?`<div class="bv"><video src="${SC_BLOB}${esc(m.assetId)}" crossorigin="anonymous" controls playsinline preload="metadata"></video>${m.videoTit?`<div class="small muted">${esc(m.videoTit)}</div>`:""}</div>`:""}</div>`}).join("");
+}
+function subChat(key){
+  if(!S.db||(S.chat&&S.chat.key===key))return;
+  if(S.chat&&S.chat.un)try{S.chat.un()}catch(_){}
+  S.chat={key,msgs:[],ok:false};
+  S.chat.un=S.db.collection("buzon/"+key+"/msgs").orderBy("t").onSnapshot(s=>{if(!S.chat||S.chat.key!==key)return;S.chat.msgs=s.docs.map(d=>Object.assign({},d.data()||{},{id:d.id}));S.chat.ok=true;render()},
+    e=>{if(S.chat&&S.chat.key===key){S.chat.ok=true;S.chat.err=e.code;render()}});
+}
+async function sendMsg(key,m,thread,extra,msgEl){
+  m.t=Date.now();
+  const ok=await dbWrite(db=>db.collection("buzon/"+key+"/msgs").add(m),msgEl);if(!ok)return false;
+  const ultimo={t:m.t,de:m.de,txt:(m.texto||TIPOS[m.tipo]||"").slice(0,90)};
+  const leido=m.de==="coach"?{leidoCoach:m.t}:{leidoNad:m.t};
+  await dbWrite(db=>thread?db.doc("buzon/"+key).update(Object.assign({ultimo},leido,extra||{})):db.doc("buzon/"+key).set(Object.assign({ultimo,leidoCoach:0,leidoNad:0},leido,extra||{})),msgEl);
+  return true;
+}
+// vincula la solicitud de un nadador (código) con su ficha y mueve los mensajes previos
+const linking={};
+async function autoLink(){
+  if(S.mode!=="coach"||!S.db)return;
+  for(const [uid,d] of Object.entries(S.buz)){
+    if(!d.codigo||d.nadadorId||linking[uid]||uid.startsWith("n_"))continue;
+    const n=S.nad.find(x=>x.codigo&&String(x.codigo).toUpperCase()===String(d.codigo).trim().toUpperCase()&&!x.uid);
+    if(!n)continue;await linkUid(n,uid);
+  }
+}
+async function linkUid(n,uid){
+    if(linking[uid])return false;linking[uid]=1;
+    try{const db=S.db,old="n_"+n.id,od=S.buz[old]||{};
+      const snap=await db.collection("buzon/"+old+"/msgs").get();
+      for(const m of snap.docs)await db.collection("buzon/"+uid+"/msgs").doc(m.id).set(m.data()||{});
+      await db.doc("buzon/"+uid).set({nadadorId:n.id,nombre:n.nombre,ultimo:od.ultimo||null,leidoCoach:od.leidoCoach||0,leidoNad:0,vinculado:Date.now()});
+      await db.collection("nadadores").doc(n.id).update({uid,codigo:""});
+      for(const m of snap.docs)await db.collection("buzon/"+old+"/msgs").doc(m.id).delete();
+      if(S.buz[old])await db.doc("buzon/"+old).delete();
+      return true;
+    }catch(e){linking[uid]=0;return false}
+}
+R.mensajes={html(){
+  const rows=S.nad.slice().map(n=>({n,th:S.buz[tk(n)]})).sort((a,b)=>(unread(b.th,"coach")-unread(a.th,"coach"))||((b.th&&b.th.ultimo?b.th.ultimo.t:0)-(a.th&&a.th.ultimo?a.th.ultimo.t:0))||a.n.nombre.localeCompare(b.n.nombre,"es"));
+  const pend=Object.entries(S.buz).filter(([k,d])=>d.codigo&&!d.nadadorId&&!k.startsWith("n_"));
+  const linked=S.nad.filter(n=>n.uid).length;
+  return `<div class="stats"><div class="stat"><b>${linked}</b><span>Con acceso</span></div><div class="stat"><b>${S.nad.length-linked}</b><span>Sin acceso</span></div>
+    <div class="stat"><b>${rows.filter(r=>unread(r.th,"coach")).length}</b><span>Por leer</span></div><div class="stat"><b>${pend.length}</b><span>Solicitudes</span></div></div>
+  <section class="card"><h2>Mensajes</h2>
+    <div class="list">${rows.map(({n,th})=>`<a class="item" href="#chat-${encodeURIComponent(n.id)}"><span class="avatar">${esc(initials(n.nombre))}</span>
+      <div class="main"><div class="nm">${esc(n.nombre)}</div><div class="small muted">${th&&th.ultimo?(th.ultimo.de==="coach"?"Tú: ":"")+esc(th.ultimo.txt):"Sin mensajes"}</div></div>
+      <div class="side">${unread(th,"coach")?`<span class="chip mine">Nuevo</span>`:`<span class="chip">${n.uid?"Con acceso":"Sin acceso"}</span>`}${th&&th.ultimo?`<span class="date">${fmtShort(th.ultimo.t)}</span>`:""}</div></a>`).join("")
+      ||`<div class="muted small">${loading()?"Cargando…":"Agrega nadadores en Plantel."}</div>`}</div></section>
+  ${pend.length?`<section class="card"><h3>Solicitudes sin vincular</h3><div class="note">Alguien abrió SplitCoach e ingresó un código que no coincide con ningún nadador sin acceso. Genera un código nuevo en su chat y vuelve a enviárselo.</div>
+    <div class="list">${pend.map(([k,d])=>`<div class="item"><div class="main"><div class="nm" data-pname="${esc(k)}">Persona sin nombre visible</div><div class="small muted">Código ingresado: <code>${esc(d.codigo)}</code></div></div><button class="btn ghost sm" data-pdel2="${esc(k)}">Descartar</button></div>`).join("")}</div></section>`:""}`;
+},async bind(){
+  $$("[data-pdel2]").forEach(b=>b.onclick=()=>dbWrite(db=>db.doc("buzon/"+b.dataset.pdel2).delete()));
+  const ids=$$("[data-pname]").map(e=>e.dataset.pname);
+  if(ids.length&&S.user)try{const ps=await S.user.profiles(ids);$$("[data-pname]").forEach(e=>{const p=ps[e.dataset.pname];if(p&&p.name)e.textContent=p.name})}catch(_){}
+}};
+R.chat={html(){
+  const n=nadById(S.param);
+  if(!n)return `<section class="card"><a class="back" href="#mensajes">← Mensajes</a><div class="muted">${loading()?"Cargando…":"Nadador no encontrado."}</div></section>`;
+  const key=tk(n),th=S.buz[key];subChat(key);
+  const vids=S.vid.slice().sort((a,b)=>((b.nadadorId===n.id)-(a.nadadorId===n.id))||(b.fecha||"").localeCompare(a.fecha||""));
+  const inv=`Hola ${n.nombre.split(" ")[0]}: te comparto SplitCoach, la app del equipo: ${location.origin+location.pathname} . Entra con tu correo ${n.email||""} y abre el enlace que te llegará (asunto \"Your sign-in link\"), en el mismo celular o computador. Ahí verás tu ficha, mis mensajes, instrucciones, análisis y videos de drills, y podrás responderme.`;
+  return `<section class="card"><a class="back" href="#mensajes">← Mensajes</a>
+    <div class="head"><div class="row" style="gap:12px"><span class="avatar">${esc(initials(n.nombre))}</span><div><h2>${esc(n.nombre)}</h2><div class="small muted">${n.uid?"Tiene acceso: lee y responde en SplitCoach":"Aún sin acceso: los mensajes quedan guardados y los verá al vincularse"}</div></div></div>
+      <a class="btn ghost sm" href="#ficha-${encodeURIComponent(n.id)}">Ver ficha</a></div></section>
+  <section class="card"><div class="chatbox" id="chatbox">${S.chat&&S.chat.ok?(S.chat.err?`<div class="msg err">No se pudieron leer los mensajes (${esc(S.chat.err)}).</div>`:bubbles(S.chat.msgs,"coach")):`<div class="muted small">Cargando…</div>`}</div>
+    <div class="form">
+      <label>Tipo<select id="c-tipo">${["mensaje","instruccion","analisis","drill"].map(t=>`<option value="${t}" ${S.ctipo===t?"selected":""}>${TIPOS[t]}</option>`).join("")}</select></label>
+      <label>Video (opcional)<select id="c-vid"><option value="">Sin video</option>${vids.map(v=>{const vn=nadById(v.nadadorId);return `<option value="${esc(v.id)}" ${S.cvid===v.id?"selected":""}>${esc((v.prueba||"Video")+" · "+(vn?vn.nombre.split(" ")[0]:"sin nadador")+" · "+fmtD(v.fecha))}</option>`}).join("")}</select></label>
+      <label class="full">Texto<textarea id="c-txt" placeholder="Instrucción, análisis o comentario para ${esc(n.nombre.split(" ")[0])}">${esc(S.ctxt||"")}</textarea></label>
+      <div class="row full"><button class="btn" id="c-send">Enviar</button><span id="c-msg" class="small"></span></div></div>
+  </section>
+  ${n.uid?"":`<section class="card"><h3>Darle acceso</h3>
+    <ol class="small" style="margin:0;padding-left:18px;display:grid;gap:4px"><li>Guarda su correo en su ficha (sección Datos).</li><li>Envíale la invitación de abajo.</li><li>Cuando entre con ese correo queda vinculado solo: ve su ficha y esta conversación, y puede responderte.</li></ol>
+    ${n.email?`<div class="ai">${esc(inv)}</div><button class="btn ghost sm" id="c-inv" style="justify-self:start">Copiar invitación</button>`:`<a class="btn ghost sm" style="justify-self:start" href="#ficha-${encodeURIComponent(n.id)}">Agregar su correo</a>`}</section>`}`;
+},bind(){
+  const n=nadById(S.param);if(!n)return;
+  const key=tk(n),th=S.buz[key];
+  const box=$("#chatbox");if(box)box.scrollTop=box.scrollHeight;
+  if(S.chat&&S.chat.ok&&th&&th.ultimo&&th.ultimo.t>(th.leidoCoach||0)&&!S.chat.marking){S.chat.marking=1;S.db.doc("buzon/"+key).update({leidoCoach:th.ultimo.t}).catch(()=>{}).finally(()=>{if(S.chat)S.chat.marking=0})}
+  $("#c-tipo").onchange=e=>{S.ctipo=e.target.value};$("#c-vid").onchange=e=>{S.cvid=e.target.value};$("#c-txt").oninput=e=>{S.ctxt=e.target.value};
+  $("#c-send").onclick=async()=>{const m=$("#c-msg"),txt=$("#c-txt").value.trim(),vid=S.vid.find(v=>v.id===$("#c-vid").value),tipo=$("#c-tipo").value;
+    if(!txt&&!vid){m.innerHTML=`<span class="down">Escribe algo o adjunta un video.</span>`;return}
+    if(tipo==="drill"&&!vid){m.innerHTML=`<span class="down">Un drill de video necesita un video adjunto.</span>`;return}
+    $("#c-send").disabled=true;
+    const msg={de:"coach",tipo,texto:txt};if(vid){msg.assetId=vid.assetId;msg.videoTit=[vid.prueba,fmtD(vid.fecha)].filter(Boolean).join(" · ")}
+    if(await sendMsg(key,msg,th,{nadadorId:n.id,nombre:n.nombre},m)){S.ctxt="";S.cvid="";render(true)}else $("#c-send").disabled=false};
+  $$("[data-mdel]").forEach(b=>b.onclick=async()=>{if(b.dataset.c!=="1"){b.dataset.c="1";b.textContent="¿Borrar?";return}
+    await dbWrite(db=>db.collection("buzon/"+key+"/msgs").doc(b.dataset.mdel).delete())});
+  if($("#c-code"))$("#c-code").onclick=()=>dbWrite(db=>db.collection("nadadores").doc(n.id).update({codigo:newCode()}),$("#c-msg"));
+  if($("#c-inv"))$("#c-inv").onclick=e=>copyText($(".ai").textContent,e.target);
+  const q=$("#c-q");if(q&&S.user){const go=async()=>{let hits=[];try{hits=await S.user.search(q.value.trim())}catch(_){}
+      hits=(hits||[]).filter(h=>!h.isMe);const box=$("#c-hits");if(!box)return;
+      box.innerHTML=hits.length?hits.slice(0,8).map(h=>`<div class="item"><div class="main"><div class="nm"></div></div><button class="btn sm" data-link="${esc(h.id)}">Vincular</button></div>`).join(""):`<div class="muted small" style="padding:8px 0">Nadie con ese nombre tiene acceso todavía.</div>`;
+      hits.slice(0,8).forEach((h,i)=>{box.querySelectorAll(".nm")[i].textContent=h.name||"Sin nombre"});
+      box.querySelectorAll("[data-link]").forEach(b=>b.onclick=async()=>{b.disabled=true;b.textContent="Vinculando…";if(!(await linkUid(n,b.dataset.link))){b.textContent="No se pudo";}})};
+    q.onfocus=go;let tq;q.oninput=()=>{clearTimeout(tq);tq=setTimeout(go,250)}}
+}};
+/* vista del nadador: solo su conversación */
+R.yo={html(){
+  if(!S.me)return `<section class="card"><h2>SplitCoach</h2><div class="msg">Inicia sesión para ver tu ficha y tus mensajes.</div></section>`;
+  const th=S.myThread;
+  if(!S.gotThread)return emptyBox("Cargando…","");
+  if((!th||!th.nadadorId)&&S.canWrite===false)return `<section class="card"><h2>Bienvenido a SplitCoach</h2><p class="muted">Tu entrenador todavía no vincula tu cuenta. Avísale que ya entraste; apenas lo haga, aquí verás tu ficha y sus mensajes.</p></section>`;
+  if(!th||!th.nadadorId)return `<section class="card"><h2>Bienvenido a SplitCoach</h2>
+    ${th&&th.codigo?`<div class="msg">Código <code>${esc(th.codigo)}</code> enviado. Quedarás vinculado apenas tu entrenador abra SplitCoach. Si el código estaba mal, corrígelo abajo.</div>`:`<p class="muted">Ingresa el código que te envió tu entrenador para ver sus mensajes.</p>`}
+    <div class="row"><input id="y-code" class="grow" placeholder="Código" autocomplete="off" style="text-transform:uppercase;letter-spacing:.12em;font-family:var(--f-mono)" maxlength="12"><button class="btn" id="y-go">Enviar código</button></div><span id="y-msg" class="small"></span></section>`;
+  return `<section class="card"><div class="head"><div><h2>Hola, ${esc(String(th.nombre||"").split(" ")[0])}</h2><div class="small muted">Mensajes, instrucciones, análisis y drills de tu entrenador</div></div></div></section>
+  <section class="card"><div class="chatbox" id="chatbox">${S.chat&&S.chat.ok?(S.chat.err?`<div class="msg err">No se pudieron leer los mensajes (${esc(S.chat.err)}).</div>`:bubbles(S.chat.msgs,"nadador")):`<div class="muted small">Cargando…</div>`}</div>
+    ${S.canWrite===false?`<div class="note">Puedes leer los mensajes. Para responder desde aquí, tu entrenador debe darte permiso para usar la página.</div>`:`<label>Tu respuesta<textarea id="y-txt" placeholder="Escribe a tu entrenador">${esc(S.ctxt||"")}</textarea></label>
+    <div class="row"><button class="btn" id="y-send">Enviar</button><span id="y-msg" class="small"></span></div>`}</section>`;
+},bind(){
+  if($("#y-go"))$("#y-go").onclick=async()=>{const c=$("#y-code").value.trim().toUpperCase();if(c.length<4){$("#y-msg").innerHTML=`<span class="down">Revisa el código.</span>`;return}
+    await dbWrite(db=>db.doc("buzon/"+S.me).set({codigo:c,t:Date.now()}),$("#y-msg"))};
+  const th=S.myThread;if(!th||!th.nadadorId)return;
+  subChat(S.me);
+  const box=$("#chatbox");if(box)box.scrollTop=box.scrollHeight;
+  if(S.chat&&S.chat.ok&&th.ultimo&&th.ultimo.t>(th.leidoNad||0)&&!S.chat.marking){S.chat.marking=1;S.db.doc("buzon/"+S.me).update({leidoNad:th.ultimo.t}).catch(()=>{}).finally(()=>{if(S.chat)S.chat.marking=0})}
+  if(!$("#y-send"))return;
+  $("#y-txt").oninput=e=>{S.ctxt=e.target.value};
+  $("#y-send").onclick=async()=>{const txt=$("#y-txt").value.trim();if(!txt)return;$("#y-send").disabled=true;
+    if(await sendMsg(S.me,{de:"nadador",tipo:"respuesta",texto:txt},th,null,$("#y-msg"))){S.ctxt="";render(true)}else $("#y-send").disabled=false};
+}};
+
+/* ---------- FICHA DEL NADADOR (solo lectura) ---------- */
+// coach: publica en buzon/<uid>/ficha/datos lo que cada nadador vinculado puede ver de sí mismo
+let syncT=null;const fichaHash={};
+function scheduleSync(){
+  if(S.mode!=="coach"||!S.db||!S.got.nad||!S.got.res||!S.got.par||!S.got.tor)return;
+  clearTimeout(syncT);syncT=setTimeout(syncFichas,2500);
+}
+async function syncFichas(){
+  rebuildIdx();
+  for(const n of S.nad.filter(x=>x.uid)){
+    const ks=keysOf(n);
+    const payload={nombre:n.nombre||"",sexo:n.sexo||"",nacimiento:n.nacimiento||"",club:n.club||"",objetivos:n.objetivos||"",pruebasFav:n.pruebasFav||"",metas:n.metas||{},
+      res:resOf(n.nombre).filter(r=>r.seg!=null).map(r=>({prueba:r.prueba,piscina:String(r.piscina||""),seg:r.seg,tiempo:r.tiempo||"",fecha:r.fecha||"",torneo:r.torneo||"",lugar:r.lugar||null})),
+      par:S.par.filter(p=>ks.has(norm(p.nadador))).map(p=>({prueba:p.prueba,piscina:String(p.piscina||""),tramo:p.tramo,fecha:p.fecha||"",torneo:p.torneo||"",splits:p.splits||[]}))};
+    const h=JSON.stringify(payload);
+    if(fichaHash[n.uid]===undefined){try{const s=await S.db.doc("buzon/"+n.uid+"/ficha/datos").get();const d=s.exists?Object.assign({},s.data()):null;if(d)delete d.act;fichaHash[n.uid]=d?JSON.stringify(d):""}catch(_){fichaHash[n.uid]=""}}
+    if(fichaHash[n.uid]===h)continue;
+    try{await S.db.doc("buzon/"+n.uid+"/ficha/datos").set(Object.assign({},payload,{act:Date.now()}));fichaHash[n.uid]=h}catch(_){}
+  }
+}
+// nadador: arma su vista con los datos publicados
+function loadMiFicha(f){
+  const n={id:"yo",nombre:f.nombre,sexo:f.sexo,nacimiento:f.nacimiento,club:f.club,objetivos:f.objetivos,pruebasFav:f.pruebasFav,metas:f.metas||{}};
+  S.nad=[n];
+  S.res=(f.res||[]).map((r,i)=>Object.assign({id:"r"+i,nadador:n.nombre},r));
+  S.par=(f.par||[]).map((p,i)=>Object.assign({id:"p"+i,nadador:n.nombre},p));
+  S.got.res=1;
+}
+R.mificha={html(){
+  const th=S.myThread;
+  if(!S.me||!S.gotThread||!th||!th.nadadorId)return R.yo.html();
+  if(!S.gotFicha)return emptyBox("Cargando…","");
+  const n=S.nad[0];
+  if(!S.miFicha||!n)return emptyBox("Tu ficha aún no está publicada","Aparecerá aquí apenas tu entrenador abra SplitCoach. Mientras tanto puedes revisar tus mensajes.");
+  const e=edadMaster(n.nacimiento),rows=resOf(n.nombre);
+  const byP={};rows.forEach(r=>(byP[r.prueba]=byP[r.prueba]||[]).push(r));
+  const ps=Object.keys(byP).sort((a,b)=>ordPrueba(a)-ordPrueba(b));
+  const pb25=pbsOf(n.nombre,"25"),pb50=pbsOf(n.nombre,"50");
+  const cell=r=>r?`<span class="time">${fmtT(r.seg)}</span><div class="date">${fmtD(r.fecha)}</div>`:"—";
+  const prog=ps.filter(p=>byP[p].length>1).map(p=>{const rs=byP[p].slice().sort((a,b)=>(a.fecha||"").localeCompare(b.fecha||""));
+    return `<div class="ev"><div class="head"><h3>${esc(p)}</h3><span class="small muted">${rs.length} nadadas · última ${fmtT(rs[rs.length-1].seg)}</span></div>${spark(rs)}</div>`}).join("");
+  return `<section class="card"><div class="row" style="gap:14px"><span class="avatar" style="width:56px;height:56px;font-size:22px">${esc(initials(n.nombre))}</span>
+      <div class="grow"><h2>${esc(n.nombre)}</h2><div class="chips" style="margin-top:6px">${n.club?`<span class="chip">${esc(n.club)}</span>`:""}<span class="chip">${sx(n.sexo)}</span>${e!=null?`<span class="chip">${e} años · ${esc(catDe(e))}</span>`:""}</div></div></div>
+    ${S.miFicha.act?`<div class="note">Actualizada ${fmtTs(S.miFicha.act)}</div>`:""}</section>
+  ${n.objetivos?`<section class="card"><h3>Objetivos de temporada</h3><div class="bt">${esc(n.objetivos)}</div></section>`:""}
+  <section class="card"><h3>Mis mejores tiempos</h3>${ps.length?`<div class="tablewrap"><table><thead><tr><th>Prueba</th><th class="num">Piscina 25 m</th><th class="num">Piscina 50 m</th></tr></thead><tbody>
+    ${ps.map(p=>`<tr><td>${esc(p)}</td><td class="num">${cell(pb25[p])}</td><td class="num">${cell(pb50[p])}</td></tr>`).join("")}</tbody></table></div>`:`<div class="muted small">Aún no hay marcas registradas.</div>`}</section>
+  ${prog?`<section class="card"><h3>Progresión</h3><div class="note">Cada punto es una nadada; más arriba es más rápido.</div><div>${prog}</div></section>`:""}
+  ${parOf(n).length?pasadasHTML(n):""}
+  ${imHTML(n)}`;
+},bind(){if(!S.myThread||!S.myThread.nadadorId)R.yo.bind()}};
+
+/* ---------- torneos: índice liviano + carga completa bajo demanda ---------- */
+S.resDocs=[];S.torRows=[];S.fullTor=false;S.idxJSON=null;
+function mergeRes(){S.res=S.resDocs.concat(S.torRows)}
+function torRow(tid,t,r,i){return {id:"t:"+tid+":"+i,ambito:t.ambito,torneo:t.torneo,fecha:t.fecha,piscina:String(t.piscina||""),nadador:r[0],sexo:r[1],edad:r[2],categoria:r[3]||catDe(r[2]),club:r[4],prueba:r[5],tiempo:r[6],seg:parseT(r[6]),lugar:r[7]||null,tipo:"torneo",tor:tid}}
+function rowsFromIdx(d){const out=[];(d.rows||[]).forEach((x,i)=>{const t=(d.meta||{})[x[0]];if(t)out.push(torRow(x[0],t,x.slice(1),x[x.length-1]))});return out}
+function loadFullTor(){
+  if(S.fullTor||!S.db)return;S.fullTor="loading";setTimeout(()=>render(true),0);
+  S.db.collection("torneos").onSnapshot(snap=>{const rows=[],meta={};
+    snap.docs.forEach(d=>{const t=d.data()||{};const m={torneo:t.torneo||"",fecha:t.fecha||"",piscina:String(t.piscina||""),ambito:ambitoOf(t)};meta[d.id]=m;(t.rows||[]).forEach((r,i)=>rows.push(torRow(d.id,m,r,i)))});
+    S.torMeta=meta;S.torRows=rows;S.fullTor=true;mergeRes();S.got.tor=1;render();rebuildIdx()},
+    ()=>{S.fullTor=false;S.got.tor=1;render()});
+}
+async function rebuildIdx(){
+  if(S.fullTor!==true||!S.got.nad||!S.db||S.mode!=="coach")return;
+  const ks=new Set(S.nad.flatMap(n=>[...keysOf(n)]));const meta={},rows=[];
+  S.torRows.forEach(r=>{if(!ks.has(norm(r.nadador)))return;meta[r.tor]=S.torMeta[r.tor];rows.push([r.tor,r.nadador,r.sexo,r.edad,r.categoria,r.club,r.prueba,r.tiempo,r.lugar,+r.id.split(":").pop()])});
+  const j=JSON.stringify({meta,rows});if(j===S.idxJSON)return;S.idxJSON=j;
+  try{await S.db.doc("config/idxTorneos").set({meta,rows,act:Date.now()})}catch(_){}
+}
+
+/* ---------- MEJORES TIEMPOS ---------- */
+R.tiempos={html(){
+  const m=S.mt;if(m.scope!=="plantel")loadFullTor();
+  if(!S.res.length)return loading()?emptyBox("Cargando…",""):emptyBox("Sin tiempos cargados","Carga resultados de torneos en Resultados, o agrega marcas de control desde la ficha de cada nadador.");
+  const plantel=new Set(S.nad.flatMap(n=>[...keysOf(n)]));
+  let rows=S.res.filter(r=>r.seg!=null&&estiloOf(r.prueba)===m.estilo);
+  if(m.pisc)rows=rows.filter(r=>String(r.piscina)===m.pisc);
+  if(m.rama)rows=rows.filter(r=>r.sexo===m.rama);
+  if(m.scope==="plantel")rows=rows.filter(r=>plantel.has(norm(r.nadador)));
+  const dists=uniq(rows.map(r=>distOf(r.prueba))).sort((a,b)=>a-b);
+  const by={};
+  rows.forEach(r=>{const nn=nadByName(r.nadador);const k=nn?"id:"+nn.id:norm(r.nadador);const g=by[k]=by[k]||{nombre:nn?nn.nombre:r.nadador,club:r.club,pb:{}};const d=distOf(r.prueba);if(!g.pb[d]||r.seg<g.pb[d].seg)g.pb[d]=r});
+  let list=Object.values(by);
+  const sortD=dists.includes(+m.sort)?+m.sort:dists[0];
+  list.sort((a,b)=>((a.pb[sortD]||{}).seg||1e9)-((b.pb[sortD]||{}).seg||1e9)||a.nombre.localeCompare(b.nombre,"es"));
+  const colBest={};dists.forEach(d=>{colBest[d]=Math.min(...list.map(g=>g.pb[d]?g.pb[d].seg:1e9))});
+  const seg=(key,opts)=>`<div class="seg" role="group">${opts.map(([v,l])=>`<button data-mt="${key}" data-val="${v}" aria-pressed="${String(m[key])===String(v)}">${l}</button>`).join("")}</div>`;
+  const idOf=nombre=>{const n=nadByName(nombre);return n?n.id:null};
+  return `<section class="card"><h2>Mejores tiempos</h2>
+    <div class="row">${seg("estilo",ESTILOS.map(e=>[e,e]))}</div>
+    <div class="row">${seg("pisc",[["25","Piscina 25"],["50","Piscina 50"],["","Ambas"]])}${seg("rama",[["","Todos"],["F","Damas"],["M","Varones"]])}${seg("scope",[["plantel","Mi plantel"],["todos","Todos"]])}</div>
+    ${list.length?`<div class="tablewrap"><table><thead><tr><th>Nadador</th>${dists.map(d=>`<th class="num"><button data-sort="${d}">${d} m${d===sortD?" ▾":""}</button></th>`).join("")}</tr></thead><tbody>
+      ${list.map(g=>{const id=idOf(g.nombre);return `<tr class="${isMine(g)?"mine":""}"><td>${id?`<a href="#ficha-${encodeURIComponent(id)}" class="nm" style="color:inherit">${esc(g.nombre)}</a>`:`<span class="nm">${esc(g.nombre)}</span>`}<div class="small muted">${esc(g.club||"")}</div></td>
+        ${dists.map(d=>{const r=g.pb[d];return `<td class="num ${r&&r.seg===colBest[d]?"best":""}">${r?`<span class="time">${fmtT(r.seg)}</span><div class="date">${fmtD(r.fecha)}${m.pisc?"":" · "+esc(r.piscina)+"m"}</div>`:'<span class="muted">—</span>'}</td>`}).join("")}</tr>`}).join("")}
+    </tbody></table></div><div class="note">Toca una distancia para ordenar. En azul, la mejor marca de cada columna.</div>`
+    :`<div class="muted small">${m.scope==="plantel"&&!S.nad.length?"Tu plantel está vacío. Agrega nadadores o cambia a “Todos”.":"No hay tiempos para este filtro."}</div>`}
+  </section>`;
+},bind(){
+  $$("[data-mt]").forEach(b=>b.onclick=()=>{S.mt[b.dataset.mt]=b.dataset.val;render(true)});
+  $$("[data-sort]").forEach(b=>b.onclick=()=>{S.mt.sort=b.dataset.sort;render(true)});
+}};
+
+/* ---------- RESULTADOS Y RIVALES ---------- */
+const inYear=r=>!S.year||S.year==="all"||yearOf(r)===S.year;
+R.resultados={html(){
+  const ys=uniq(S.res.filter(r=>r.tipo!=="control").map(yearOf)).sort().reverse();
+  if(S.year===null||(S.year!=="all"&&!ys.includes(S.year)))S.year=ys[0]||"all";
+  const tabs=[["torneos","Torneos"],["rivales","Rankings"],["cargar","Cargar"]];
+  const head=`<div class="row" style="justify-content:space-between"><div class="seg" role="tablist">${tabs.map(([v,l])=>`<button data-rt="${v}" aria-pressed="${S.rTab===v}">${l}</button>`).join("")}</div>
+    ${S.rTab==="torneos"?`<label style="flex-direction:row;display:flex;align-items:center;gap:6px">Temporada<select id="year" style="width:auto;padding:5px 8px">${ys.map(y=>`<option ${y===S.year?"selected":""}>${y}</option>`).join("")}<option value="all" ${S.year==="all"?"selected":""}>Todas</option></select></label>`:""}</div>`;
+  return head+(S.rTab==="torneos"?torneosHTML():S.rTab==="rivales"?rivalesHTML():cargarHTML());
+},bind(){
+  $$("[data-rt]").forEach(b=>b.onclick=()=>{S.rTab=b.dataset.rt;render(true)});
+  if($("#year"))$("#year").onchange=e=>{S.year=e.target.value;render(true)};
+  if(S.rTab==="torneos")bindTorneos();else if(S.rTab==="rivales")bindRivales();else bindCargar();
+}};
+function torneosHTML(){
+  const rows=S.res.filter(r=>r.tipo!=="control"&&inYear(r));
+  const club=`<section class="card"><h3>Mi club</h3><div class="row"><input id="club" class="grow" value="${esc(S.cfg.miClub)}" placeholder="Sigla, ej. PH2OE" list="dl-club" autocomplete="off"><button class="btn" id="saveclub">Guardar</button></div>
+    <datalist id="dl-club">${uniq(S.res.map(r=>r.club)).sort().map(c=>`<option value="${esc(c)}">`).join("")}</datalist><div class="note">Se destaca en rojo en rankings y tablas.</div></section>`;
+  if(!rows.length)return (loading()?emptyBox("Cargando…",""):emptyBox("Aún no hay torneos cargados","Pega los resultados en la pestaña Cargar, o importa un respaldo desde Cuenta. También puedes pegarlos en la pestaña Cargar."))+club;
+  const T={};rows.forEach(r=>{const k=(r.fecha||"")+"|"+(r.torneo||"Sin nombre");(T[k]=T[k]||[]).push(r)});
+  const ks=Object.keys(T).sort().reverse();
+  const mine=rows.filter(isMine),pod=mine.filter(r=>r.lugar>=1&&r.lugar<=3).length;
+  return `<div class="stats"><div class="stat"><b>${ks.length}</b><span>Torneos</span></div><div class="stat"><b>${uniq(rows.map(r=>norm(r.nadador))).length}</b><span>Nadadores</span></div>
+    <div class="stat"><b>${rows.length}</b><span>Resultados</span></div><div class="stat"><b>${S.cfg.miClub?pod:"—"}</b><span>Podios mi club</span></div></div>
+    <section class="card"><h2>Torneos</h2><div class="list">${ks.map(k=>{const rs=T[k],r0=rs[0],m=rs.filter(isMine),p=[1,2,3].map(n=>m.filter(r=>r.lugar===n).length);
+      return `<div class="item"><div class="main"><div class="nm">${esc(r0.torneo||"Sin nombre")}</div><div class="small muted">${rs.length} resultados · ${uniq(rs.map(r=>r.club)).length} clubes${r0.piscina?" · "+esc(r0.piscina)+" m":""}</div></div>
+      ${S.cfg.miClub&&m.length?`<div class="row" style="gap:3px"><span class="medal m1">${p[0]}</span><span class="medal m2">${p[1]}</span><span class="medal m3">${p[2]}</span></div>`:""}<span class="date">${fmtD(r0.fecha)}</span></div>`}).join("")}</div></section>`+club;
+}
+function bindTorneos(){if($("#saveclub"))$("#saveclub").onclick=async()=>{const v=$("#club").value.trim();S.cfg.miClub=v;await dbWrite(db=>db.doc("config/app").set(Object.assign({},S.cfg,{miClub:v})));render(true)}}
+/* ---------- RANKINGS nacional / internacional ---------- */
+const ambitoOf=t=>t.ambito||(/sudamericano|mundial|panamericano|world|pan ?am/i.test(t.torneo||"")?"internacional":"nacional");
+function periodOk(r,per){
+  if(per==="all")return true;
+  if(per==="12m"){const d=Date.parse((r.fecha||"")+"T12:00:00");return d&&(Date.now()-d)/864e5<=366}
+  return yearOf(r)===per;
+}
+const swKey=r=>{const n=nadByName(r.nadador);return n?"id:"+n.id:norm(r.nadador)};
+const catR=r=>r.categoria||catDe(r.edad);
+// índice: ámbito|prueba|sexo|cat|piscina -> Map(swimmer -> {best,row})
+function rankIndex(per){
+  const ix={};
+  S.res.forEach(r=>{
+    if(r.tipo!=="torneo"||r.seg==null||!periodOk(r,per))return;
+    const k=[r.ambito,r.prueba,r.sexo,catR(r),r.piscina].join("|");
+    const m=ix[k]=ix[k]||new Map(),sk=swKey(r),cur=m.get(sk);
+    if(!cur||r.seg<cur.best)m.set(sk,{best:r.seg,row:r,n:(cur?cur.n:0)+1});else cur.n++;
+  });
+  const out={};Object.keys(ix).forEach(k=>{out[k]=[...ix[k].entries()].map(([sk,v])=>Object.assign({sk},v)).sort((a,b)=>a.best-b.best)});
+  return out;
+}
+function rivalesHTML(){
+  const v=S.rk=S.rk||{amb:"nacional",pisc:"",per:"12m",prueba:"",sexo:"",cat:"",view:"ranking"};
+  const all=S.res.filter(r=>r.tipo==="torneo"&&r.seg!=null);
+  if(!all.length)return emptyBox("Sin resultados para comparar","Carga torneos para ver rankings por prueba y categoría.");
+  const years=uniq(all.map(yearOf)).sort().reverse();
+  const segb=(key,opts)=>`<div class="seg" role="group">${opts.map(([val,l])=>`<button data-rk="${key}" data-val="${val}" aria-pressed="${String(v[key])===String(val)}">${l}</button>`).join("")}</div>`;
+  const head=`<section class="card"><div class="head"><h2>Rankings</h2>${segb("view",[["ranking","Por prueba"],["team","Mi team"]])}</div>
+    <div class="row">${segb("amb",[["nacional","Nacional"],["internacional","Internacional"]])}
+    <select id="rk-per" style="width:auto">${[["12m","Últimos 12 meses"],...years.map(y=>[y,"Temporada "+y]),["all","Todo el historial"]].map(([a,b])=>`<option value="${a}" ${v.per===a?"selected":""}>${b}</option>`).join("")}</select></div>`;
+  const ix=rankIndex(v.per);
+  if(v.view==="team")return head+teamRankHTML(ix)+`</section>`;
+  const rows=all.filter(r=>r.ambito===v.amb&&periodOk(r,v.per));
+  if(!rows.length)return head+`<div class="muted small">No hay resultados ${v.amb==="nacional"?"nacionales":"internacionales"} en este período.</div></section>`;
+  const pruebas=uniq(rows.map(r=>r.prueba)).sort((a,b)=>ordPrueba(a)-ordPrueba(b));if(!pruebas.includes(v.prueba))v.prueba=pruebas.includes("100 Libre")?"100 Libre":pruebas[0];
+  const r1=rows.filter(r=>r.prueba===v.prueba);
+  const pis=uniq(r1.map(r=>r.piscina)).sort();if(!pis.includes(v.pisc))v.pisc=pis.includes("25")?"25":pis[0];
+  const r2=r1.filter(r=>r.piscina===v.pisc);
+  const sexos=uniq(r2.map(r=>r.sexo)).sort();if(!sexos.includes(v.sexo))v.sexo=sexos[0]||"";
+  const cats=uniq(r2.filter(r=>r.sexo===v.sexo).map(catR)).sort((a,b)=>ordCat(a)-ordCat(b));
+  if(v.cat!=="todas"&&!cats.includes(v.cat)){const mine=S.nad.find(n=>n.sexo===v.sexo&&edadMaster(n.nacimiento)!=null);v.cat=mine&&cats.includes(catDe(edadMaster(mine.nacimiento)))?catDe(edadMaster(mine.nacimiento)):cats[0]||"todas"}
+  let list;
+  if(v.cat==="todas"){const m=new Map();r2.filter(r=>r.sexo===v.sexo).forEach(r=>{const k=swKey(r),c=m.get(k);if(!c||r.seg<c.best)m.set(k,{sk:k,best:r.seg,row:r,n:(c?c.n:0)+1});else c.n++});list=[...m.values()].sort((a,b)=>a.best-b.best)}
+  else list=ix[[v.amb,v.prueba,v.sexo,v.cat,v.pisc].join("|")]||[];
+  const isTeam=g=>g.sk.startsWith("id:")||isMine(g.row);
+  const opt=(a,val,l)=>a.map(x=>`<option value="${esc(x)}" ${x===val?"selected":""}>${esc(l?l(x):x)}</option>`).join("");
+  const nameOf=g=>{if(g.sk.startsWith("id:")){const n=nadById(g.sk.slice(3));if(n)return n.nombre}return g.row.nadador};
+  const allc=v.cat==="todas",shown=list.slice(0,100);
+  const teamIn=list.filter(isTeam);
+  return head+`<div class="form three"><label>Prueba<select id="rk-p">${opt(pruebas,v.prueba)}</select></label>
+      <label>Piscina<select id="rk-pi">${opt(pis,v.pisc,x=>x+" m")}</select></label>
+      <label>Rama<select id="rk-s">${opt(sexos,v.sexo,sx)}</select></label>
+      <label class="full">Categoría<select id="rk-c">${opt(cats,v.cat)}<option value="todas" ${allc?"selected":""}>Todas (absoluto)</option></select></label></div>
+    ${teamIn.length?`<div class="msg">Tu team en este ranking: ${teamIn.map(g=>`<b>${esc(nameOf(g))}</b> #${list.indexOf(g)+1}`).join(" · ")} de ${list.length}</div>`:""}
+    ${list.length?`<div class="tablewrap"><table><thead><tr><th class="num">#</th><th>Nadador</th><th>Club</th>${allc?"<th>Cat.</th>":""}<th class="num">Mejor</th><th>Torneo</th></tr></thead><tbody>
+      ${shown.map((g,i)=>`<tr class="${isTeam(g)?"mine":""}"><td class="num" style="font-family:var(--f-display);font-weight:700;font-size:18px;color:${i<3?["var(--gold)","var(--silver)","var(--bronze)"][i]:"var(--muted)"}">${i+1}</td>
+        <td><div class="nm">${esc(nameOf(g))}</div>${g.n>1?`<div class="small muted">${g.n} nadadas</div>`:""}</td><td><span class="chip ${isTeam(g)?"mine":""}">${esc(g.row.club||"—")}</span></td>
+        ${allc?`<td class="small">${esc(catR(g.row))}</td>`:""}<td class="num time">${fmtT(g.best)}</td><td class="small muted">${esc(g.row.torneo)}<div class="date">${fmtD(g.row.fecha)}</div></td></tr>`).join("")}
+    </tbody></table></div>${list.length>100?`<div class="note">Mostrando los 100 primeros de ${list.length}.</div>`:""}`:`<div class="muted small">Sin tiempos para esta selección.</div>`}
+    <div class="note">Mejor marca de cada nadador en el período, separada por piscina. Nacional: torneos en Chile. Internacional: Sudamericanos. En rojo, tu team (plantel o club ${esc(S.cfg.miClub||"—")}).</div></section>`;
+}
+function teamRankHTML(ix){
+  const v=S.rk,out=[];
+  Object.keys(ix).forEach(k=>{const [amb,prueba,sexo,cat,pis]=k.split("|");ix[k].forEach((g,i)=>{if(!g.sk.startsWith("id:"))return;
+    out.push({id:g.sk.slice(3),amb,prueba,sexo,cat,pis,best:g.best,pos:i+1,tot:ix[k].length,row:g.row})})});
+  if(!out.length)return `<div class="muted small">Ningún nadador del plantel tiene resultados de torneo en este período. Prueba con "Todo el historial".</div>`;
+  const by={};out.forEach(o=>{const k=o.id+"|"+o.prueba+"|"+o.pis+"|"+o.cat;const g=by[k]=by[k]||{id:o.id,prueba:o.prueba,pis:o.pis,cat:o.cat};g[o.amb]=o});
+  const rows=Object.values(by).sort((a,b)=>String((nadById(a.id)||{}).nombre).localeCompare(String((nadById(b.id)||{}).nombre),"es")||ordPrueba(a.prueba)-ordPrueba(b.prueba)||a.pis.localeCompare(b.pis));
+  const cell=o=>o?`<span class="${o.pos<=3?"up":""}" style="font-weight:600">#${o.pos}</span> <span class="small muted">de ${o.tot}</span><div class="time small">${fmtT(o.best)}</div>`:'<span class="muted">—</span>';
+  let last="";
+  return `<div class="tablewrap"><table><thead><tr><th>Nadador</th><th>Prueba</th><th>Pisc.</th><th>Cat.</th><th>Nacional</th><th>Internacional</th></tr></thead><tbody>
+    ${rows.map(r=>{const n=nadById(r.id)||{};const nm=n.nombre!==last?(last=n.nombre,`<a href="#ficha-${encodeURIComponent(r.id)}" class="nm" style="color:inherit">${esc(n.nombre)}</a>`):"";
+      return `<tr><td>${nm}</td><td>${esc(r.prueba)}</td><td class="small">${esc(r.pis)} m</td><td class="small">${esc(r.cat)}</td><td>${cell(r.nacional)}</td><td>${cell(r.internacional)}</td></tr>`}).join("")}
+  </tbody></table></div><div class="note">Posición en su categoría con la mejor marca del período, por piscina. Verde = podio.</div>`;
+}
+function bindRivales(){
+  $$("[data-rk]").forEach(b=>b.onclick=()=>{S.rk[b.dataset.rk]=b.dataset.val;render(true)});
+  if($("#rk-per"))$("#rk-per").onchange=e=>{S.rk.per=e.target.value;render(true)};
+  if(!$("#rk-p"))return;
+  $("#rk-p").onchange=e=>{S.rk.prueba=e.target.value;render(true)};$("#rk-pi").onchange=e=>{S.rk.pisc=e.target.value;render(true)};
+  $("#rk-s").onchange=e=>{S.rk.sexo=e.target.value;render(true)};$("#rk-c").onchange=e=>{S.rk.cat=e.target.value;render(true)};
+}
+function cargarHTML(){
+  const dl=(id,a)=>`<datalist id="${id}">${a.sort().map(x=>`<option value="${esc(x)}">`).join("")}</datalist>`;
+  return `<section class="card"><h2>Torneo</h2><div class="form">
+      <label class="full">Nombre<input id="c-torneo" list="dl-t" autocomplete="off" placeholder="V Copa Master Delfines"></label>
+      <label>Fecha<input id="c-fecha" type="date"></label><label>Piscina<select id="c-pisc"><option value="25">25 m</option><option value="50">50 m</option></select></label></div></section>
+    <section class="card"><h2>Pegar resultados</h2>
+      <div class="note">Una fila por resultado, columnas separadas por tabulación o punto y coma:<br><code>nadador; rama (F/M); edad; club; prueba; tiempo; lugar</code><br>Puedes copiar directo desde Excel. Para PDFs de HY-TEK, pídele a Claude en el chat que los convierta y pega aquí el resultado (o impórtalo desde Cuenta).</div>
+      <textarea id="c-bulk" style="font-family:var(--f-mono);font-size:13px;min-height:130px" placeholder="Ana Pérez;F;41;PH2OE;50 Libre;0:33.12;2"></textarea>
+      <div class="row"><button class="btn" id="c-go">Cargar filas</button><span id="c-msg" class="small"></span></div></section>
+    ${dl("dl-t",uniq(S.res.map(r=>r.torneo)))}`;
+}
+function mkRow(ctx,o){
+  const edad=parseInt(o.edad,10),seg=parseT(o.tiempo);
+  let prueba=String(o.prueba||"").trim().replace(/\s+/g," ").replace(/^(\d+)\s*m?\s*/i,"$1 ");
+  const pm=PRUEBAS.find(p=>norm(p)===norm(prueba));if(pm)prueba=pm;
+  const sexo=/^(f|d|dam|muj)/i.test(o.sexo)?"F":/^(m|v|var|hom)/i.test(o.sexo)?"M":String(o.sexo||"").toUpperCase();
+  return {torneo:ctx.torneo,fecha:ctx.fecha,piscina:ctx.piscina,nadador:String(o.nadador||"").trim(),sexo,edad:isNaN(edad)?null:edad,categoria:catDe(edad),club:String(o.club||"").trim(),prueba,tiempo:String(o.tiempo||"").trim(),seg,lugar:parseInt(o.lugar,10)||null};
+}
+function bindCargar(){
+  $("#c-go").onclick=async()=>{
+    const m=$("#c-msg"),ctx={torneo:$("#c-torneo").value.trim(),fecha:$("#c-fecha").value,piscina:$("#c-pisc").value};
+    if(!ctx.torneo||!ctx.fecha){m.innerHTML=`<span class="down">Completa el nombre y la fecha del torneo.</span>`;return}
+    const lines=$("#c-bulk").value.split(/\r?\n/).map(l=>l.trim()).filter(Boolean),rows=[],bad=[];
+    lines.forEach((l,i)=>{const c=l.split(/\t|;/).map(x=>x.trim());if(c.length<6){bad.push(i+1);return}
+      const r=mkRow(ctx,{nadador:c[0],sexo:c[1],edad:c[2],club:c[3],prueba:c[4],tiempo:c[5],lugar:c[6]});
+      if(!r.nadador||(r.seg==null&&!/^(nt|ns|dq|dsq|dnf)$/i.test(r.tiempo)))bad.push(i+1);else rows.push(r)});
+    if(!rows.length){m.innerHTML=`<span class="down">No encontré filas válidas${bad.length?" (revisa líneas "+bad.slice(0,8).join(", ")+")":""}.</span>`;return}
+    $("#c-go").disabled=true;let ok=0;
+    for(const r of rows){if(!await dbWrite(db=>db.collection("resultados").add(r),m))break;ok++;m.textContent="Cargando "+ok+" de "+rows.length+"…"}
+    if(ok===rows.length){m.innerHTML=`<span class="up">${ok} resultados cargados${bad.length?". Omitidas líneas "+bad.slice(0,8).join(", "):""}.</span>`;$("#c-bulk").value=""}
+    $("#c-go").disabled=false;
+  };
+}
+
+/* ---------- ENTRENOS ---------- */
+function newSession(){return {fecha:today(),titulo:"",piscina:"25",nads:S.nad.map(n=>n.id),series:[{reps:8,dist:100,estilo:"Libre",zona:"Z2",salida:"1:40",desc:""}],notas:""}}
+R.entrenos={html(){
+  if(S.ed)return editorHTML();
+  const list=S.ses.slice().sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""));
+  return `<section class="card"><div class="head"><h2>Entrenamientos</h2><button class="btn" id="e-new">Nueva sesión</button></div>
+    <div class="list">${list.map(s=>`<button class="item" data-open="${esc(s.id)}"><div class="main"><div class="nm">${esc(s.titulo||"Sesión sin título")}</div>
+      <div class="small muted">${(s.series||[]).map(x=>`${x.reps}x${x.dist} ${x.zona||""}`).join(" · ")}</div></div><span class="chip">${(volOf(s)/1000).toFixed(1)} km</span><span class="date">${fmtD(s.fecha)}</span></button>`).join("")
+      ||`<div class="muted small">${loading()?"Cargando…":"Aún no hay sesiones. Crea la primera con “Nueva sesión”."}</div>`}</div></section>
+    ${zonasHTML()}`;
+},bind(){
+  if(S.ed)return bindEditor();
+  $("#e-new").onclick=()=>{S.ed=newSession();render(true)};
+  $$("[data-open]").forEach(b=>b.onclick=()=>{const s=S.ses.find(x=>x.id===b.dataset.open);S.ed=JSON.parse(JSON.stringify(s));render(true)});
+  bindZonas();
+}};
+function zonasHTML(){
+  return `<section class="card"><details><summary style="cursor:pointer"><h3 style="display:inline">Zonas de entrenamiento</h3> <span class="small muted">% de la velocidad del PB</span></summary>
+    <div class="tablewrap" style="margin-top:10px"><table><thead><tr><th>Zona</th><th>Nombre</th><th class="num">Mín %</th><th class="num">Máx %</th></tr></thead><tbody>
+    ${zonas().map((z,i)=>`<tr><td>${zb(z.z)}</td><td><input data-zi="${i}" data-zk="n" value="${esc(z.n)}"></td><td><input data-zi="${i}" data-zk="min" type="number" value="${z.min}" style="width:76px;text-align:right"></td><td><input data-zi="${i}" data-zk="max" type="number" value="${z.max}" style="width:76px;text-align:right"></td></tr>`).join("")}
+    <tr><td>${zb("RP")}</td><td>Ritmo de carrera</td><td class="num">100</td><td class="num">100</td></tr></tbody></table></div>
+    <div class="row"><button class="btn sm" id="z-save">Guardar zonas</button><button class="btn ghost sm" id="z-reset">Restablecer</button><span id="z-msg" class="small"></span></div>
+    <div class="note">Tiempo meta = tiempo PB ajustado a la distancia ÷ %. Si no hay PB en esa distancia, se usa la más cercana del mismo estilo con la fórmula de Riegel (exponente 1,06).</div></details></section>`;
+}
+function bindZonas(){
+  const z=JSON.parse(JSON.stringify(zonas()));
+  $$("[data-zi]").forEach(i=>i.addEventListener("input",()=>{const o=z[+i.dataset.zi];o[i.dataset.zk]=i.dataset.zk==="n"?i.value:+i.value}));
+  $("#z-save").onclick=async()=>{S.cfg.zonas=z;if(await dbWrite(db=>db.doc("config/app").set(Object.assign({},S.cfg,{zonas:z})),$("#z-msg")))$("#z-msg").innerHTML=`<span class="up">Zonas guardadas</span>`};
+  $("#z-reset").onclick=async()=>{S.cfg.zonas=Z_DEF;await dbWrite(db=>db.doc("config/app").set(Object.assign({},S.cfg,{zonas:Z_DEF})));render(true)};
+}
+function editorHTML(){
+  const e=S.ed,zs=[...zonas().map(z=>z.z),"RP",...PCTS];
+  return `<section class="card"><button class="back" id="e-back">← Sesiones</button>
+    <div class="form three"><label>Fecha<input id="e-fecha" type="date" value="${esc(e.fecha)}"></label><label>Piscina<select id="e-pisc"><option value="25" ${e.piscina==="25"?"selected":""}>25 m</option><option value="50" ${e.piscina==="50"?"selected":""}>50 m</option></select></label>
+      <label>Título<input id="e-tit" value="${esc(e.titulo)}" placeholder="Umbral + velocidad"></label></div>
+    <div><div class="small muted" style="text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Nadadores</div>
+      <div class="chips">${S.nad.length?S.nad.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")).map(n=>`<label><input type="checkbox" data-nad="${esc(n.id)}" ${e.nads.includes(n.id)?"checked":""}>${esc(n.nombre)}</label>`).join(""):'<span class="small muted">Agrega nadadores en Plantel para calcular sus tiempos meta.</span>'}</div></div>
+    <div><div class="small muted" style="text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Series</div>
+    <div style="display:grid;gap:10px">${e.series.map((s,i)=>`<div class="serie">
+      <label>Reps<input type="number" min="1" data-s="${i}.reps" value="${esc(s.reps)}" inputmode="numeric"></label>
+      <label>Metros<input type="number" min="25" step="25" data-s="${i}.dist" value="${esc(s.dist)}" inputmode="numeric"></label>
+      <label class="wide">Estilo<select data-s="${i}.estilo">${[...ESTILOS,"Otro"].map(x=>`<option ${x===s.estilo?"selected":""}>${x}</option>`).join("")}</select></label>
+      <label>Zona<select data-s="${i}.zona">${zs.map(z=>`<option ${z===s.zona?"selected":""}>${z}</option>`).join("")}</select></label>
+      <label>Salida<input data-s="${i}.salida" value="${esc(s.salida)}" placeholder="1:40" inputmode="decimal"></label>
+      <button class="x" data-rm="${i}" aria-label="Quitar serie">×</button>
+      <input data-s="${i}.desc" value="${esc(s.desc)}" placeholder="Detalle (opcional): pull, aletas, descendente…" style="grid-column:1/-3">
+      <input data-s="${i}.meta" value="${esc(s.meta||"")}" placeholder="Meta fija" title="Meta fija por repetición (opcional, reemplaza la zona)" inputmode="decimal" style="grid-column:-3/-1;font-family:var(--f-mono)"></div>`).join("")}</div>
+    <div class="row" style="margin-top:10px"><button class="btn ghost sm" id="e-add">+ Serie</button><span class="grow"></span><span class="small muted" id="e-vol"></span></div></div>
+    <label>Notas de la sesión<textarea id="e-notas">${esc(e.notas)}</textarea></label>
+    <div class="row"><button class="btn" id="e-save">Guardar sesión</button><button class="btn ghost" id="e-copy">Copiar para WhatsApp</button>${e.id?'<span class="grow"></span><button class="btn ghost sm" id="e-del">Eliminar</button>':""}<span id="e-msg" class="small"></span></div>
+  </section>
+  <section class="card"><div class="head"><h2>Tiempos meta</h2><span class="small muted">según PB de cada nadador</span></div><div class="out" id="e-out"></div></section>`;
+}
+function targetsFor(s,e){
+  return e.nads.map(id=>nadById(id)).filter(Boolean).map(n=>{
+    if(!ESTILOS.includes(s.estilo))return {n,none:"—"};
+    const ref=refPB(n.nombre,s.estilo,+s.dist,e.piscina),mt=parseT(s.meta);
+    if(!ref&&mt==null)return {n,none:"Sin PB en "+s.estilo};
+    const rg=mt!=null?[mt,mt]:zoneRange(ref.t,s.zona);if(!rg)return {n,none:"Zona sin definir"};
+    const sal=parseT(s.salida);
+    return {n,ref,rg,rest:sal!=null?sal-rg[1]:null};
+  });
+}
+function edOut(){
+  const e=S.ed,o=$("#e-out");if(!o)return;
+  $("#e-vol").textContent="Volumen "+volOf(e).toLocaleString("es-CL")+" m";
+  if(!e.nads.length){o.innerHTML=`<div class="muted small">Selecciona nadadores para ver sus tiempos meta.</div>`;return}
+  o.innerHTML=e.series.map(s=>{
+    const t=targetsFor(s,e);
+    return `<div><h3>${esc(s.reps)}x${esc(s.dist)} ${esc(s.estilo)} ${zb(s.zona)} <span class="small muted" style="font-family:var(--f-body)">${s.salida?"@ "+esc(s.salida):""}</span></h3>
+    <div class="tablewrap"><table><thead><tr><th>Nadador</th><th class="num">Meta por rep</th><th class="num">Descanso</th><th>Referencia</th></tr></thead><tbody>
+    ${t.map(x=>`<tr><td class="nm">${esc(x.n.nombre)}</td>${x.none?`<td class="num muted" colspan="3" style="text-align:left">${esc(x.none)}</td>`:
+      `<td class="num time">${x.rg[0]===x.rg[1]?fmtT(x.rg[0]):fmtT(x.rg[0],1)+" – "+fmtT(x.rg[1],1)}</td><td class="num small ${x.rest!=null&&x.rest<5?"down":""}">${x.rest!=null?"~"+Math.max(0,Math.round(x.rest))+" s":"—"}</td>
+      <td class="small muted">${parseT(s.meta)!=null?"Meta fija"+(x.ref?" · PB "+x.ref.d+" "+esc(s.estilo)+" "+fmtT(x.ref.r.seg):""):`PB ${x.ref.d} ${esc(s.estilo)} ${fmtT(x.ref.r.seg)} (${esc(x.ref.r.piscina)}m)${x.ref.exact?"":" · ajustado"}`}</td>`}</tr>`).join("")}</tbody></table></div></div>`}).join("");
+}
+function sessionText(e){
+  const lines=[`*${e.titulo||"Entrenamiento"}* · ${fmtD(e.fecha)} · ${e.piscina} m`];
+  e.series.forEach(s=>{lines.push(`\n${s.reps}x${s.dist} ${s.estilo} ${s.zona}${s.salida?" @"+s.salida:""}${s.desc?" ("+s.desc+")":""}`);
+    targetsFor(s,e).forEach(x=>{if(!x.none)lines.push(`  ${x.n.nombre}: ${x.rg[0]===x.rg[1]?fmtT(x.rg[0]):fmtT(x.rg[0],1)+"–"+fmtT(x.rg[1],1)}`)})});
+  lines.push(`\nTotal ${volOf(e)} m`);if(e.notas)lines.push(e.notas);return lines.join("\n");
+}
+function bindEditor(){
+  const e=S.ed;
+  $("#e-back").onclick=()=>{S.ed=null;render(true)};
+  $("#e-fecha").oninput=x=>e.fecha=x.target.value;$("#e-pisc").onchange=x=>{e.piscina=x.target.value;edOut()};
+  $("#e-tit").oninput=x=>e.titulo=x.target.value;$("#e-notas").oninput=x=>e.notas=x.target.value;
+  $$("[data-nad]").forEach(c=>c.onchange=()=>{const id=c.dataset.nad;e.nads=c.checked?uniq([...e.nads,id]):e.nads.filter(x=>x!==id);edOut()});
+  $$("[data-s]").forEach(i=>{const h=()=>{const [ix,k]=i.dataset.s.split(".");e.series[+ix][k]=["reps","dist"].includes(k)?+i.value:i.value;edOut()};i.addEventListener("input",h);i.addEventListener("change",h)});
+  $$("[data-rm]").forEach(b=>b.onclick=()=>{e.series.splice(+b.dataset.rm,1);if(!e.series.length)e.series.push({reps:4,dist:50,estilo:"Libre",zona:"Z2",salida:"",desc:""});render(true)});
+  $("#e-add").onclick=()=>{const l=e.series[e.series.length-1]||{};e.series.push({reps:4,dist:50,estilo:l.estilo||"Libre",zona:"Z3",salida:"",desc:""});render(true)};
+  $("#e-copy").onclick=ev=>copyText(sessionText(e),ev.target);
+  $("#e-save").onclick=async()=>{const d=JSON.parse(JSON.stringify(e));const id=d.id;delete d.id;d.vol=volOf(d);
+    const ok=await dbWrite(db=>id?db.collection("sesiones").doc(id).set(d):db.collection("sesiones").add(d).then(ref=>{e.id=ref.id}),$("#e-msg"));
+    if(ok){S.ev=null;$("#e-msg").innerHTML=`<span class="up">Sesión guardada</span>`}};
+  if($("#e-del"))$("#e-del").onclick=async ev=>{const b=ev.target;if(b.dataset.c!=="1"){b.dataset.c="1";b.textContent="¿Eliminar sesión?";b.className="btn danger sm";return}
+    if(await dbWrite(db=>db.collection("sesiones").doc(e.id).delete(),$("#e-msg"))){S.ed=null;render(true)}};
+  edOut();
+}
+
+/* ---------- RESUMEN DE ENTRENAMIENTO ---------- */
+R.resumen={html(){
+  const list=S.ses.slice().sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""));
+  if(!list.length)return loading()?emptyBox("Cargando…",""):emptyBox("Sin sesiones registradas","Crea sesiones en Entrenos. Aquí registras sensaciones, feedback y FODA, y ves la carga en gráficos.");
+  // gráficos
+  const weeks={};list.forEach(s=>{const w=weekStart(s.fecha);if(w)weeks[w]=(weeks[w]||0)+volOf(s)});
+  const now=weekStart(today()),wk=[];for(let i=7;i>=0;i--){const d=new Date(now+"T12:00:00");d.setDate(d.getDate()-7*i);const k=d.toISOString().slice(0,10);wk.push({label:k.slice(8,10)+"/"+k.slice(5,7),value:Math.round((weeks[k]||0)/100)/10})}
+  const zt={};list.filter(s=>(Date.now()-Date.parse(s.fecha+"T12:00:00"))/864e5<=28).forEach(s=>(s.series||[]).forEach(x=>{const zk=zoneKey(x.zona);zt[zk]=(zt[zk]||0)+(+x.reps||0)*(+x.dist||0)}));
+  const zkeys=[...zonas().map(z=>z.z),"RP"].filter(z=>zt[z]),ztot=zkeys.reduce((a,z)=>a+zt[z],0);
+  const rpe=list.filter(s=>s.resumen&&s.resumen.rpe).slice(0,12).reverse().map(s=>({v:+s.resumen.rpe,label:fmtD(s.fecha).slice(0,5)}));
+  if(!S.rsel||!list.some(s=>s.id===S.rsel))S.rsel=list[0].id;
+  const s=list.find(x=>x.id===S.rsel);
+  if(!S.rd||S.rd.sid!==s.id){const r=s.resumen||{};S.rd={sid:s.id,rpe:r.rpe||5,sens:JSON.parse(JSON.stringify(r.sens||{})),feedback:r.feedback||"",foda:Object.assign({f:"",o:"",d:"",a:""},r.foda||{})}}
+  const d=S.rd,nads=(s.nads||[]).map(nadById).filter(Boolean);
+  return `<section class="card"><h2>Carga de entrenamiento</h2>
+      <div><h3 style="font-size:16px">Volumen semanal (km)</h3>${barChart(wk,{fmt:v=>v.toFixed(1)})}</div>
+      ${ztot?`<div><h3 style="font-size:16px">Distribución por zona · últimos 28 días</h3>
+        <div style="display:flex;height:22px;border-radius:6px;overflow:hidden;margin-top:8px">${zkeys.map(z=>`<div style="width:${zt[z]/ztot*100}%;background:${ZCOL[z]}" title="${z}"></div>`).join("")}</div>
+        <div class="legend" style="margin-top:6px">${zkeys.map(z=>`<span><i style="background:${ZCOL[z]}"></i>${z} ${Math.round(zt[z]/ztot*100)}% · ${(zt[z]/1000).toFixed(1)} km</span>`).join("")}</div></div>`:""}
+      ${rpe.length>1?`<div><h3 style="font-size:16px">Esfuerzo percibido (RPE)</h3>${lineChart(rpe,{min:0,max:10})}</div>`:""}
+    </section>
+    <section class="card"><div class="head"><h2>Sesión</h2><select id="r-sel" style="width:auto;max-width:100%">${list.map(x=>`<option value="${esc(x.id)}" ${x.id===s.id?"selected":""}>${fmtD(x.fecha)} · ${esc(x.titulo||"Sesión")}</option>`).join("")}</select></div>
+      <div class="kpi"><div><b>${(volOf(s)/1000).toFixed(2)}</b><span>km</span></div><div><b>${(s.series||[]).length}</b><span>Series</span></div><div><b>${nads.length}</b><span>Nadadores</span></div><div><b>${esc(s.piscina||"—")} m</b><span>Piscina</span></div></div>
+      <div class="list">${(s.series||[]).map(x=>`<div class="item"><div class="main"><span class="time">${esc(x.reps)}x${esc(x.dist)}</span> ${esc(x.estilo)} ${x.salida?`<span class="muted">@ ${esc(x.salida)}</span>`:""}${x.desc?`<div class="small muted">${esc(x.desc)}</div>`:""}</div>${zb(x.zona)}</div>`).join("")}</div>
+      ${s.notas?`<div class="note">${esc(s.notas)}</div>`:""}
+      <a class="back" href="#entrenos" id="r-edit">Editar sesión →</a></section>
+    <section class="card"><h3>Sensaciones</h3>
+      <label>RPE general de la sesión<div class="rpe"><input type="range" min="1" max="10" id="r-rpe" value="${d.rpe}"><output id="r-rpeo">${d.rpe}</output></div></label>
+      <div>${nads.map(n=>{const x=d.sens[n.id]||{};return `<div class="sens"><div class="nm">${esc(n.nombre)}</div><select data-sr="${esc(n.id)}" aria-label="RPE ${esc(n.nombre)}"><option value="">RPE —</option>${[1,2,3,4,5,6,7,8,9,10].map(v=>`<option ${+x.rpe===v?"selected":""}>${v}</option>`).join("")}</select>
+        <input class="full" data-st="${esc(n.id)}" value="${esc(x.txt||"")}" placeholder="Cómo se sintió, técnica, molestias…"></div>`}).join("")||'<div class="muted small">Esta sesión no tiene nadadores asignados.</div>'}</div></section>
+    <section class="card"><h3>Feedback del entrenador</h3><textarea id="r-fb" placeholder="Qué funcionó, qué ajustar para la próxima sesión">${esc(d.feedback)}</textarea></section>
+    <section class="card"><div class="head"><h3>FODA</h3>${S.sample?'<button class="btn ghost sm" id="r-ai">Sugerir con Claude</button>':""}</div>
+      <div class="foda">${[["f","Fortalezas"],["o","Oportunidades"],["d","Debilidades"],["a","Amenazas"]].map(([k,l])=>`<label class="${k}">${l}<textarea data-fo="${k}">${esc(d.foda[k])}</textarea></label>`).join("")}</div>
+      <div id="r-aimsg" class="small"></div></section>
+    <div class="row"><button class="btn" id="r-save">Guardar resumen</button><button class="btn ghost" id="r-copy">Copiar resumen</button><span id="r-msg" class="small"></span></div>`;
+},bind(){
+  if(!S.rd)return;const d=S.rd;
+  $("#r-sel").onchange=e=>{S.rsel=e.target.value;S.rd=null;render(true)};
+  $("#r-edit").onclick=()=>{const s=S.ses.find(x=>x.id===S.rsel);if(s)S.ed=JSON.parse(JSON.stringify(s))};
+  $("#r-rpe").oninput=e=>{d.rpe=+e.target.value;$("#r-rpeo").textContent=d.rpe};
+  $$("[data-sr]").forEach(i=>i.onchange=()=>{const k=i.dataset.sr;d.sens[k]=Object.assign({},d.sens[k],{rpe:i.value?+i.value:null})});
+  $$("[data-st]").forEach(i=>i.oninput=()=>{const k=i.dataset.st;d.sens[k]=Object.assign({},d.sens[k],{txt:i.value})});
+  $("#r-fb").oninput=e=>d.feedback=e.target.value;
+  $$("[data-fo]").forEach(i=>i.oninput=()=>d.foda[i.dataset.fo]=i.value);
+  const s=()=>S.ses.find(x=>x.id===d.sid);
+  $("#r-save").onclick=async()=>{const r={rpe:d.rpe,sens:d.sens,feedback:d.feedback,foda:d.foda};
+    if(await dbWrite(db=>db.collection("sesiones").doc(d.sid).update({resumen:r}),$("#r-msg")))$("#r-msg").innerHTML=`<span class="up">Resumen guardado</span>`};
+  $("#r-copy").onclick=e=>{const x=s();const t=[`*Resumen ${x.titulo||"sesión"}* · ${fmtD(x.fecha)} · ${volOf(x)} m · RPE ${d.rpe}`,d.feedback?"\nFeedback: "+d.feedback:"",
+      d.foda.f?"\nFortalezas: "+d.foda.f:"",d.foda.o?"\nOportunidades: "+d.foda.o:"",d.foda.d?"\nDebilidades: "+d.foda.d:"",d.foda.a?"\nAmenazas: "+d.foda.a:""].join("");copyText(t,e.target)};
+  if($("#r-ai"))$("#r-ai").onclick=async ev=>{
+    const b=ev.target,m=$("#r-aimsg"),x=s();b.disabled=true;m.textContent="Pensando…";
+    const nads=(x.nads||[]).map(nadById).filter(Boolean);
+    const prompt=`Eres asistente de un entrenador de natación Master. Con los datos de esta sesión, propone un análisis FODA breve y concreto (máx. 3 puntos por cuadrante, frases cortas, en español de Chile).
+Sesión: ${x.titulo||"sin título"}, ${x.fecha}, piscina ${x.piscina} m, volumen ${volOf(x)} m.
+Series: ${(x.series||[]).map(z=>`${z.reps}x${z.dist} ${z.estilo} ${z.zona}${z.salida?" @"+z.salida:""}${z.desc?" ("+z.desc+")":""}`).join("; ")}.
+Notas: ${x.notas||"—"}
+RPE general: ${d.rpe}/10.
+Sensaciones: ${nads.map(n=>{const y=d.sens[n.id]||{};return `${n.nombre}: RPE ${y.rpe||"—"}, ${y.txt||"sin comentario"}`}).join(" | ")||"—"}
+Feedback del entrenador: ${d.feedback||"—"}
+Responde solo JSON: {"f":["..."],"o":["..."],"d":["..."],"a":["..."]}`;
+    try{const r=await S.sample.json(prompt,{cache:false});
+      ["f","o","d","a"].forEach(k=>{const add=(Array.isArray(r[k])?r[k]:[]).map(v=>"• "+String(v)).join("\n");if(add){d.foda[k]=(d.foda[k]?d.foda[k].trim()+"\n":"")+add;const t=$(`[data-fo="${k}"]`);if(t)t.value=d.foda[k]}});
+      m.innerHTML=`<span class="up">Sugerencias agregadas. Revísalas y guarda.</span>`}
+    catch(e){m.innerHTML=`<span class="down">${e.code==="not_granted"?"Claude no está habilitado para esta app.":e.code==="rate_limited"?"Demasiadas consultas, intenta en un momento.":"No se pudo generar la sugerencia."}</span>`}
+    b.disabled=false};
+}};
+
+
+/* ---------- EVOLUCIÓN (tiempos reales) ---------- */
+function statsOf(txt,ref,zona,meta){
+  const ts=String(txt||"").split(/[\/\s,;]+/).map(parseT).filter(x=>x!=null);
+  if(!ts.length)return null;
+  const avg=ts.reduce((a,b)=>a+b,0)/ts.length,sd=Math.sqrt(ts.reduce((a,b)=>a+(b-avg)*(b-avg),0)/ts.length);
+  const rg=meta!=null?[meta,meta]:ref?zoneRange(ref,zona):null,tol=rg&&rg[0]===rg[1]?rg[0]*0.02:0.05;
+  return {ts,avg,sd,best:Math.min(...ts),worst:Math.max(...ts),drop:ts[ts.length-1]-ts[0],pctAvg:ref?ref/avg*100:null,pctBest:ref?ref/Math.min(...ts)*100:null,rg,inR:rg?ts.filter(t=>t>=rg[0]-tol&&t<=rg[1]+tol).length:null};
+}
+function statCell(st,ref){
+  if(!st)return `<span class="muted small">Escribe los tiempos separados por /</span>`;
+  const r=st.rg;
+  return `<div class="kpi" style="grid-template-columns:repeat(auto-fit,minmax(86px,1fr))">
+    <div><b>${fmtT(st.avg)}</b><span>Promedio</span></div>
+    <div><b>${st.pctAvg?st.pctAvg.toFixed(0)+"%":"—"}</b><span>% vel. PB</span></div>
+    <div><b class="${st.drop>0.5?"down":st.drop<-0.5?"up":""}">${st.drop>0?"+":""}${st.drop.toFixed(1)} s</b><span>Última vs 1ª</span></div>
+    <div><b>±${st.sd.toFixed(1)}</b><span>Regularidad</span></div>
+    ${r?`<div><b>${st.inR}/${st.ts.length}</b><span>En meta ${r[0]===r[1]?fmtT(r[0],1):fmtT(r[0],1)+"–"+fmtT(r[1],1)}</span></div>`:""}</div>`;
+}
+R.evolucion={html(){
+  const list=S.ses.slice().sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""));
+  if(!list.length)return loading()?emptyBox("Cargando…",""):emptyBox("Sin sesiones","Crea una sesión en Entrenos y luego registra aquí los tiempos reales de cada serie.");
+  if(!S.ev||!list.some(x=>x.id===S.ev.sid)){const s0=list[0];S.ev={sid:s0.id,series:JSON.parse(JSON.stringify(s0.series||[]))}}
+  const s=list.find(x=>x.id===S.ev.sid),ev=S.ev,nads=(s.nads||[]).map(nadById).filter(Boolean);
+  const reg=`<section class="card"><div class="head"><h2>Tiempos reales</h2><select id="ev-sel" style="width:auto;max-width:100%">${list.map(x=>`<option value="${esc(x.id)}" ${x.id===s.id?"selected":""}>${fmtD(x.fecha)} · ${esc(x.titulo||"Sesión")}</option>`).join("")}</select></div>
+    ${ev.series.map((se,i)=>`<div class="ev"><h3>${esc(se.reps)}x${esc(se.dist)} ${esc(se.estilo)} ${zb(se.zona)} ${se.salida?`<span class="small muted" style="font-family:var(--f-body)">@ ${esc(se.salida)}</span>`:""}</h3>${se.desc?`<div class="small muted">${esc(se.desc)}</div>`:""}
+      ${nads.map(n=>{const ref=ESTILOS.includes(se.estilo)?refPB(n.nombre,se.estilo,+se.dist,s.piscina):null;const v=(se.reales||{})[n.id]||"";
+        return `<div style="display:grid;gap:6px;padding-top:6px"><label>${esc(n.nombre)}${ref?` <span class="muted" style="text-transform:none;letter-spacing:0">· ref. ${fmtT(ref.t)}</span>`:""}<input data-rt="${i}|${esc(n.id)}" value="${esc(v)}" placeholder="18/19/18/18" inputmode="decimal" style="font-family:var(--f-mono)"></label>
+          <div id="st-${i}-${esc(n.id)}">${statCell(statsOf(v,ref&&ref.t,se.zona,parseT(se.meta)))}</div></div>`}).join("")||'<div class="muted small">Esta sesión no tiene nadadores asignados. Agrégalos en Entrenos.</div>'}</div>`).join("")}
+    <div class="row"><button class="btn" id="ev-save">Guardar tiempos</button><span id="ev-msg" class="small"></span></div></section>`;
+  // evolución
+  const pts=[];S.ses.forEach(x=>(x.series||[]).forEach(se=>Object.entries(se.reales||{}).forEach(([nid,txt])=>{const n=nadById(nid);if(!n||!ESTILOS.includes(se.estilo))return;
+    const ref=refPB(n.nombre,se.estilo,+se.dist,x.piscina),st=statsOf(txt,ref&&ref.t,se.zona);if(st)pts.push({nid,n,fecha:x.fecha,se,st,ses:x})})));
+  const ns=uniq(pts.map(p=>p.nid));
+  if(!S.evf||!ns.includes(S.evf.nid))S.evf={nid:ns[0]||"",estilo:"",dist:""};
+  const f=S.evf,mine=pts.filter(p=>p.nid===f.nid);
+  const ests=uniq(mine.map(p=>p.se.estilo));if(f.estilo&&!ests.includes(f.estilo))f.estilo="";
+  const dists=uniq(mine.filter(p=>!f.estilo||p.se.estilo===f.estilo).map(p=>+p.se.dist)).sort((a,b)=>a-b);if(f.dist&&!dists.includes(+f.dist))f.dist="";
+  const sel=mine.filter(p=>(!f.estilo||p.se.estilo===f.estilo)&&(!f.dist||+p.se.dist===+f.dist)).sort((a,b)=>(a.fecha||"").localeCompare(b.fecha||""));
+  const byDay={};sel.forEach(p=>{if(p.st.pctAvg==null)return;(byDay[p.fecha]=byDay[p.fecha]||[]).push(p.st.pctAvg)});
+  const cpts=Object.keys(byDay).sort().map(d=>({label:fmtD(d).slice(0,5),v:byDay[d].reduce((a,b)=>a+b,0)/byDay[d].length}));
+  const lo=cpts.length?Math.floor(Math.min(...cpts.map(p=>p.v))/5)*5-5:60,hi=cpts.length?Math.ceil(Math.max(...cpts.map(p=>p.v))/5)*5+5:100;
+  const evo=`<section class="card"><h2>Evolución</h2>
+    ${ns.length?`<div class="form three"><label>Nadador<select id="evf-n">${ns.map(id=>`<option value="${esc(id)}" ${id===f.nid?"selected":""}>${esc((nadById(id)||{}).nombre)}</option>`).join("")}</select></label>
+      <label>Estilo<select id="evf-e"><option value="">Todos</option>${ests.map(e=>`<option ${e===f.estilo?"selected":""}>${e}</option>`).join("")}</select></label>
+      <label>Distancia rep<select id="evf-d"><option value="">Todas</option>${dists.map(d=>`<option value="${d}" ${+f.dist===d?"selected":""}>${d} m</option>`).join("")}</select></label></div>
+      ${cpts.length>1?`<div><h3 style="font-size:16px">% de velocidad del PB, promedio por día</h3>${lineChart(cpts,{min:Math.max(0,lo),max:Math.min(110,hi),fmt:v=>Math.round(v)+"%"})}</div>`:`<div class="note">Con dos o más días registrados aparece el gráfico de evolución.</div>`}
+      <div class="tablewrap"><table><thead><tr><th>Fecha</th><th>Serie</th><th>Tiempos</th><th class="num">Prom.</th><th class="num">% PB</th><th class="num">Caída</th></tr></thead><tbody>
+      ${sel.slice().reverse().map(p=>`<tr><td class="date">${fmtD(p.fecha)}</td><td class="small">${esc(p.se.reps)}x${esc(p.se.dist)} ${esc(p.se.estilo)} ${zb(p.se.zona)}</td><td class="time small">${p.st.ts.map(t=>fmtT(t,Math.abs(t-Math.round(t))<1e-6?0:1)).join("/")}</td>
+        <td class="num time">${fmtT(p.st.avg,1)}</td><td class="num">${p.st.pctAvg!=null?p.st.pctAvg.toFixed(0)+"%":"—"}</td><td class="num ${p.st.drop>0.5?"down":p.st.drop<-0.5?"up":""}">${p.st.drop>0?"+":""}${p.st.drop.toFixed(1)}</td></tr>`).join("")}</tbody></table></div>
+      <div class="note">% de velocidad del PB = tiempo de referencia ÷ tiempo nadado. Caída = última repetición menos la primera (rojo = más lento al final).</div>`
+    :`<div class="muted small">Aún no hay tiempos reales registrados.</div>`}</section>`;
+  return reg+evo;
+},bind(){
+  if(!S.ev)return;const ev=S.ev;
+  $("#ev-sel").onchange=e=>{const x=S.ses.find(y=>y.id===e.target.value);S.ev={sid:x.id,series:JSON.parse(JSON.stringify(x.series||[]))};render(true)};
+  $$("[data-rt]").forEach(i=>i.addEventListener("input",()=>{const [si,nid]=i.dataset.rt.split("|");const se=ev.series[+si];se.reales=Object.assign({},se.reales,{[nid]:i.value});
+    const s=S.ses.find(y=>y.id===ev.sid),n=nadById(nid),ref=ESTILOS.includes(se.estilo)?refPB(n.nombre,se.estilo,+se.dist,s.piscina):null;
+    const box=document.getElementById("st-"+si+"-"+nid);if(box)box.innerHTML=statCell(statsOf(i.value,ref&&ref.t,se.zona,parseT(se.meta)))}));
+  $("#ev-save").onclick=async()=>{const series=JSON.parse(JSON.stringify(ev.series));
+    if(await dbWrite(db=>db.collection("sesiones").doc(ev.sid).update({series}),$("#ev-msg")))$("#ev-msg").innerHTML=`<span class="up">Tiempos guardados</span>`};
+  if($("#evf-n")){$("#evf-n").onchange=e=>{S.evf.nid=e.target.value;render(true)};$("#evf-e").onchange=e=>{S.evf.estilo=e.target.value;S.evf.dist="";render(true)};$("#evf-d").onchange=e=>{S.evf.dist=e.target.value;render(true)}}
+}};
+
+/* ---------- CALCULADORA ---------- */
+R.calculadora={html(){
+  const c=S.calc,dp=S.dps,sp=S.split;
+  return `<section class="card"><div class="head"><h2>Race pace y zonas</h2></div>
+    <div class="form three">
+      <label class="full">Nadador (opcional)<select id="c-nad"><option value="">Ingresar PB a mano</option>${S.nad.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")).map(n=>`<option value="${esc(n.id)}" ${c.nad===n.id?"selected":""}>${esc(n.nombre)}</option>`).join("")}</select></label>
+      <label>Estilo<select id="c-est">${ESTILOS.map(e=>`<option ${e===c.estilo?"selected":""}>${e}</option>`).join("")}</select></label>
+      <label>Distancia PB<select id="c-dist">${[50,100,200,400,800,1500].map(d=>`<option value="${d}" ${+c.dist===d?"selected":""}>${d} m</option>`).join("")}</select></label>
+      <label>Tiempo PB<input id="c-pb" value="${esc(c.pb)}" inputmode="decimal" placeholder="1:24.00"></label>
+      <label class="full">Series de hoy (una por línea)<textarea id="c-sets" style="font-family:var(--f-mono);min-height:90px">${esc(c.sets)}</textarea></label>
+    </div><div id="c-src" class="note"></div><div id="c-out" class="out"></div></section>
+  <section class="card"><h2>Distancia por brazada</h2>
+    <div class="form three">
+      <label>Largo<select id="d-largo"><option value="25" ${dp.largo==25?"selected":""}>25 m</option><option value="50" ${dp.largo==50?"selected":""}>50 m</option></select></label>
+      <label>Cuento<select id="d-cuenta"><option value="ciclos" ${dp.cuenta==="ciclos"?"selected":""}>Ciclos (2 brazos)</option><option value="brazadas" ${dp.cuenta==="brazadas"?"selected":""}>Brazadas (cada brazo)</option></select></label>
+      <label>Subacuático / impulso (m)<input id="d-sub" type="number" min="0" max="15" step="0.5" value="${dp.sub}"></label>
+      <label class="full">Largos: tiempo ; ciclos (uno por línea)<textarea id="d-txt" style="font-family:var(--f-mono)">${esc(dp.txt)}</textarea></label>
+    </div><div id="d-out"></div></section>
+  <section class="card"><h2>Parciales parejos</h2>
+    <div class="form three"><label>Distancia<input id="s-dist" type="number" step="25" min="50" value="${sp.dist}"></label><label>Tiempo meta<input id="s-t" value="${esc(sp.t)}" inputmode="decimal"></label>
+      <label>Cada<select id="s-tr">${[25,50,100].map(v=>`<option ${+sp.tramo===v?"selected":""}>${v}</option>`).join("")}</select></label></div><div id="s-out"></div></section>
+  <section class="card"><div class="head"><h2>Conversor de pace</h2></div>
+    <h3>Tiempo → pace</h3>
+    <div class="form three"><label>Distancia (m)<input id="p-d1" type="number" min="25" step="25" value="${S.pace.d1}"></label><label>Tiempo<input id="p-t1" value="${esc(S.pace.t1)}" inputmode="decimal" placeholder="2:30.00"></label></div><div id="p-o1"></div>
+    <h3 style="margin-top:14px">Pace → tiempo total</h3>
+    <div class="form three"><label>Distancia (m)<input id="p-d2" type="number" min="25" step="25" value="${S.pace.d2}"></label><label>Pace /100<input id="p-p2" value="${esc(S.pace.p2)}" inputmode="decimal" placeholder="1:30.00"></label></div><div id="p-o2"></div>
+    <h3 style="margin-top:14px">% de cumplimiento</h3>
+    <div class="form three"><label>Tiempo objetivo<input id="p-obj" value="${esc(S.pace.obj)}" inputmode="decimal"></label><label>Tiempo real (uno o varios: 1:31/1:30/1:32)<input id="p-real" value="${esc(S.pace.real)}" inputmode="decimal"></label></div><div id="p-o3"></div>
+    <details style="margin-top:14px"><summary class="small"><b>Tabla rápida de paces</b> (0:45 a 2:30 por 100)</summary>${paceTableHTML()}</details></section>
+  <section class="card"><div class="head"><h2>Intensidades % del plantel</h2></div>
+    <div class="form three">
+      <label>Estilo<select id="i-est">${ESTILOS.map(e=>`<option ${e===S.int.estilo?"selected":""}>${e}</option>`).join("")}</select></label>
+      <label>Piscina<select id="i-pis"><option value="25" ${S.int.pisc==="25"?"selected":""}>25 m</option><option value="50" ${S.int.pisc==="50"?"selected":""}>50 m</option></select></label>
+      <label>Nadador<select id="i-nad"><option value="">Todo el plantel</option>${S.nad.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")).map(n=>`<option value="${esc(n.id)}" ${S.int.nad===n.id?"selected":""}>${esc(n.nombre)}</option>`).join("")}</select></label>
+    </div><div id="i-out"></div></section>`;
+},bind(){
+  const c=S.calc,dp=S.dps,sp=S.split;
+  const fill=()=>{if(!c.nad)return;const n=nadById(c.nad);if(!n)return;const pb=pbsOf(n.nombre)[c.dist+" "+c.estilo];if(pb){c.pb=fmtT(pb.seg);$("#c-pb").value=c.pb}};
+  $("#c-nad").onchange=e=>{c.nad=e.target.value;fill();calcRP()};
+  $("#c-est").onchange=e=>{c.estilo=e.target.value;fill();calcRP()};
+  $("#c-dist").onchange=e=>{c.dist=+e.target.value;fill();calcRP()};
+  $("#c-pb").oninput=e=>{c.pb=e.target.value;calcRP()};$("#c-sets").oninput=e=>{c.sets=e.target.value;calcRP()};
+  $("#d-largo").onchange=e=>{dp.largo=+e.target.value;calcDPS()};$("#d-cuenta").onchange=e=>{dp.cuenta=e.target.value;calcDPS()};
+  $("#d-sub").oninput=e=>{dp.sub=+e.target.value;calcDPS()};$("#d-txt").oninput=e=>{dp.txt=e.target.value;calcDPS()};
+  $("#s-dist").oninput=e=>{sp.dist=+e.target.value;calcSplit()};$("#s-t").oninput=e=>{sp.t=e.target.value;calcSplit()};$("#s-tr").onchange=e=>{sp.tramo=+e.target.value;calcSplit()};
+  const pc=S.pace;
+  [["p-d1","d1"],["p-t1","t1"],["p-d2","d2"],["p-p2","p2"],["p-obj","obj"],["p-real","real"]].forEach(([id,k])=>{$("#"+id).oninput=e=>{pc[k]=e.target.value;calcPace()}});
+  $("#i-est").onchange=e=>{S.int.estilo=e.target.value;calcInt()};$("#i-pis").onchange=e=>{S.int.pisc=e.target.value;calcInt()};$("#i-nad").onchange=e=>{S.int.nad=e.target.value;calcInt()};
+  calcRP();calcDPS();calcSplit();calcPace();calcInt();
+}};
+const INT_PCTS=[60,65,70,75,80,85,90,95,100];
+function zoneOfPct(p){const zs=zonas();if(p<zs[0].min)return "Reg";const Z=zs.find(x=>p>=x.min&&p<x.max);return Z?Z.z:zs[zs.length-1].z}
+function paceTableHTML(){
+  const ds=[50,100,200,400,800,1000,1500],ps=[];for(let p=45;p<=150;p+=5)ps.push(p);
+  return `<div class="tablewrap"><table><thead><tr><th class="num">Pace /100</th>${ds.map(d=>`<th class="num">${d} m</th>`).join("")}</tr></thead><tbody>${ps.map(p=>`<tr><td class="num time"><b>${fmtT(p)}</b></td>${ds.map(d=>`<td class="num time">${fmtT(p*d/100)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+}
+function hms(t){const h=Math.floor(t/3600);return h?h+":"+String(Math.floor(t%3600/60)).padStart(2,"0")+":"+(t%60<10?"0":"")+(t%60).toFixed(2):fmtT(t)}
+function calcPace(){
+  const c=S.pace,d1=+c.d1,t1=parseT(c.t1),d2=+c.d2,p2=parseT(c.p2),ob=parseT(c.obj);
+  $("#p-o1").innerHTML=t1==null||!d1?`<div class="muted small">Ingresa distancia y tiempo.</div>`:
+    `<div class="kpi"><div><b>${t1.toFixed(2)} s</b><span>Tiempo en segundos</span></div><div><b>${fmtT(t1/d1*100)}</b><span>Pace /100</span></div><div><b>${fmtT(t1/d1*50)}</b><span>Pace /50</span></div><div><b>${fmtT(t1/d1*25)}</b><span>Pace /25</span></div><div><b>${(d1/t1).toFixed(3)}</b><span>m/s</span></div></div>`;
+  $("#p-o2").innerHTML=p2==null||!d2?`<div class="muted small">Ingresa distancia y pace por 100.</div>`:
+    (()=>{const T=p2*d2/100;return `<div class="kpi"><div><b>${fmtT(T)}</b><span>Tiempo total</span></div><div><b>${hms(T)}</b><span>h:mm:ss</span></div><div><b>${T.toFixed(2)} s</b><span>Segundos</span></div><div><b>${(d2/T).toFixed(3)}</b><span>m/s</span></div></div>`})();
+  const rs=String(c.real||"").split(/[\/;\s]+/).map(parseT).filter(x=>x!=null);
+  if(ob==null||!rs.length){$("#p-o3").innerHTML=`<div class="muted small">Ingresa el objetivo y al menos un tiempo real.</div>`;return}
+  const avg=rs.reduce((a,b)=>a+b,0)/rs.length,best=Math.min(...rs),worst=Math.max(...rs),pct=ob/avg*100;
+  $("#p-o3").innerHTML=`<div class="kpi"><div style="background:color-mix(in srgb,var(--${pct>=100?"z2":"z5"}) 16%,transparent)"><b>${pct.toFixed(1)}%</b><span>Cumplido (objetivo ÷ real prom.)</span></div><div><b>${fmtT(avg)}</b><span>Real promedio</span></div>${rs.length>1?`<div><b>${fmtT(best)}</b><span>Mejor</span></div><div><b>${fmtT(worst)}</b><span>Peor</span></div>`:""}<div><b class="${avg<=ob?"up":"down"}">${avg<=ob?"−":"+"}${Math.abs(avg-ob).toFixed(2)} s</b><span>vs objetivo</span></div></div>
+    <div class="note">Sobre 100% = más rápido que el objetivo.</div>`;
+}
+function calcInt(){
+  const I=S.int,o=$("#i-out"),ds=I.estilo==="Libre"?[50,100,200,400]:I.estilo==="Combinado"?[100,200,400]:[50,100,200];
+  const nads=(I.nad?[nadById(I.nad)].filter(Boolean):S.nad.slice()).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
+  const head=`<thead><tr><th>Nadador</th><th class="num">PB</th>${INT_PCTS.map(p=>`<th class="num">${p}%<div>${p<zonas()[0].min?`<span class="small muted">Reg.</span>`:zb(zoneOfPct(p))}</div></th>`).join("")}</tr></thead>`;
+  const row=(nm,t,extra)=>`<tr><td>${nm}</td><td class="num time"><b>${extra||fmtT(t)}</b></td>${INT_PCTS.map(p=>`<td class="num time">${t==null?"":fmtT(t/(p/100))}</td>`).join("")}</tr>`;
+  o.innerHTML=ds.map(d=>{
+    const pr=d+" "+I.estilo,key=pr+"|"+I.pisc;
+    const rows=nads.map(n=>{const r=pbsOf(n.nombre,I.pisc)[pr];return r?{n,r}:null}).filter(Boolean).sort((a,b)=>a.r.seg-b.r.seg);
+    const mt=parseT(I.man[key]);
+    return `<h3 style="margin-top:12px">${d} m ${esc(I.estilo)} · piscina ${I.pisc}</h3><div class="tablewrap"><table>${head}<tbody>
+      ${rows.map(x=>row(esc(x.n.nombre)+` <span class="small muted">${esc(fmtD(x.r.fecha))}</span>`,x.r.seg)).join("")}
+      ${row(`<input class="i-man" data-k="${esc(key)}" value="${esc(I.man[key]||"")}" placeholder="Otro PB a mano" inputmode="decimal" style="max-width:130px">`,mt,mt==null?"—":null)}
+      </tbody></table></div>${rows.length?"":`<div class="small muted">Nadie del plantel tiene marca en ${esc(pr)} piscina ${I.pisc}.</div>`}`}).join("")+
+    `<div class="note">Tiempo objetivo = PB ÷ (% ÷ 100). 100% = mejor marca en esa prueba y piscina. Las zonas son las configuradas en la app; bajo ${zonas()[0].min}% se marca como regenerativo.</div>`;
+  $$(".i-man").forEach(inp=>inp.oninput=e=>{I.man[e.target.dataset.k]=e.target.value;const tr=e.target.closest("tr"),t=parseT(e.target.value);
+    tr.querySelector("td:nth-child(2) b").textContent=t==null?"—":fmtT(t);
+    [...tr.querySelectorAll("td")].slice(2).forEach((td,i)=>td.textContent=t==null?"":fmtT(t/(INT_PCTS[i]/100)))});
+}
+function calcRP(){
+  const c=S.calc,pb=parseT(c.pb),o=$("#c-out");
+  const n=c.nad?nadById(c.nad):null;
+  $("#c-src").innerHTML=pb==null?`<span class="down">Ingresa el PB, por ejemplo 1:24.00.</span>`:
+    `${n?esc(n.nombre)+" · ":""}PB ${c.dist} ${esc(c.estilo)} <b class="time">${fmtT(pb)}</b> · ritmo ${fmtT(pb/c.dist*100)} /100 · ${(c.dist/pb).toFixed(2)} m/s`;
+  if(pb==null){o.innerHTML="";return}
+  const sets=c.sets.split(/\r?\n/).map(l=>l.trim()).filter(Boolean).map(l=>{const m=l.match(/^(\d+)\s*[x×*]\s*(\d+)/i);return m?{reps:+m[1],dist:+m[2],raw:l}:null}).filter(Boolean);
+  if(!sets.length){o.innerHTML=`<div class="muted small">Escribe series como 4x50, 6x25, 2x100.</div>`;return}
+  const zs=zonas();
+  o.innerHTML=sets.map(s=>{
+    const rp=pb*s.dist/c.dist; // ritmo de carrera parejo
+    const adj=s.dist===c.dist?pb:pb*Math.pow(s.dist/c.dist,RIEGEL);
+    return `<div><h3>${s.reps}x${s.dist} ${esc(c.estilo)}</h3>
+      <div class="kpi" style="margin-top:8px"><div style="background:color-mix(in srgb,var(--zrp) 16%,transparent)"><b>${fmtT(rp)}</b><span>Race pace ${c.dist} (parejo)</span></div>
+        ${s.dist<c.dist?`<div><b>${fmtT(rp/s.dist*25)}</b><span>Cada 25</span></div>`:""}<div><b>${fmtT(s.reps*rp)}</b><span>Suma ${s.reps*s.dist} m a RP</span></div></div>
+      <div class="tablewrap"><table><thead><tr><th>Zona</th><th class="num">Meta por rep</th><th class="num">Ritmo /100</th></tr></thead><tbody>
+      ${zs.map(z=>`<tr><td>${zb(z.z)} <span class="small muted">${esc(z.n)} ${z.min}–${z.max}%</span></td><td class="num time">${fmtT(adj/(z.max/100),1)} – ${fmtT(adj/(z.min/100),1)}</td><td class="num time muted">${fmtT(adj/(z.max/100)/s.dist*100,1)}</td></tr>`).join("")}
+      </tbody></table></div></div>`}).join("")+`<div class="note">Race pace = el ritmo exacto de tu PB de ${c.dist} m llevado a cada repetición (sin restar la salida de clavado). Las zonas usan el tiempo equivalente a esa distancia (Riegel 1,06).</div>`;
+}
+function calcDPS(){
+  const d=S.dps,o=$("#d-out"),L=+d.largo,sub=Math.min(+d.sub||0,L-1);
+  const rows=d.txt.split(/\r?\n/).map(l=>l.trim()).filter(Boolean).map((l,i)=>{const p=l.split(/[;\t,]\s*|\s+/);const t=parseT(p[0]),n=+p[1];if(t==null||!n)return null;
+    const cyc=d.cuenta==="brazadas"?n/2:n,tsw=t*(L-sub)/L,dps=(L-sub)/cyc,sr=cyc/tsw*60,v=L/t;return {i:i+1,t,n,cyc,dps,sr,v,swolf:t+n}}).filter(Boolean);
+  if(!rows.length){o.innerHTML=`<div class="muted small">Ingresa cada largo como tiempo;ciclos, por ejemplo 18.6;9</div>`;return}
+  const avg=k=>rows.reduce((a,r)=>a+r[k],0)/rows.length,f=rows[0],l=rows[rows.length-1];
+  const ddps=(l.dps-f.dps)/f.dps*100,dsr=(l.sr-f.sr)/f.sr*100;
+  o.innerHTML=`<div class="kpi"><div><b>${avg("dps").toFixed(2)} m</b><span>Dist. por ciclo</span></div><div><b>${avg("sr").toFixed(1)}</b><span>Ciclos/min</span></div><div><b>${avg("v").toFixed(2)}</b><span>m/s</span></div><div><b>${avg("swolf").toFixed(1)}</b><span>SWOLF</span></div></div>
+    <div class="tablewrap"><table><thead><tr><th class="num">Largo</th><th class="num">Tiempo</th><th class="num">${d.cuenta==="brazadas"?"Brazadas":"Ciclos"}</th><th class="num">DPS m</th><th class="num">Frec. c/min</th><th class="num">m/s</th><th class="num">SWOLF</th></tr></thead><tbody>
+    ${rows.map(r=>`<tr><td class="num">${r.i}</td><td class="num time">${fmtT(r.t)}</td><td class="num">${r.n}</td><td class="num time">${r.dps.toFixed(2)}</td><td class="num time">${r.sr.toFixed(1)}</td><td class="num time">${r.v.toFixed(2)}</td><td class="num">${r.swolf.toFixed(1)}</td></tr>`).join("")}</tbody></table></div>
+    ${rows.length>1?`<div class="msg">Del largo 1 al ${l.i}: distancia por ciclo <b class="${ddps<0?"down":"up"}">${ddps>0?"+":""}${ddps.toFixed(1)}%</b>, frecuencia <b>${dsr>0?"+":""}${dsr.toFixed(1)}%</b>. ${ddps<-5&&dsr>0?"Pierde distancia por ciclo y la compensa subiendo frecuencia: señal típica de fatiga técnica.":ddps<-5?"Cae la distancia por ciclo sin subir frecuencia: pierde velocidad.":"Mantiene la longitud de brazada."}</div>`:""}
+    <div class="note">DPS = (largo − subacuático) ÷ ciclos. La frecuencia usa el tiempo nadado estimado sin el tramo subacuático. 1 ciclo = 2 brazadas en libre y espalda; en pecho y mariposa cuenta 1 ciclo por brazada y elige “Ciclos”.</div>`;
+}
+function calcSplit(){
+  const s=S.split,o=$("#s-out"),t=parseT(s.t),D=+s.dist,T=+s.tramo;
+  if(t==null||!D||!T||D%T){o.innerHTML=`<div class="muted small">${D%T?"La distancia debe ser múltiplo del tramo.":"Ingresa un tiempo, por ejemplo 2:30.00."}</div>`;return}
+  const n=D/T,each=t/n;
+  o.innerHTML=`<div class="kpi" style="margin-bottom:8px"><div><b>${fmtT(each)}</b><span>Cada ${T} m</span></div><div><b>${fmtT(t/D*100)}</b><span>Ritmo /100</span></div><div><b>${(D/t).toFixed(2)}</b><span>m/s</span></div></div>
+  <div class="tablewrap"><table><thead><tr><th class="num">Metros</th><th class="num">Parcial</th><th class="num">Acumulado</th></tr></thead><tbody>${Array.from({length:n},(_,i)=>`<tr><td class="num">${(i+1)*T}</td><td class="num time">${fmtT(each)}</td><td class="num time">${fmtT(each*(i+1))}</td></tr>`).join("")}</tbody></table></div>`;
+}
+
+/* ---------- VIDEOS ---------- */
+R.videos={html(){
+  const list=S.vid.slice().sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""));
+  return `<section class="card"><h2>Subir video</h2>
+    ${S.assets?`<div class="form">
+      <label>Nadador<select id="v-nad"><option value="">—</option>${S.nad.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")).map(n=>`<option value="${esc(n.id)}">${esc(n.nombre)}</option>`).join("")}</select></label>
+      <label>Prueba o ejercicio<input id="v-pr" list="dl-pr" placeholder="100 Espalda · subacuático"></label>
+      <label>Fecha<input id="v-f" type="date" value="${today()}"></label>
+      <label>Archivo (MP4 o WebM, máx. 20 MB)<input id="v-file" type="file" accept="video/mp4,video/webm"></label>
+      <div class="row full"><button class="btn" id="v-up">Subir</button><span id="v-msg" class="small"></span></div></div>
+      <datalist id="dl-pr">${PRUEBAS.map(p=>`<option value="${p}">`).join("")}</datalist>
+      <div class="note">Videos de iPhone (.MOV): expórtalos como MP4 o recórtalos antes de subir. Clips cortos de 5 a 20 segundos funcionan mejor para análisis.</div>`
+    :`<div class="msg">Solo el entrenador puede subir videos.</div>`}</section>
+    <section class="card"><h2>Biblioteca</h2>
+    ${list.length?`<div class="vgrid">${list.map(v=>{const n=nadById(v.nadadorId);return `<a class="vcard" href="#video-${encodeURIComponent(v.id)}"><video src="${SC_BLOB}${esc(v.assetId)}#t=0.5" crossorigin="anonymous" preload="metadata" muted playsinline></video>
+      <div><div class="nm">${esc(n?n.nombre:"Sin nadador")}</div><div class="small muted">${esc(v.prueba||"")} · ${fmtD(v.fecha)}</div></div></a>`}).join("")}</div>`
+      :`<div class="muted small">${loading()?"Cargando…":"Aún no hay videos."}</div>`}</section>`;
+},bind(){
+  if(!$("#v-up"))return;
+  $("#v-up").onclick=async()=>{
+    const f=$("#v-file").files[0],m=$("#v-msg");
+    if(!f){m.innerHTML=`<span class="down">Elige un archivo.</span>`;return}
+    if(f.size>20*1024*1024){m.innerHTML=`<span class="down">El archivo pesa ${(f.size/1048576).toFixed(1)} MB. El máximo es 20 MB: recórtalo o comprímelo.</span>`;return}
+    const type=/\.webm$/i.test(f.name)?"video/webm":/\.mp4$/i.test(f.name)||f.type==="video/mp4"?"video/mp4":f.type;
+    if(!["video/mp4","video/webm"].includes(type)){m.innerHTML=`<span class="down">Formato no compatible. Usa MP4 o WebM.</span>`;return}
+    $("#v-up").disabled=true;m.textContent="Subiendo…";
+    try{const up=await S.assets.upload(f,{type});
+      const doc={nadadorId:$("#v-nad").value,prueba:$("#v-pr").value.trim(),fecha:$("#v-f").value||today(),assetId:up.id,notas:"",marcas:[],trazos:[],analisis:"",subido:today()};
+      const ref=await S.db.collection("videos").add(doc);location.hash="#video-"+encodeURIComponent(ref.id)}
+    catch(e){m.innerHTML=`<span class="down">${e.code==="too_large"?"Archivo demasiado grande (máx. 20 MB).":e.code==="unsupported_type"?"Formato no compatible. Usa MP4 o WebM.":e.code==="quota_or_state"?"Se llenó el espacio de almacenamiento. Elimina videos antiguos.":"No se pudo subir: "+esc(e.message||e.code||e)}</span>`;$("#v-up").disabled=false}
+  };
+}};
+
+/* ----- reproductor tipo Kinovea ----- */
+function stopVideo(){if(S.vp&&S.vp.stop)S.vp.stop();S.vp=null}
+R.video={html(){
+  const v=S.vid.find(x=>x.id===S.param);
+  if(!v)return `<section class="card"><a class="back" href="#videos">← Videos</a><div class="muted">${loading()||!S.got.vid?"Cargando…":"Video no encontrado."}</div></section>`;
+  const n=nadById(v.nadadorId);
+  return `<section class="card"><a class="back" href="#videos">← Videos</a>
+    <div class="head"><div><h2>${esc(n?n.nombre:"Video")}</h2><div class="small muted">${esc(v.prueba||"")} · ${fmtD(v.fecha)}</div></div></div>
+    <div class="stage" id="stage"><div class="vbox"><video id="vid" src="${SC_BLOB}${esc(v.assetId)}" crossorigin="anonymous" playsinline preload="auto" muted></video><canvas id="ov"></canvas></div></div>
+    <div class="ctrl"><button class="btn sm" id="pp">▶</button><button class="btn ghost sm" id="fb" aria-label="Cuadro anterior">◀︎ 1</button><button class="btn ghost sm" id="ff" aria-label="Cuadro siguiente">1 ▶︎</button>
+      <select id="rate" style="width:auto;padding:4px 8px" aria-label="Velocidad"><option value="0.1">0,1×</option><option value="0.25">0,25×</option><option value="0.5">0,5×</option><option value="1" selected>1×</option></select>
+      <span class="time" id="tc">0.00</span></div>
+    <input type="range" id="scrub" min="0" max="1000" value="0" aria-label="Posición">
+    <div class="tools" role="toolbar" aria-label="Herramientas">
+      <button class="btn ghost sm" data-tool="linea">Línea</button><button class="btn ghost sm" data-tool="angulo">Ángulo</button>
+      <button class="btn ghost sm" data-tool="calib">Calibrar</button><button class="btn ghost sm" data-tool="track">Trayectoria</button>
+      <button class="btn ghost sm" id="auto">Auto-seguir</button><button class="btn ghost sm" id="clr">Limpiar</button></div>
+    <div class="note" id="hint">Elige una herramienta y toca sobre el video. Trayectoria: marca el mismo punto (mano, cadera, cabeza) y avanza cuadro a cuadro; se dibujan los vectores de velocidad.</div>
+    <div class="kpi" id="meas"></div>
+  </section>
+  <section class="card"><h3>Frecuencia de brazada</h3>
+    <div class="row"><button class="btn" id="tap">Ciclo</button><button class="btn ghost sm" id="tapr">Reiniciar</button><span class="small muted">Toca en cada entrada de la misma mano. Usa el tiempo del video, así funciona en cámara lenta.</span></div>
+    <div class="kpi" id="sr"></div></section>
+  <section class="card"><div class="head"><h3>Marcas y notas</h3></div>
+    <div class="row"><input id="mk" class="grow" placeholder="Nota en el segundo actual: codo cae en el agarre…"><button class="btn sm" id="mkadd">Agregar</button></div>
+    <div class="list marks" id="marks"></div>
+    <label>Notas generales<textarea id="vn">${esc(v.notas||"")}</textarea></label>
+    <div class="row"><button class="btn" id="vsave">Guardar análisis</button><span id="vmsg" class="small"></span><span class="grow"></span><button class="btn ghost sm" id="vdel">Eliminar video</button></div></section>
+  ${S.sample||v.analisis?`<section class="card"><div class="head"><h3>Análisis técnico</h3>${S.sample?'<button class="btn ghost sm" id="ai">Analizar 4 cuadros</button>':""}</div>
+    ${S.sample?`<div class="note">Toma 4 cuadros desde la posición actual (cada 0,25 s) y pide una revisión técnica. Es una ayuda, no reemplaza tu ojo.</div>`:""}
+    <div id="aiout">${v.analisis?`<div class="ai">${esc(v.analisis)}</div>`:""}</div></section>`:""}`;
+},bind(){
+  const v=S.vid.find(x=>x.id===S.param);if(!v)return;
+  initPlayer(v);
+}};
+function refreshMarks(){if(S.vp&&S.vp.drawMarks)S.vp.drawMarks()}
+function initPlayer(v){
+  const vid=$("#vid"),cv=$("#ov"),ctx=cv.getContext("2d");
+  const P={tool:null,pts:[],shapes:JSON.parse(JSON.stringify(v.trazos||[])),calib:v.calib||null,track:(v.track||[]).slice(),marks:(v.marcas||[]).slice(),taps:[],dirty:false,auto:null};
+  S.vp=P;const FPS=30,dt=1/FPS;
+  const W=()=>vid.videoWidth||1280,H=()=>vid.videoHeight||720;
+  function fit(){const r=vid.getBoundingClientRect();cv.width=Math.round(r.width*devicePixelRatio);cv.height=Math.round(r.height*devicePixelRatio);draw()}
+  const toCv=p=>[p[0]/W()*cv.width,p[1]/H()*cv.height];
+  const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim()||"#fff";
+  function arrow(a,b,col){const [x1,y1]=toCv(a),[x2,y2]=toCv(b);ctx.strokeStyle=col;ctx.fillStyle=col;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+    const an=Math.atan2(y2-y1,x2-x1),s=8*devicePixelRatio;ctx.beginPath();ctx.moveTo(x2,y2);ctx.lineTo(x2-s*Math.cos(an-.4),y2-s*Math.sin(an-.4));ctx.lineTo(x2-s*Math.cos(an+.4),y2-s*Math.sin(an+.4));ctx.closePath();ctx.fill()}
+  function label(p,txt){const [x,y]=toCv(p);ctx.font=`${12*devicePixelRatio}px "JetBrains Mono",monospace`;const w=ctx.measureText(txt).width+8*devicePixelRatio;ctx.fillStyle="rgba(0,0,0,.65)";ctx.fillRect(x+6,y-18*devicePixelRatio,w,16*devicePixelRatio);ctx.fillStyle="#fff";ctx.fillText(txt,x+10,y-6*devicePixelRatio)}
+  const dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+  const ang=(a,b,c)=>{const v1=[a[0]-b[0],a[1]-b[1]],v2=[c[0]-b[0],c[1]-b[1]];return Math.acos(Math.max(-1,Math.min(1,(v1[0]*v2[0]+v1[1]*v2[1])/(Math.hypot(...v1)*Math.hypot(...v2)||1))))*180/Math.PI};
+  const meters=px=>P.calib?px/P.calib.pxPerM:null;
+  function draw(){
+    ctx.clearRect(0,0,cv.width,cv.height);ctx.lineWidth=2.5*devicePixelRatio;ctx.lineCap="round";
+    const yel="#FFD23F",cy="#3FE0FF",red="#FF5A4E";
+    P.shapes.forEach(s=>{
+      if(s.t==="linea"){ctx.strokeStyle=yel;const [a,b]=[toCv(s.p[0]),toCv(s.p[1])];ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.stroke();const m=meters(dist(s.p[0],s.p[1]));label(s.p[1],m!=null?m.toFixed(2)+" m":Math.round(dist(s.p[0],s.p[1]))+" px")}
+      if(s.t==="angulo"){ctx.strokeStyle=cy;const [a,b,c]=s.p.map(toCv);ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.lineTo(...c);ctx.stroke();label(s.p[1],ang(...s.p).toFixed(1)+"°")}
+    });
+    if(P.calib){ctx.strokeStyle="#7CFC9A";ctx.setLineDash([6,5]);const [a,b]=P.calib.p.map(toCv);ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.stroke();ctx.setLineDash([]);label(P.calib.p[1],P.calib.m+" m (ref)")}
+    // trayectoria con vectores
+    const tr=P.track.slice().sort((a,b)=>a.t-b.t);
+    if(tr.length){ctx.strokeStyle="rgba(255,90,78,.55)";ctx.beginPath();tr.forEach((p,i)=>{const [x,y]=toCv([p.x,p.y]);i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke();
+      for(let i=1;i<tr.length;i++)arrow([tr[i-1].x,tr[i-1].y],[tr[i].x,tr[i].y],red);
+      tr.forEach(p=>{const [x,y]=toCv([p.x,p.y]);ctx.fillStyle=Math.abs(p.t-vid.currentTime)<dt/2?"#fff":red;ctx.beginPath();ctx.arc(x,y,3.5*devicePixelRatio,0,7);ctx.fill()})}
+    P.pts.forEach(p=>{const [x,y]=toCv(p);ctx.fillStyle=yel;ctx.beginPath();ctx.arc(x,y,4*devicePixelRatio,0,7);ctx.fill()});
+    measures();
+  }
+  function measures(){
+    const tr=P.track.slice().sort((a,b)=>a.t-b.t),box=$("#meas");if(!box)return;
+    let h="";
+    if(tr.length>1){const seg=[];for(let i=1;i<tr.length;i++){const d=dist([tr[i-1].x,tr[i-1].y],[tr[i].x,tr[i].y]),t=tr[i].t-tr[i-1].t;if(t>0)seg.push({d,t,vx:(tr[i].x-tr[i-1].x)/t})}
+      const tot=seg.reduce((a,s)=>a+s.d,0),T=tr[tr.length-1].t-tr[0].t,last=seg[seg.length-1];
+      const u=P.calib?" m/s":" px/s",k=P.calib?1/P.calib.pxPerM:1;
+      h+=`<div><b>${tr.length}</b><span>Puntos</span></div><div><b>${(tot*k/T||0).toFixed(P.calib?2:0)}</b><span>Vel. media${u}</span></div><div><b>${last?(last.d*k/last.t).toFixed(P.calib?2:0):"—"}</b><span>Vel. último tramo${u}</span></div>
+        <div><b>${(Math.max(...seg.map(s=>s.d*k/s.t))).toFixed(P.calib?2:0)}</b><span>Vel. máx${u}</span></div>`}
+    if(!P.calib)h+=`<div><b>—</b><span>Sin calibrar</span></div>`;
+    box.innerHTML=h;
+  }
+  function setTool(t){P.tool=P.tool===t?null:t;P.pts=[];$$("[data-tool]").forEach(b=>b.classList.toggle("on",b.dataset.tool===P.tool));cv.classList.toggle("arm",!!P.tool);cv.style.pointerEvents=P.tool?"auto":"none";
+    const hints={linea:"Toca dos puntos para medir una distancia.",angulo:"Toca tres puntos: extremo, vértice y extremo (ej. hombro–codo–muñeca).",calib:"Toca los dos extremos de algo de largo conocido (ej. ancho de carril 2,5 m) para medir en metros.",track:"Toca el punto a seguir; el video avanza un cuadro solo. Repite para dibujar la trayectoria."};
+    $("#hint").textContent=P.tool?hints[P.tool]:"Elige una herramienta y toca sobre el video.";draw()}
+  cv.style.pointerEvents="none";
+  cv.addEventListener("pointerdown",ev=>{
+    if(!P.tool)return;ev.preventDefault();const r=cv.getBoundingClientRect();const p=[(ev.clientX-r.left)/r.width*W(),(ev.clientY-r.top)/r.height*H()];
+    if(P.tool==="track"){P.track=P.track.filter(x=>Math.abs(x.t-vid.currentTime)>dt/2);P.track.push({t:+vid.currentTime.toFixed(3),x:p[0],y:p[1]});P.dirty=true;step(1);draw();return}
+    P.pts.push(p);
+    const need=P.tool==="angulo"?3:2;
+    if(P.pts.length===need){
+      if(P.tool==="calib"){const m=parseFloat(($("#calm")||{}).value||"2.5")||2.5;P.calib={p:P.pts.slice(),m,pxPerM:dist(...P.pts)/m}}
+      else P.shapes.push({t:P.tool,p:P.pts.slice()});
+      P.pts=[];P.dirty=true}
+    draw();
+  });
+  // calibración: largo de referencia
+  $("[data-tool=calib]").insertAdjacentHTML("afterend",`<input id="calm" type="number" step="0.1" min="0.1" value="${P.calib?P.calib.m:2.5}" style="width:74px;padding:4px 8px" aria-label="Metros de referencia" title="Metros de referencia">`);
+  $$("[data-tool]").forEach(b=>b.onclick=()=>setTool(b.dataset.tool));
+  $("#clr").onclick=()=>{P.shapes=[];P.track=[];P.pts=[];P.calib=null;P.dirty=true;draw()};
+  // reproducción
+  const pp=$("#pp"),tc=$("#tc"),sc=$("#scrub");
+  function step(n){vid.pause();vid.currentTime=Math.max(0,Math.min((vid.duration||0),vid.currentTime+n*dt))}
+  pp.onclick=()=>{vid.paused?vid.play():vid.pause()};
+  vid.onplay=()=>pp.textContent="❚❚";vid.onpause=()=>pp.textContent="▶";
+  $("#fb").onclick=()=>step(-1);$("#ff").onclick=()=>step(1);
+  $("#rate").onchange=e=>vid.playbackRate=+e.target.value;
+  vid.addEventListener("timeupdate",()=>{tc.textContent=vid.currentTime.toFixed(2)+" s";if(vid.duration)sc.value=Math.round(vid.currentTime/vid.duration*1000);draw()});
+  vid.addEventListener("seeked",()=>{tc.textContent=vid.currentTime.toFixed(2)+" s";draw()});
+  sc.oninput=()=>{if(vid.duration){vid.pause();vid.currentTime=sc.value/1000*vid.duration}};
+  vid.addEventListener("loadedmetadata",fit);
+  const ro=new ResizeObserver(fit);ro.observe(vid);
+  vid.addEventListener("error",()=>{$("#hint").textContent="No se pudo cargar el video."});
+  // frecuencia de brazada
+  function srShow(){const t=P.taps,b=$("#sr");if(!b)return;if(t.length<2){b.innerHTML=`<div><b>${t.length}</b><span>Ciclos marcados</span></div>`;return}
+    const all=(t.length-1)/(t[t.length-1]-t[0])*60,l=t.slice(-4),rec=(l.length-1)/(l[l.length-1]-l[0])*60;
+    b.innerHTML=`<div><b>${t.length}</b><span>Ciclos marcados</span></div><div><b>${all.toFixed(1)}</b><span>Ciclos/min</span></div><div><b>${rec.toFixed(1)}</b><span>Últimos 3</span></div><div><b>${((t[t.length-1]-t[0])/(t.length-1)).toFixed(2)} s</b><span>Por ciclo</span></div>
+      ${P.calib&&P.track.length>1?"":""}`}
+  $("#tap").onclick=()=>{const t=vid.currentTime;if(!P.taps.length||t>P.taps[P.taps.length-1])P.taps.push(t);srShow()};
+  $("#tapr").onclick=()=>{P.taps=[];srShow()};srShow();
+  // marcas
+  P.drawMarks=()=>{const m=$("#marks");if(!m)return;m.innerHTML=P.marks.slice().sort((a,b)=>a.t-b.t).map((k,i)=>`<div class="item"><button class="btn ghost sm" data-seek="${k.t}">${k.t.toFixed(2)} s</button><div class="main">${esc(k.txt)}</div><button class="btn ghost sm" data-mdel="${i}" aria-label="Quitar">×</button></div>`).join("")||`<div class="muted small">Sin marcas.</div>`;
+    $$("[data-seek]").forEach(b=>b.onclick=()=>{vid.pause();vid.currentTime=+b.dataset.seek});
+    $$("[data-mdel]").forEach(b=>b.onclick=()=>{const s=P.marks.slice().sort((a,b)=>a.t-b.t);const k=s[+b.dataset.mdel];P.marks=P.marks.filter(x=>x!==k);P.dirty=true;P.drawMarks()})};
+  P.drawMarks();
+  $("#mkadd").onclick=()=>{const t=$("#mk").value.trim();if(!t)return;P.marks.push({t:+vid.currentTime.toFixed(2),txt:t});$("#mk").value="";P.dirty=true;P.drawMarks()};
+  $("#vsave").onclick=async()=>{const d={notas:$("#vn").value,marcas:P.marks,trazos:P.shapes,track:P.track,calib:P.calib||null};
+    if(await dbWrite(db=>db.collection("videos").doc(v.id).update(d),$("#vmsg"))){P.dirty=false;$("#vmsg").innerHTML=`<span class="up">Análisis guardado</span>`}};
+  $("#vdel").onclick=async e=>{const b=e.target;if(b.dataset.c!=="1"){b.dataset.c="1";b.textContent="¿Eliminar video?";b.className="btn danger sm";return}
+    const ok=await dbWrite(db=>db.collection("videos").doc(v.id).delete(),$("#vmsg"));if(ok){try{if(S.assets)await S.assets.delete(v.assetId)}catch(_){}location.hash="#videos"}};
+  // captura de cuadros
+  const off=document.createElement("canvas");
+  function seekTo(t){return new Promise(res=>{const h=()=>{vid.removeEventListener("seeked",h);res()};vid.addEventListener("seeked",h);vid.currentTime=t})}
+  function grab(w){const s=w/W();off.width=Math.round(W()*s);off.height=Math.round(H()*s);const c=off.getContext("2d",{willReadFrequently:true});c.drawImage(vid,0,0,off.width,off.height);return {c,s}}
+  // auto-seguimiento por coincidencia de plantilla
+  $("#auto").onclick=async()=>{
+    const b=$("#auto");
+    if(P.auto){P.auto.stop=true;return}
+    const tr=P.track.slice().sort((a,b)=>a.t-b.t);const last=tr.filter(p=>p.t<=vid.currentTime+dt/2).pop()||tr[tr.length-1];
+    if(!last){$("#hint").textContent="Primero marca el punto con Trayectoria en el cuadro inicial.";return}
+    P.auto={stop:false};b.textContent="Detener";b.classList.add("on");
+    try{
+      vid.pause();await seekTo(last.t);
+      const WW=480;let {c,s}=grab(WW);const R=10,SR=26;
+      const gray=(img,x,y,w)=>{const i=(y*w+x)*4;return img[i]*.3+img[i+1]*.59+img[i+2]*.11};
+      let px=Math.round(last.x*s),py=Math.round(last.y*s);
+      let img=c.getImageData(0,0,off.width,off.height);
+      let tpl=[];for(let y=-R;y<=R;y++)for(let x=-R;x<=R;x++)tpl.push(gray(img.data,Math.min(off.width-1,Math.max(0,px+x)),Math.min(off.height-1,Math.max(0,py+y)),off.width));
+      for(let k=0;k<45&&!P.auto.stop;k++){
+        const t=vid.currentTime+dt;if(t>=(vid.duration||0))break;
+        await seekTo(t);({c}=grab(WW));img=c.getImageData(0,0,off.width,off.height);
+        let best=1e18,bx=px,by=py;
+        for(let dy=-SR;dy<=SR;dy+=2)for(let dx=-SR;dx<=SR;dx+=2){const cx=px+dx,cy=py+dy;if(cx-R<0||cy-R<0||cx+R>=off.width||cy+R>=off.height)continue;
+          let sum=0,j=0;for(let y=-R;y<=R;y+=2){for(let x=-R;x<=R;x+=2){sum+=Math.abs(gray(img.data,cx+x,cy+y,off.width)-tpl[(y+R)*(2*R+1)+(x+R)]);}if(sum>best)break}
+          if(sum<best){best=sum;bx=cx;by=cy}}
+        px=bx;py=by;
+        tpl=[];for(let y=-R;y<=R;y++)for(let x=-R;x<=R;x++)tpl.push(gray(img.data,Math.min(off.width-1,Math.max(0,px+x)),Math.min(off.height-1,Math.max(0,py+y)),off.width));
+        P.track=P.track.filter(x=>Math.abs(x.t-vid.currentTime)>dt/2);P.track.push({t:+vid.currentTime.toFixed(3),x:px/s,y:py/s});P.dirty=true;draw();
+      }
+    }catch(e){$("#hint").textContent="El auto-seguimiento no funcionó con este video. Marca los puntos a mano."}
+    P.auto=null;b.textContent="Auto-seguir";b.classList.remove("on");
+  };
+  // análisis con Claude
+  if($("#ai"))$("#ai").onclick=async()=>{
+    const b=$("#ai"),o=$("#aiout");b.disabled=true;o.innerHTML=`<div class="ai">Tomando cuadros…</div>`;
+    const t0=vid.currentTime,frames=[];
+    try{vid.pause();for(let i=0;i<4;i++){const t=Math.min((vid.duration||0)-0.01,t0+i*0.25);await seekTo(t);const {c}=grab(960);frames.push(await new Promise(r=>c.canvas.toBlob(r,"image/jpeg",.85)))}
+      await seekTo(t0);
+      const n=nadById(v.nadadorId);
+      const angs=P.shapes.filter(s=>s.t==="angulo").map(s=>ang(...s.p).toFixed(0)+"°").join(", ");
+      const prompt=`Eres un entrenador experto en técnica de natación. Te envío 4 cuadros consecutivos (cada 0,25 s) de un video${n?" de "+n.nombre:""}. Prueba o ejercicio: ${v.prueba||"no indicado"}.
+${$("#vn").value?"Notas del entrenador: "+$("#vn").value:""}${angs?"\nÁngulos medidos en pantalla: "+angs:""}${P.taps.length>1?"\nFrecuencia medida: "+((P.taps.length-1)/(P.taps[P.taps.length-1]-P.taps[0])*60).toFixed(1)+" ciclos/min":""}
+Responde en español de Chile, breve y concreto, con estas secciones:
+1. Qué se ve (fase de la brazada y posición del cuerpo)
+2. Puntos fuertes
+3. Errores técnicos probables
+4. Correcciones y 2 ejercicios
+Si la imagen no permite juzgar algo (ángulo de cámara, burbujas, distancia), dilo.`;
+      o.innerHTML=`<div class="ai" id="aitxt">Analizando…</div>`;
+      const r=await S.sample(prompt,{images:frames,cache:false,onText:({text})=>{const e=$("#aitxt");if(e)e.textContent=text}});
+      await dbWrite(db=>db.collection("videos").doc(v.id).update({analisis:r.text}));
+    }catch(e){o.innerHTML=`<div class="msg err">${e&&e.code==="not_granted"?"Claude no está habilitado para esta app.":e&&e.code==="images_unavailable"?"Esta vista no puede enviar imágenes a Claude.":e&&e.code==="rate_limited"?"Demasiadas consultas, intenta en un momento.":"No se pudo analizar el video."}</div>`}
+    b.disabled=false;
+  };
+  P.stop=()=>{try{ro.disconnect();vid.pause();if(P.auto)P.auto.stop=true}catch(_){}};
+  fit();
+}
+
+/* ================= arranque y datos ================= */
+route();
+(async()=>{
+  let db=null;try{db=await window.claude?.use?.("db")}catch(_){}
+  if(!db){S.mode="coach";$("#tabs").hidden=false;S.dbState="sin-db";S.got={res:1,nad:1,ses:1,vid:1};render(true);return}
+  S.db=db;S.dbState="ok";
+  try{S.user=await window.claude.use("user")}catch(_){}
+  let coach=true;if(S.user){try{coach=await S.user.canEdit()}catch(_){}}
+  if(!coach){
+    S.mode="nadador";$("#tag").textContent="Nadador";
+    $("#tabs").innerHTML=`<a href="#mificha" data-v="mificha">Mi ficha</a><a href="#mensajes" data-v="mensajes">Mensajes<span id="nb"></span></a>`;$("#tabs").hidden=false;
+    try{S.me=await S.user.id()}catch(_){}
+    try{S.canWrite=await S.user.can("data.write")}catch(_){S.canWrite=null}
+    if(S.me){db.doc("buzon/"+S.me).onSnapshot(s=>{S.myThread=s.exists?s.data()||{}:null;S.gotThread=true;render()},()=>{S.gotThread=true;render()});
+      db.doc("buzon/"+S.me+"/ficha/datos").onSnapshot(s=>{S.miFicha=s.exists?s.data()||null:null;if(S.miFicha)loadMiFicha(S.miFicha);S.gotFicha=true;render()},()=>{S.gotFicha=true;render()})}
+    route();return;
+  }
+  S.mode="coach";$("#tabs").hidden=false;route();
+  db.collection("buzon").onSnapshot(snap=>{const o={};snap.docs.forEach(d=>o[d.id]=d.data()||{});S.buz=o;render();autoLink()},()=>{});
+  try{S.assets=await window.claude.use("assets")}catch(_){}
+  try{S.sample=await window.claude.use("sample")}catch(_){}
+  const sub=(col,key,map)=>db.collection(col).onSnapshot(snap=>{S[key]=snap.docs.map(d=>map(Object.assign({},d.data()||{},{id:d.id})));S.got[key]=1;render()},
+    e=>{S.got[key]=1;$("#view").insertAdjacentHTML("afterbegin",`<div class="msg err">No se pudieron leer los datos (${esc(e.code)}). Recarga la página.</div>`)});
+  db.collection("nadadores").onSnapshot(snap=>{S.nad=snap.docs.map(d=>Object.assign({},d.data()||{},{id:d.id}));S.got.nad=1;render();autoLink()},
+    e=>{S.got.nad=1;$("#view").insertAdjacentHTML("afterbegin",`<div class="msg err">No se pudieron leer los datos (${esc(e.code)}). Recarga la página.</div>`)});
+  db.collection("resultados").onSnapshot(snap=>{S.resDocs=snap.docs.map(d=>{const x=Object.assign({},d.data()||{},{id:d.id});x.seg=typeof x.seg==="number"?x.seg:parseT(x.tiempo);return x});mergeRes();S.got.res=1;render()},
+    e=>{S.got.res=1;$("#view").insertAdjacentHTML("afterbegin",`<div class="msg err">No se pudieron leer los resultados (${esc(e.code)}). Recarga la página.</div>`)});
+  // al abrir solo se carga el índice liviano con los nadadores del plantel; los torneos completos, al entrar a Resultados
+  db.doc("config/idxTorneos").onSnapshot(s=>{const d=s.exists?s.data()||{}:null;
+    if(!d){loadFullTor();return}
+    S.idxJSON=JSON.stringify({meta:d.meta||{},rows:d.rows||[]});
+    if(S.fullTor!==true){S.torRows=rowsFromIdx(d);mergeRes();S.got.tor=1;render()}},()=>loadFullTor());
+  if(S.view==="resultados"||(S.view==="tiempos"&&S.mt.scope!=="plantel"))loadFullTor();
+  sub("sesiones","ses",x=>x);
+  sub("videos","vid",x=>x);
+  sub("parciales","par",x=>x);
+  db.doc("config/app").onSnapshot(s=>{const d=s.exists?s.data()||{}:{};S.cfg={miClub:d.miClub||"",zonas:Array.isArray(d.zonas)&&d.zonas.length?d.zonas:Z_DEF};render()},()=>{});
+  render(true);
+})();
+})();
+</script>
+</body></html>
