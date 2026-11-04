@@ -11,6 +11,25 @@
 <script src="config.js"></script>
 <script src="sc-supabase.js"></script>
 </head><body>
+<div id="splash" role="dialog" aria-label="SplitCoach">
+<style>
+#splash{position:fixed;inset:0;z-index:100;background:#fff;display:grid;place-items:center;padding:24px;transition:opacity .5s ease}
+#splash.out{opacity:0;pointer-events:none}
+#splash img{width:min(78vw,62vh,520px);height:auto;animation:sp-in 1s ease both}
+#splash button{position:absolute;left:50%;bottom:max(9vh,calc(env(safe-area-inset-bottom,0px) + 40px));transform:translateX(-50%);background:none;border:1px solid rgba(31,140,150,.35);color:#1F8C96;border-radius:99px;padding:9px 28px;font:600 12px/1 "Figtree",system-ui,sans-serif;letter-spacing:.32em;text-transform:uppercase;cursor:pointer;opacity:0;animation:sp-btn .8s ease .9s forwards;transition:background .2s,border-color .2s}
+#splash button:hover,#splash button:focus-visible{background:rgba(31,140,150,.08);border-color:#1F8C96;outline:none}
+@keyframes sp-in{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
+@keyframes sp-btn{to{opacity:.9}}
+@media (prefers-reduced-motion:reduce){#splash img,#splash button{animation:none;opacity:1}}
+</style>
+<img src="logo.png" alt="SplitCoach">
+<button type="button" id="sp-go">Entrar</button>
+<script>(function(){var el=document.getElementById("splash"),seen=false;try{seen=sessionStorage.getItem("sc-splash")==="1"}catch(e){}
+if(seen){el.remove();return}
+function go(){try{sessionStorage.setItem("sc-splash","1")}catch(e){}el.classList.add("out");setTimeout(function(){el.remove()},520)}
+document.getElementById("sp-go").onclick=go;document.addEventListener("keydown",function k(e){if(e.key==="Enter"&&document.getElementById("splash")){document.removeEventListener("keydown",k);go()}});})();</script>
+</div>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
