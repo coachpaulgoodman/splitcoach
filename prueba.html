@@ -1799,7 +1799,7 @@ R.video={html(){
     <div class="stage" id="stage"><div class="vbox"><video id="vid" src="${SC_BLOB}${esc(v.assetId)}" crossorigin="anonymous" playsinline preload="auto" muted></video><canvas id="ov"></canvas></div></div>
     <div class="ctrl"><button class="btn sm" id="pp">▶</button><button class="btn ghost sm" id="fb" aria-label="Cuadro anterior">◀︎ 1</button><button class="btn ghost sm" id="ff" aria-label="Cuadro siguiente">1 ▶︎</button>
       <select id="rate" style="width:auto;padding:4px 8px" aria-label="Velocidad"><option value="0.1">0,1×</option><option value="0.25">0,25×</option><option value="0.5">0,5×</option><option value="1" selected>1×</option></select>
-      <span class="time" id="tc">0.00</span></div>
+      <span class="time" id="tc">0.00</span><button class="btn danger sm" id="clrplay" hidden>✕ Borrar y seguir</button></div>
     <input type="range" id="scrub" min="0" max="1000" value="0" aria-label="Posición">
     <div class="tools" role="toolbar" aria-label="Dibujo">
       <button class="btn ghost sm" data-tool="flecha">➜ Flecha</button><button class="btn ghost sm" data-tool="circulo">◯ Círculo</button><button class="btn ghost sm" data-tool="angulo">∠ Ángulo</button>
@@ -1807,7 +1807,7 @@ R.video={html(){
     <details class="tools-mas"><summary class="small">Medición avanzada</summary><div class="tools" role="toolbar" aria-label="Medición">
       <button class="btn ghost sm" data-tool="linea">Línea</button><button class="btn ghost sm" data-tool="calib">Calibrar</button><button class="btn ghost sm" data-tool="track">Trayectoria</button>
       <button class="btn ghost sm" id="auto">Auto-seguir</button></div></details>
-    <div class="note" id="hint">Pausa en el cuadro que quieres analizar, elige Flecha, Círculo o Ángulo y dibuja sobre el video.</div>
+    <div class="note" id="hint">Elige Flecha, Círculo o Ángulo y dibuja: el video se pausa solo. "Borrar y seguir" limpia lo que dibujaste y continúa; si sigues con ▶, los dibujos se ven 2 s y desaparecen.</div>
     <div class="kpi" id="meas"></div>
   </section>
   <section class="card"><h3>Frecuencia de brazada</h3>
@@ -1840,7 +1840,7 @@ function initPlayer(v){
   const dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
   const ang=(a,b,c)=>{const v1=[a[0]-b[0],a[1]-b[1]],v2=[c[0]-b[0],c[1]-b[1]];return Math.acos(Math.max(-1,Math.min(1,(v1[0]*v2[0]+v1[1]*v2[1])/(Math.hypot(...v1)*Math.hypot(...v2)||1))))*180/Math.PI};
   const meters=px=>P.calib?px/P.calib.pxPerM:null;
-  function draw(){
+  function draw(fast){
     ctx.clearRect(0,0,cv.width,cv.height);ctx.lineWidth=2.5*devicePixelRatio;ctx.lineCap="round";
     const yel="#FFD23F",cy="#3FE0FF",red="#FF5A4E";
     const big=()=>{ctx.lineWidth=3.5*devicePixelRatio};
@@ -1850,14 +1850,15 @@ function initPlayer(v){
         ctx.beginPath();ctx.moveTo(x2,y2);ctx.lineTo(x2-h*Math.cos(an-.45),y2-h*Math.sin(an-.45));ctx.lineTo(x2-h*Math.cos(an+.45),y2-h*Math.sin(an+.45));ctx.closePath();ctx.fill();ctx.globalAlpha=sv}
       if(s.t==="circulo"){big();const [cx,cy2]=toCv(s.p[0]),[ex,ey]=toCv(s.p[1]);ctx.strokeStyle=yel;if(prev)ctx.setLineDash([8,6]);ctx.beginPath();ctx.arc(cx,cy2,Math.max(6,Math.hypot(ex-cx,ey-cy2)),0,Math.PI*2);ctx.stroke();ctx.setLineDash([])}
       ctx.lineWidth=2.5*devicePixelRatio};
-    P.shapes.forEach(s=>shp(s));
+    const ct=vid.currentTime,VIS=P.shapes.filter(s=>s.at==null||(ct>=s.at-0.05&&ct<=s.at+2)),alpha=s=>s.at==null?1:Math.max(.15,Math.min(1,(s.at+2-ct)/0.5));
+    VIS.forEach(s=>{ctx.globalAlpha=alpha(s);shp(s)});ctx.globalAlpha=1;
     if(P.prev)shp(P.prev,true);
-    P.shapes.forEach(s=>{
+    VIS.forEach(s=>{ctx.globalAlpha=alpha(s);
       if(s.t==="linea"){ctx.strokeStyle=yel;const [a,b]=[toCv(s.p[0]),toCv(s.p[1])];ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.stroke();const m=meters(dist(s.p[0],s.p[1]));label(s.p[1],m!=null?m.toFixed(2)+" m":Math.round(dist(s.p[0],s.p[1]))+" px")}
       if(s.t==="angulo"){ctx.strokeStyle=cy;const [a,b,c]=s.p.map(toCv);ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.lineTo(...c);ctx.stroke();
         const a1=Math.atan2(a[1]-b[1],a[0]-b[0]),a2=Math.atan2(c[1]-b[1],c[0]-b[0]);let d=a2-a1;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;
         ctx.beginPath();ctx.arc(b[0],b[1],22*devicePixelRatio,a1,a1+d,d<0);ctx.stroke();label(s.p[1],ang(...s.p).toFixed(1)+"°")}
-    });
+    });ctx.globalAlpha=1;
     if(P.calib){ctx.strokeStyle="#7CFC9A";ctx.setLineDash([6,5]);const [a,b]=P.calib.p.map(toCv);ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.stroke();ctx.setLineDash([]);label(P.calib.p[1],P.calib.m+" m (ref)")}
     // trayectoria con vectores
     const tr=P.track.slice().sort((a,b)=>a.t-b.t);
@@ -1866,7 +1867,7 @@ function initPlayer(v){
       tr.forEach(p=>{const [x,y]=toCv([p.x,p.y]);ctx.fillStyle=Math.abs(p.t-vid.currentTime)<dt/2?"#fff":red;ctx.beginPath();ctx.arc(x,y,3.5*devicePixelRatio,0,7);ctx.fill()})}
     P.pts.forEach(p=>{const [x,y]=toCv(p);ctx.fillStyle=yel;ctx.beginPath();ctx.arc(x,y,5*devicePixelRatio,0,7);ctx.fill()});
     if(P.tool==="angulo"&&P.pts.length&&P.hover){ctx.strokeStyle="rgba(63,224,255,.6)";ctx.setLineDash([6,5]);const q=P.pts.map(toCv);ctx.beginPath();ctx.moveTo(...q[0]);q.slice(1).forEach(x=>ctx.lineTo(...x));ctx.lineTo(...toCv(P.hover));ctx.stroke();ctx.setLineDash([])}
-    measures();
+    if(!fast)measures();
   }
   function measures(){
     const tr=P.track.slice().sort((a,b)=>a.t-b.t),box=$("#meas");if(!box)return;
@@ -1888,20 +1889,23 @@ function initPlayer(v){
   cv.addEventListener("pointermove",ev=>{if(!P.tool)return;const p=evP(ev);
     if(P.drag&&DRAG.includes(P.tool)){P.prev={t:P.tool,p:[P.pts[0],p]};draw()}else if(P.tool==="angulo"&&P.pts.length){P.hover=p;draw()}});
   cv.addEventListener("pointerup",ev=>{if(!P.drag)return;P.drag=false;const p=evP(ev),a=P.pts[0];P.prev=null;
-    if(a&&Math.hypot(p[0]-a[0],p[1]-a[1])>W()*0.015){P.shapes.push({t:P.tool,p:[a,p]});P.pts=[];P.dirty=true}draw()});
+    if(a&&Math.hypot(p[0]-a[0],p[1]-a[1])>W()*0.015){addShape({t:P.tool,p:[a,p]});P.pts=[]}draw()});
   cv.addEventListener("pointerdown",ev=>{
-    if(!P.tool)return;ev.preventDefault();const p=evP(ev);
+    if(!P.tool)return;ev.preventDefault();if(!vid.paused)vid.pause();const p=evP(ev);
     if(DRAG.includes(P.tool)&&!P.pts.length){P.pts=[p];P.drag=true;try{cv.setPointerCapture(ev.pointerId)}catch(_){}draw();return}
     if(P.tool==="track"){P.track=P.track.filter(x=>Math.abs(x.t-vid.currentTime)>dt/2);P.track.push({t:+vid.currentTime.toFixed(3),x:p[0],y:p[1]});P.dirty=true;step(1);draw();return}
     P.pts.push(p);
     const need=P.tool==="angulo"?3:2;
     if(P.pts.length===need){
       if(P.tool==="calib"){const m=parseFloat(($("#calm")||{}).value||"2.5")||2.5;P.calib={p:P.pts.slice(),m,pxPerM:dist(...P.pts)/m}}
-      else P.shapes.push({t:P.tool,p:P.pts.slice()});
+      else addShape({t:P.tool,p:P.pts.slice()});
       P.pts=[];P.hover=null;P.dirty=true}
     draw();
   });
-  $("#undo").onclick=()=>{if(P.pts.length){P.pts=[];P.prev=null}else P.shapes.pop();P.dirty=true;draw()};
+  P.batch=[];
+  function addShape(sh){sh.at=+vid.currentTime.toFixed(2);P.shapes.push(sh);P.batch.push(sh);P.dirty=true;$("#clrplay").hidden=false}
+  $("#undo").onclick=()=>{if(P.pts.length){P.pts=[];P.prev=null}else{const x=P.shapes.pop();P.batch=P.batch.filter(y=>y!==x)}$("#clrplay").hidden=!P.batch.length;P.dirty=true;draw()};
+  $("#clrplay").onclick=()=>{P.shapes=P.shapes.filter(x=>!P.batch.includes(x));P.batch=[];P.pts=[];P.prev=null;P.dirty=true;draw();vid.play()};
   // calibración: largo de referencia
   $("[data-tool=calib]").insertAdjacentHTML("afterend",`<input id="calm" type="number" step="0.1" min="0.1" value="${P.calib?P.calib.m:2.5}" style="width:74px;padding:4px 8px" aria-label="Metros de referencia" title="Metros de referencia">`);
   $$("[data-tool]").forEach(b=>b.onclick=()=>setTool(b.dataset.tool));
@@ -1910,7 +1914,8 @@ function initPlayer(v){
   const pp=$("#pp"),tc=$("#tc"),sc=$("#scrub");
   function step(n){vid.pause();vid.currentTime=Math.max(0,Math.min((vid.duration||0),vid.currentTime+n*dt))}
   pp.onclick=()=>{vid.paused?vid.play():vid.pause()};
-  vid.onplay=()=>pp.textContent="❚❚";vid.onpause=()=>pp.textContent="▶";
+  vid.onplay=()=>{pp.textContent="❚❚";P.batch=[];P.pts=[];P.prev=null;$("#clrplay").hidden=true;
+    const loop=()=>{draw(true);if(!vid.paused&&!vid.ended)(vid.requestVideoFrameCallback?vid.requestVideoFrameCallback(loop):requestAnimationFrame(loop))};loop()};vid.onpause=()=>pp.textContent="▶";
   $("#fb").onclick=()=>step(-1);$("#ff").onclick=()=>step(1);
   $("#rate").onchange=e=>vid.playbackRate=+e.target.value;
   vid.addEventListener("timeupdate",()=>{tc.textContent=vid.currentTime.toFixed(2)+" s";if(vid.duration)sc.value=Math.round(vid.currentTime/vid.duration*1000);draw()});
