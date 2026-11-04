@@ -195,6 +195,7 @@ code{font-family:var(--f-mono);font-size:12.5px;background:var(--soft);padding:1
 
 .pas-diag{background:var(--soft);border-radius:12px;padding:10px 12px;font-size:14px;line-height:1.5}.pas-pb{background:color-mix(in srgb,var(--gold) 25%,transparent)!important;color:var(--ink)}.pas-t td,.pas-t th{padding:6px 8px}.pas-t td.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
 .pas-old{background:color-mix(in srgb,var(--bad) 18%,transparent)!important;color:var(--ink);font-size:11px}.prog-t td{white-space:nowrap}.prog-t .date{font-size:11px;color:var(--muted)}
+.tor-it{cursor:pointer}.tor-det{display:grid;gap:10px;padding:4px 0 16px}.tor-sep td{border-top:2px solid var(--line)}
 /* ---- Tema SplitCoach: pizarra + turquesa ---- */
 header.top{border-bottom:1px solid var(--line)}
 .brand{padding-block:14px 8px}
@@ -1027,6 +1028,33 @@ R.resultados={html(){
   if($("#year"))$("#year").onchange=e=>{S.year=e.target.value;render(true)};
   if(S.rTab==="torneos")bindTorneos();else if(S.rTab==="rivales")bindRivales();else bindCargar();
 }};
+/* ---------- rendimiento del team en un torneo ---------- */
+function torTeamHTML(rs){
+  const tr=rs.filter(r=>r.seg!=null&&nadByName(r.nadador));
+  if(!tr.length)return `<div class="tor-det muted small">Ningún nadador de tu plantel en este torneo. Si nadaron con otro nombre, agrégalo en "Otros nombres" de su ficha.</div>`;
+  const items=tr.map(r=>{const n=nadByName(r.nadador),y=yearOf(r);
+    const prev=resOf(n.nombre).filter(x=>x.seg!=null&&x.prueba===r.prueba&&String(x.piscina)===String(r.piscina)&&(x.fecha||"")<(r.fecha||""));
+    const pb=prev.reduce((m,x)=>!m||x.seg<m.seg?x:m,null),py=prev.filter(x=>yearOf(x)===y).reduce((m,x)=>!m||x.seg<m.seg?x:m,null);
+    return {r,n,pb,py,dPB:pb?r.seg-pb.seg:null,dY:py?r.seg-py.seg:null}});
+  const conRef=items.filter(i=>i.pb),pbs=items.filter(i=>i.pb&&i.dPB<0),nuevas=items.filter(i=>!i.pb);
+  const med=[1,2,3].map(k=>items.filter(i=>i.r.lugar===k).length);
+  const top=pbs.slice().sort((a,b)=>a.dPB/a.pb.seg-b.dPB/b.pb.seg).slice(0,3);
+  items.sort((a,b)=>a.n.nombre.localeCompare(b.n.nombre,"es")||ordPrueba(a.r.prueba)-ordPrueba(b.r.prueba));
+  const cell=d=>d==null?`<span class="muted">—</span>`:difS(d);
+  const filas=items.map((i,k)=>{const first=k===0||items[k-1].n.id!==i.n.id;
+    return `<tr${first&&k?' class="tor-sep"':""}><td>${first?`<a href="#ficha-${encodeURIComponent(i.n.id)}"><b>${esc(i.n.nombre)}</b></a>`:""}</td><td>${esc(i.r.prueba)}</td>
+      <td class="num time">${fmtT(i.r.seg)}</td><td class="num">${i.r.lugar>=1&&i.r.lugar<=3?`<span class="medal m${i.r.lugar}">${i.r.lugar}</span>`:i.r.lugar||"—"}</td>
+      <td class="num">${!i.pb?`<span class="chip">1ª vez</span>`:i.dPB<0?`<span class="chip pas-pb">PB</span> ${difS(i.dPB)}`:cell(i.dPB)}</td><td class="num">${cell(i.dY)}</td></tr>`}).join("");
+  return `<div class="tor-det">
+    <div class="kpi"><div><b>${uniq(items.map(i=>i.n.id)).length}</b><span>Nadadores</span></div><div><b>${items.length}</b><span>Nadadas</span></div>
+      <div><b class="up">${pbs.length}</b><span>PB logrados</span></div>
+      <div><b>${conRef.length?Math.round(pbs.length/conRef.length*100)+"%":"—"}</b><span>Mejoró su PB*</span></div>
+      <div><b>${med[0]} · ${med[1]} · ${med[2]}</b><span>Oro · Plata · Bronce</span></div></div>
+    ${top.length?`<div class="pas-diag">Mayores mejoras: ${top.map(i=>`<b>${esc(i.n.nombre.split(" ")[0])}</b> ${esc(i.r.prueba)} ${difS(i.dPB)} (−${Math.abs(i.dPB/i.pb.seg*100).toFixed(1)}%)`).join(" · ")}</div>`:""}
+    <div class="tablewrap"><table class="pas-t prog-t"><thead><tr><th>Nadador</th><th>Prueba</th><th class="num">Tiempo</th><th class="num">Lugar</th><th class="num">vs PB previo</th><th class="num">vs mejor del año</th></tr></thead><tbody>${filas}</tbody></table></div>
+    <div class="note">* De ${conRef.length} nadadas con marca previa${nuevas.length?`; ${nuevas.length} ${nuevas.length>1?"fueron":"fue"} primera vez en la prueba`:""}. PB previo y mejor del año: solo marcas anteriores a este torneo, misma prueba y piscina.</div></div>`;
+}
+
 function torneosHTML(){
   const rows=S.res.filter(r=>r.tipo!=="control"&&inYear(r));
   const club=`<section class="card"><h3>Mi club</h3><div class="row"><input id="club" class="grow" value="${esc(S.cfg.miClub)}" placeholder="Sigla, ej. PH2OE" list="dl-club" autocomplete="off"><button class="btn" id="saveclub">Guardar</button></div>
@@ -1038,10 +1066,10 @@ function torneosHTML(){
   return `<div class="stats"><div class="stat"><b>${ks.length}</b><span>Torneos</span></div><div class="stat"><b>${uniq(rows.map(r=>norm(r.nadador))).length}</b><span>Nadadores</span></div>
     <div class="stat"><b>${rows.length}</b><span>Resultados</span></div><div class="stat"><b>${S.cfg.miClub?pod:"—"}</b><span>Podios mi club</span></div></div>
     <section class="card"><h2>Torneos</h2><div class="list">${ks.map(k=>{const rs=T[k],r0=rs[0],m=rs.filter(isMine),p=[1,2,3].map(n=>m.filter(r=>r.lugar===n).length);
-      return `<div class="item"><div class="main"><div class="nm">${esc(r0.torneo||"Sin nombre")}</div><div class="small muted">${rs.length} resultados · ${uniq(rs.map(r=>r.club)).length} clubes${r0.piscina?" · "+esc(r0.piscina)+" m":""}</div></div>
-      ${S.cfg.miClub&&m.length?`<div class="row" style="gap:3px"><span class="medal m1">${p[0]}</span><span class="medal m2">${p[1]}</span><span class="medal m3">${p[2]}</span></div>`:""}<span class="date">${fmtD(r0.fecha)}</span></div>`}).join("")}</div></section>`+club;
+      const op=S.torOpen===k;return `<div class="item tor-it" data-tk="${esc(k)}" role="button" tabindex="0" aria-expanded="${op}"><div class="main"><div class="nm">${op?"▾":"▸"} ${esc(r0.torneo||"Sin nombre")}</div><div class="small muted">${rs.length} resultados · ${uniq(rs.map(r=>r.club)).length} clubes${r0.piscina?" · "+esc(r0.piscina)+" m":""}</div></div>
+      ${S.cfg.miClub&&m.length?`<div class="row" style="gap:3px"><span class="medal m1">${p[0]}</span><span class="medal m2">${p[1]}</span><span class="medal m3">${p[2]}</span></div>`:""}<span class="date">${fmtD(r0.fecha)}</span></div>${op?torTeamHTML(rs):""}`}).join("")}</div></section>`+club;
 }
-function bindTorneos(){if($("#saveclub"))$("#saveclub").onclick=async()=>{const v=$("#club").value.trim();S.cfg.miClub=v;await dbWrite(db=>db.doc("config/app").set(Object.assign({},S.cfg,{miClub:v})));render(true)}}
+function bindTorneos(){$$("[data-tk]").forEach(el=>{const go=()=>{S.torOpen=S.torOpen===el.dataset.tk?null:el.dataset.tk;render(true)};el.onclick=go;el.onkeydown=e=>{if(e.key==="Enter")go()}});if($("#saveclub"))$("#saveclub").onclick=async()=>{const v=$("#club").value.trim();S.cfg.miClub=v;await dbWrite(db=>db.doc("config/app").set(Object.assign({},S.cfg,{miClub:v})));render(true)}}
 /* ---------- RANKINGS nacional / internacional ---------- */
 const ambitoOf=t=>t.ambito||(/sudamericano|mundial|panamericano|world|pan ?am/i.test(t.torneo||"")?"internacional":"nacional");
 function periodOk(r,per){
