@@ -223,6 +223,8 @@ code{font-family:var(--f-mono);font-size:12.5px;background:var(--soft);padding:1
 .inf-nota{display:grid;grid-template-columns:auto 1fr;gap:8px;border-radius:12px;padding:10px 12px;font-size:13.5px;line-height:1.5}
 .inf-ic{white-space:nowrap}.inf-nota.ok{background:color-mix(in srgb,var(--good) 18%,transparent)}.inf-nota.idea{background:color-mix(in srgb,var(--z2) 18%,transparent)}.inf-nota.warn{background:color-mix(in srgb,var(--z4) 22%,transparent)}
 .inf-ins{border-radius:12px;padding:12px;background:color-mix(in srgb,var(--accent) 16%,transparent);font-size:14px}
+.tools-mas summary{cursor:pointer;color:var(--accent);font-weight:600;margin:4px 0}
+.tools .btn.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 /* ---- Tema SplitCoach: pizarra + turquesa ---- */
 header.top{border-bottom:1px solid var(--line)}
 .brand{padding-block:14px 8px}
@@ -1724,10 +1726,13 @@ R.videos={html(){
       <label>Nadador<select id="v-nad"><option value="">—</option>${S.nad.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")).map(n=>`<option value="${esc(n.id)}">${esc(n.nombre)}</option>`).join("")}</select></label>
       <label>Prueba o ejercicio<input id="v-pr" list="dl-pr" placeholder="100 Espalda · subacuático"></label>
       <label>Fecha<input id="v-f" type="date" value="${today()}"></label>
-      <label>Archivo (MP4 o WebM, máx. 20 MB)<input id="v-file" type="file" accept="video/mp4,video/webm"></label>
-      <div class="row full"><button class="btn" id="v-up">Subir</button><span id="v-msg" class="small"></span></div></div>
+      <div class="row full"><label class="btn" style="cursor:pointer">🎥 Grabar<input id="v-cam" type="file" accept="video/*" capture="environment" hidden></label>
+        <label class="btn ghost" style="cursor:pointer">Elegir de la galería<input id="v-file" type="file" accept="video/*" hidden></label><span id="v-fn" class="small muted"></span></div>
+      <div id="v-prep" class="full" hidden><video id="v-pv" playsinline muted controls style="width:100%;max-height:260px;background:#000;border-radius:10px"></video>
+        <label id="v-cut" hidden>Inicio del recorte (se suben 30 s) <input id="v-ini" type="range" min="0" max="0" step="0.1" value="0"><span class="small" id="v-ini-t"></span></label></div>
+      <div class="row full"><button class="btn" id="v-up">Subir y analizar</button><span id="v-msg" class="small"></span></div></div>
       <datalist id="dl-pr">${PRUEBAS.map(p=>`<option value="${p}">`).join("")}</datalist>
-      <div class="note">Videos de iPhone (.MOV): expórtalos como MP4 o recórtalos antes de subir. Clips cortos de 5 a 20 segundos funcionan mejor para análisis.</div>`
+      <div class="note">Máximo 30 segundos. Si el video es más largo, eliges desde dónde recortar. Los videos de iPhone (.MOV) se convierten solos antes de subir (tarda lo que dura el clip).</div>`
     :`<div class="msg">Solo el entrenador puede subir videos.</div>`}</section>
     <section class="card"><h2>Biblioteca</h2>
     ${list.length?`<div class="vgrid">${list.map(v=>{const n=nadById(v.nadadorId);return `<a class="vcard" href="#video-${encodeURIComponent(v.id)}"><video src="${SC_BLOB}${esc(v.assetId)}#t=0.5" crossorigin="anonymous" preload="metadata" muted playsinline></video>
@@ -1735,19 +1740,53 @@ R.videos={html(){
       :`<div class="muted small">${loading()?"Cargando…":"Aún no hay videos."}</div>`}</section>`;
 },bind(){
   if(!$("#v-up"))return;
+  let file=null,dur=0;
+  const pick=async inp=>{const f=inp.files[0];if(!f)return;file=f;$("#v-fn").textContent=f.name;$("#v-msg").textContent="";
+    const pv=$("#v-pv");pv.src=URL.createObjectURL(f);$("#v-prep").hidden=false;
+    pv.onloadedmetadata=()=>{dur=pv.duration||0;const cut=dur>30.5;$("#v-cut").hidden=!cut;const r=$("#v-ini");r.max=Math.max(0,dur-30).toFixed(1);r.value=0;$("#v-ini-t").textContent=cut?` 0.0–30.0 s de ${dur.toFixed(1)} s`:""};
+    pv.onerror=()=>{dur=0;$("#v-msg").innerHTML=`<span class="small muted">Este navegador no muestra la vista previa de este formato; se intentará convertir al subir.</span>`}};
+  $("#v-cam").onchange=e=>pick(e.target);$("#v-file").onchange=e=>pick(e.target);
+  $("#v-ini").oninput=e=>{const t=+e.target.value;$("#v-ini-t").textContent=` ${t.toFixed(1)}–${(t+30).toFixed(1)} s de ${dur.toFixed(1)} s`;$("#v-pv").currentTime=t};
   $("#v-up").onclick=async()=>{
-    const f=$("#v-file").files[0],m=$("#v-msg");
-    if(!f){m.innerHTML=`<span class="down">Elige un archivo.</span>`;return}
-    if(f.size>20*1024*1024){m.innerHTML=`<span class="down">El archivo pesa ${(f.size/1048576).toFixed(1)} MB. El máximo es 20 MB: recórtalo o comprímelo.</span>`;return}
-    const type=/\.webm$/i.test(f.name)?"video/webm":/\.mp4$/i.test(f.name)||f.type==="video/mp4"?"video/mp4":f.type;
-    if(!["video/mp4","video/webm"].includes(type)){m.innerHTML=`<span class="down">Formato no compatible. Usa MP4 o WebM.</span>`;return}
-    $("#v-up").disabled=true;m.textContent="Subiendo…";
-    try{const up=await S.assets.upload(f,{type});
+    const f=file,m=$("#v-msg");
+    if(!f){m.innerHTML=`<span class="down">Graba o elige un video.</span>`;return}
+    $("#v-up").disabled=true;
+    try{
+      const ok=["video/mp4","video/webm"].includes(f.type)||/\.(mp4|webm)$/i.test(f.name);
+      let out=f;
+      if(!ok||dur>30.5||f.size>25*1024*1024){out=await recodeVideo(f,+$("#v-ini").value||0,30,t=>{m.textContent=`Preparando video… ${t.toFixed(0)} s`})}
+      if(out.size>45*1024*1024)throw {code:"too_large"};
+      const type=out.type.startsWith("video/webm")?"video/webm":"video/mp4";
+      m.textContent="Subiendo…";
+      const up=await S.assets.upload(out,{type});
       const doc={nadadorId:$("#v-nad").value,prueba:$("#v-pr").value.trim(),fecha:$("#v-f").value||today(),assetId:up.id,notas:"",marcas:[],trazos:[],analisis:"",subido:today()};
       const ref=await S.db.collection("videos").add(doc);location.hash="#video-"+encodeURIComponent(ref.id)}
-    catch(e){m.innerHTML=`<span class="down">${e.code==="too_large"?"Archivo demasiado grande (máx. 20 MB).":e.code==="unsupported_type"?"Formato no compatible. Usa MP4 o WebM.":e.code==="quota_or_state"?"Se llenó el espacio de almacenamiento. Elimina videos antiguos.":"No se pudo subir: "+esc(e.message||e.code||e)}</span>`;$("#v-up").disabled=false}
+    catch(e){m.innerHTML=`<span class="down">${e.code==="too_large"?"El video quedó muy pesado. Graba un clip más corto.":e.code==="no_recode"?"Este navegador no puede convertir el video. Súbelo desde el iPhone (Safari) o expórtalo como MP4.":e.code==="quota_or_state"?"Se llenó el espacio de almacenamiento. Elimina videos antiguos.":"No se pudo subir: "+esc(e.message||e.code||e)}</span>`;$("#v-up").disabled=false}
   };
 }};
+// convierte a MP4/WebM (H.264 o VP8/9), recorta a "max" s y baja a 1280 px: dibuja el video en un canvas y lo graba
+async function recodeVideo(file,start,max,onProg){
+  if(!window.MediaRecorder||!HTMLCanvasElement.prototype.captureStream)throw {code:"no_recode"};
+  const mime=["video/mp4;codecs=avc1","video/mp4","video/webm;codecs=vp9","video/webm;codecs=vp8","video/webm"].find(t=>MediaRecorder.isTypeSupported(t));if(!mime)throw {code:"no_recode"};
+  const v=document.createElement("video");v.muted=true;v.playsInline=true;v.setAttribute("playsinline","");v.src=URL.createObjectURL(file);
+  v.style.cssText="position:fixed;left:0;top:0;width:2px;height:2px;opacity:0;pointer-events:none";document.body.appendChild(v);
+  try{
+    await new Promise((res,rej)=>{v.onloadedmetadata=res;v.onerror=()=>rej({code:"no_recode"})});
+    const sc=Math.min(1,1280/Math.max(v.videoWidth,v.videoHeight)),cw=Math.round(v.videoWidth*sc/2)*2,ch=Math.round(v.videoHeight*sc/2)*2;
+    const c=document.createElement("canvas");c.width=cw;c.height=ch;const x=c.getContext("2d");
+    const end=Math.min(v.duration,start+max);
+    await new Promise(res=>{v.onseeked=res;v.currentTime=start});
+    const st=c.captureStream(30),rec=new MediaRecorder(st,{mimeType:mime,videoBitsPerSecond:4000000}),parts=[];
+    rec.ondataavailable=e=>{if(e.data&&e.data.size)parts.push(e.data)};
+    const done=new Promise(res=>rec.onstop=res);
+    x.drawImage(v,0,0,cw,ch);rec.start(250);await v.play();
+    await new Promise(res=>{const tick=()=>{x.drawImage(v,0,0,cw,ch);onProg&&onProg(v.currentTime-start);if(v.currentTime>=end-0.03||v.ended){res();return}
+      (v.requestVideoFrameCallback?v.requestVideoFrameCallback(tick):requestAnimationFrame(tick))};tick()});
+    v.pause();rec.stop();await done;
+    const type=mime.split(";")[0],blob=new Blob(parts,{type});
+    return new File([blob],"clip."+(type==="video/mp4"?"mp4":"webm"),{type});
+  }finally{v.remove();URL.revokeObjectURL(v.src)}
+}
 
 /* ----- reproductor tipo Kinovea ----- */
 function stopVideo(){if(S.vp&&S.vp.stop)S.vp.stop();S.vp=null}
@@ -1762,11 +1801,13 @@ R.video={html(){
       <select id="rate" style="width:auto;padding:4px 8px" aria-label="Velocidad"><option value="0.1">0,1×</option><option value="0.25">0,25×</option><option value="0.5">0,5×</option><option value="1" selected>1×</option></select>
       <span class="time" id="tc">0.00</span></div>
     <input type="range" id="scrub" min="0" max="1000" value="0" aria-label="Posición">
-    <div class="tools" role="toolbar" aria-label="Herramientas">
-      <button class="btn ghost sm" data-tool="linea">Línea</button><button class="btn ghost sm" data-tool="angulo">Ángulo</button>
-      <button class="btn ghost sm" data-tool="calib">Calibrar</button><button class="btn ghost sm" data-tool="track">Trayectoria</button>
-      <button class="btn ghost sm" id="auto">Auto-seguir</button><button class="btn ghost sm" id="clr">Limpiar</button></div>
-    <div class="note" id="hint">Elige una herramienta y toca sobre el video. Trayectoria: marca el mismo punto (mano, cadera, cabeza) y avanza cuadro a cuadro; se dibujan los vectores de velocidad.</div>
+    <div class="tools" role="toolbar" aria-label="Dibujo">
+      <button class="btn ghost sm" data-tool="flecha">➜ Flecha</button><button class="btn ghost sm" data-tool="circulo">◯ Círculo</button><button class="btn ghost sm" data-tool="angulo">∠ Ángulo</button>
+      <button class="btn ghost sm" id="undo">↶ Deshacer</button><button class="btn ghost sm" id="clr">Limpiar</button></div>
+    <details class="tools-mas"><summary class="small">Medición avanzada</summary><div class="tools" role="toolbar" aria-label="Medición">
+      <button class="btn ghost sm" data-tool="linea">Línea</button><button class="btn ghost sm" data-tool="calib">Calibrar</button><button class="btn ghost sm" data-tool="track">Trayectoria</button>
+      <button class="btn ghost sm" id="auto">Auto-seguir</button></div></details>
+    <div class="note" id="hint">Pausa en el cuadro que quieres analizar, elige Flecha, Círculo o Ángulo y dibuja sobre el video.</div>
     <div class="kpi" id="meas"></div>
   </section>
   <section class="card"><h3>Frecuencia de brazada</h3>
@@ -1802,9 +1843,20 @@ function initPlayer(v){
   function draw(){
     ctx.clearRect(0,0,cv.width,cv.height);ctx.lineWidth=2.5*devicePixelRatio;ctx.lineCap="round";
     const yel="#FFD23F",cy="#3FE0FF",red="#FF5A4E";
+    const big=()=>{ctx.lineWidth=3.5*devicePixelRatio};
+    const shp=(s,prev)=>{
+      if(s.t==="flecha"){big();const sv=ctx.globalAlpha;if(prev)ctx.globalAlpha=.7;const [x1,y1]=toCv(s.p[0]),[x2,y2]=toCv(s.p[1]),an=Math.atan2(y2-y1,x2-x1),h=16*devicePixelRatio;
+        ctx.strokeStyle=red;ctx.fillStyle=red;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2-h*.6*Math.cos(an),y2-h*.6*Math.sin(an));ctx.stroke();
+        ctx.beginPath();ctx.moveTo(x2,y2);ctx.lineTo(x2-h*Math.cos(an-.45),y2-h*Math.sin(an-.45));ctx.lineTo(x2-h*Math.cos(an+.45),y2-h*Math.sin(an+.45));ctx.closePath();ctx.fill();ctx.globalAlpha=sv}
+      if(s.t==="circulo"){big();const [cx,cy2]=toCv(s.p[0]),[ex,ey]=toCv(s.p[1]);ctx.strokeStyle=yel;if(prev)ctx.setLineDash([8,6]);ctx.beginPath();ctx.arc(cx,cy2,Math.max(6,Math.hypot(ex-cx,ey-cy2)),0,Math.PI*2);ctx.stroke();ctx.setLineDash([])}
+      ctx.lineWidth=2.5*devicePixelRatio};
+    P.shapes.forEach(s=>shp(s));
+    if(P.prev)shp(P.prev,true);
     P.shapes.forEach(s=>{
       if(s.t==="linea"){ctx.strokeStyle=yel;const [a,b]=[toCv(s.p[0]),toCv(s.p[1])];ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.stroke();const m=meters(dist(s.p[0],s.p[1]));label(s.p[1],m!=null?m.toFixed(2)+" m":Math.round(dist(s.p[0],s.p[1]))+" px")}
-      if(s.t==="angulo"){ctx.strokeStyle=cy;const [a,b,c]=s.p.map(toCv);ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.lineTo(...c);ctx.stroke();label(s.p[1],ang(...s.p).toFixed(1)+"°")}
+      if(s.t==="angulo"){ctx.strokeStyle=cy;const [a,b,c]=s.p.map(toCv);ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.lineTo(...c);ctx.stroke();
+        const a1=Math.atan2(a[1]-b[1],a[0]-b[0]),a2=Math.atan2(c[1]-b[1],c[0]-b[0]);let d=a2-a1;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;
+        ctx.beginPath();ctx.arc(b[0],b[1],22*devicePixelRatio,a1,a1+d,d<0);ctx.stroke();label(s.p[1],ang(...s.p).toFixed(1)+"°")}
     });
     if(P.calib){ctx.strokeStyle="#7CFC9A";ctx.setLineDash([6,5]);const [a,b]=P.calib.p.map(toCv);ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.stroke();ctx.setLineDash([]);label(P.calib.p[1],P.calib.m+" m (ref)")}
     // trayectoria con vectores
@@ -1812,7 +1864,8 @@ function initPlayer(v){
     if(tr.length){ctx.strokeStyle="rgba(255,90,78,.55)";ctx.beginPath();tr.forEach((p,i)=>{const [x,y]=toCv([p.x,p.y]);i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke();
       for(let i=1;i<tr.length;i++)arrow([tr[i-1].x,tr[i-1].y],[tr[i].x,tr[i].y],red);
       tr.forEach(p=>{const [x,y]=toCv([p.x,p.y]);ctx.fillStyle=Math.abs(p.t-vid.currentTime)<dt/2?"#fff":red;ctx.beginPath();ctx.arc(x,y,3.5*devicePixelRatio,0,7);ctx.fill()})}
-    P.pts.forEach(p=>{const [x,y]=toCv(p);ctx.fillStyle=yel;ctx.beginPath();ctx.arc(x,y,4*devicePixelRatio,0,7);ctx.fill()});
+    P.pts.forEach(p=>{const [x,y]=toCv(p);ctx.fillStyle=yel;ctx.beginPath();ctx.arc(x,y,5*devicePixelRatio,0,7);ctx.fill()});
+    if(P.tool==="angulo"&&P.pts.length&&P.hover){ctx.strokeStyle="rgba(63,224,255,.6)";ctx.setLineDash([6,5]);const q=P.pts.map(toCv);ctx.beginPath();ctx.moveTo(...q[0]);q.slice(1).forEach(x=>ctx.lineTo(...x));ctx.lineTo(...toCv(P.hover));ctx.stroke();ctx.setLineDash([])}
     measures();
   }
   function measures(){
@@ -1827,20 +1880,28 @@ function initPlayer(v){
     box.innerHTML=h;
   }
   function setTool(t){P.tool=P.tool===t?null:t;P.pts=[];$$("[data-tool]").forEach(b=>b.classList.toggle("on",b.dataset.tool===P.tool));cv.classList.toggle("arm",!!P.tool);cv.style.pointerEvents=P.tool?"auto":"none";
-    const hints={linea:"Toca dos puntos para medir una distancia.",angulo:"Toca tres puntos: extremo, vértice y extremo (ej. hombro–codo–muñeca).",calib:"Toca los dos extremos de algo de largo conocido (ej. ancho de carril 2,5 m) para medir en metros.",track:"Toca el punto a seguir; el video avanza un cuadro solo. Repite para dibujar la trayectoria."};
+    const hints={flecha:"Arrastra desde el inicio hasta la punta (o toca dos puntos).",circulo:"Arrastra desde el centro hacia el borde (o toca centro y borde).",linea:"Toca dos puntos para medir una distancia.",angulo:"Toca tres puntos: extremo, vértice y extremo (ej. hombro–codo–muñeca).",calib:"Toca los dos extremos de algo de largo conocido (ej. ancho de carril 2,5 m) para medir en metros.",track:"Toca el punto a seguir; el video avanza un cuadro solo. Repite para dibujar la trayectoria."};
     $("#hint").textContent=P.tool?hints[P.tool]:"Elige una herramienta y toca sobre el video.";draw()}
   cv.style.pointerEvents="none";
+  const evP=ev=>{const r=cv.getBoundingClientRect();return [(ev.clientX-r.left)/r.width*W(),(ev.clientY-r.top)/r.height*H()]};
+  const DRAG=["flecha","circulo","linea"];
+  cv.addEventListener("pointermove",ev=>{if(!P.tool)return;const p=evP(ev);
+    if(P.drag&&DRAG.includes(P.tool)){P.prev={t:P.tool,p:[P.pts[0],p]};draw()}else if(P.tool==="angulo"&&P.pts.length){P.hover=p;draw()}});
+  cv.addEventListener("pointerup",ev=>{if(!P.drag)return;P.drag=false;const p=evP(ev),a=P.pts[0];P.prev=null;
+    if(a&&Math.hypot(p[0]-a[0],p[1]-a[1])>W()*0.015){P.shapes.push({t:P.tool,p:[a,p]});P.pts=[];P.dirty=true}draw()});
   cv.addEventListener("pointerdown",ev=>{
-    if(!P.tool)return;ev.preventDefault();const r=cv.getBoundingClientRect();const p=[(ev.clientX-r.left)/r.width*W(),(ev.clientY-r.top)/r.height*H()];
+    if(!P.tool)return;ev.preventDefault();const p=evP(ev);
+    if(DRAG.includes(P.tool)&&!P.pts.length){P.pts=[p];P.drag=true;try{cv.setPointerCapture(ev.pointerId)}catch(_){}draw();return}
     if(P.tool==="track"){P.track=P.track.filter(x=>Math.abs(x.t-vid.currentTime)>dt/2);P.track.push({t:+vid.currentTime.toFixed(3),x:p[0],y:p[1]});P.dirty=true;step(1);draw();return}
     P.pts.push(p);
     const need=P.tool==="angulo"?3:2;
     if(P.pts.length===need){
       if(P.tool==="calib"){const m=parseFloat(($("#calm")||{}).value||"2.5")||2.5;P.calib={p:P.pts.slice(),m,pxPerM:dist(...P.pts)/m}}
       else P.shapes.push({t:P.tool,p:P.pts.slice()});
-      P.pts=[];P.dirty=true}
+      P.pts=[];P.hover=null;P.dirty=true}
     draw();
   });
+  $("#undo").onclick=()=>{if(P.pts.length){P.pts=[];P.prev=null}else P.shapes.pop();P.dirty=true;draw()};
   // calibración: largo de referencia
   $("[data-tool=calib]").insertAdjacentHTML("afterend",`<input id="calm" type="number" step="0.1" min="0.1" value="${P.calib?P.calib.m:2.5}" style="width:74px;padding:4px 8px" aria-label="Metros de referencia" title="Metros de referencia">`);
   $$("[data-tool]").forEach(b=>b.onclick=()=>setTool(b.dataset.tool));
