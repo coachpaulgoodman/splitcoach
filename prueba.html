@@ -196,6 +196,7 @@ code{font-family:var(--f-mono);font-size:12.5px;background:var(--soft);padding:1
 .pas-diag{background:var(--soft);border-radius:12px;padding:10px 12px;font-size:14px;line-height:1.5}.pas-pb{background:color-mix(in srgb,var(--gold) 25%,transparent)!important;color:var(--ink)}.pas-t td,.pas-t th{padding:6px 8px}.pas-t td.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
 .pas-old{background:color-mix(in srgb,var(--bad) 18%,transparent)!important;color:var(--ink);font-size:11px}.prog-t td{white-space:nowrap}.prog-t .date{font-size:11px;color:var(--muted)}
 .tor-it{cursor:pointer}.tor-det{display:grid;gap:10px;padding:4px 0 16px}.tor-sep td{border-top:2px solid var(--line)}
+.ed-t td{vertical-align:top}.ed-t td.nm .small{font-weight:400;margin-top:2px}
 /* ---- Tema SplitCoach: pizarra + turquesa ---- */
 header.top{border-bottom:1px solid var(--line)}
 .brand{padding-block:14px 8px}
@@ -1237,7 +1238,7 @@ function editorHTML(){
     <label>Notas de la sesión<textarea id="e-notas">${esc(e.notas)}</textarea></label>
     <div class="row"><button class="btn" id="e-save">Guardar sesión</button><button class="btn ghost" id="e-copy">Copiar para WhatsApp</button>${e.id?'<span class="grow"></span><button class="btn ghost sm" id="e-del">Eliminar</button>':""}<span id="e-msg" class="small"></span></div>
   </section>
-  <section class="card"><div class="head"><h2>Tiempos meta</h2><span class="small muted">según PB de cada nadador</span></div><div class="out" id="e-out"></div></section>`;
+  <section class="card"><div class="head"><h2>Metas y cumplimiento</h2><span class="small muted">meta según PB · real después de la sesión</span></div><div class="out" id="e-out"></div></section>`;
 }
 function targetsFor(s,e){
   return e.nads.map(id=>nadById(id)).filter(Boolean).map(n=>{
@@ -1249,17 +1250,39 @@ function targetsFor(s,e){
     return {n,ref,rg,rest:sal!=null?sal-rg[1]:null};
   });
 }
+function enMetaCell(st){
+  if(!st)return `<span class="muted small">—</span>`;
+  if(!st.rg)return `<span class="small">${fmtT(st.avg,1)} prom.</span>`;
+  const ok=st.inR===st.ts.length,cls=ok?"up":st.inR/st.ts.length>=0.5?"":"down";
+  const fast=st.ts.filter(t=>t<st.rg[0]-(st.rg[0]===st.rg[1]?st.rg[0]*0.02:0.05)).length,slow=st.ts.length-st.inR-fast;
+  return `<b class="${cls}">${st.inR}/${st.ts.length}</b><div class="small muted">prom. ${fmtT(st.avg,1)}${slow?` · ${slow} lenta${slow>1?"s":""}`:""}${fast?` · ${fast} rápida${fast>1?"s":""}`:""}</div>`;
+}
+function edStat(s,e,nid){const x=targetsFor(s,e).find(y=>y.n.id===nid);const txt=(s.reales||{})[nid]||"";return statsOf(txt,x&&x.ref?x.ref.t:null,s.zona,parseT(s.meta))}
+function edResumen(){
+  const e=S.ed,box=$("#e-cump");if(!box)return;
+  let tot=0,ok=0;const byN={};
+  e.series.forEach(s=>e.nads.forEach(nid=>{const st=edStat(s,e,nid);if(!st||!st.rg)return;tot+=st.ts.length;ok+=st.inR;const b=byN[nid]=byN[nid]||[0,0];b[0]+=st.inR;b[1]+=st.ts.length}));
+  if(!tot){box.innerHTML=`<div class="note">Después de la sesión, escribe los tiempos reales de cada nadador (separados por /) para ver quién cumplió la meta.</div>`;return}
+  const ns=Object.entries(byN).map(([id,[a,b]])=>({n:nadById(id),p:a/b,a,b})).filter(x=>x.n).sort((x,y)=>y.p-x.p);
+  box.innerHTML=`<div class="kpi"><div><b class="${ok/tot>=0.8?"up":ok/tot<0.5?"down":""}">${Math.round(ok/tot*100)}%</b><span>Reps en meta</span></div><div><b>${ok}/${tot}</b><span>Reps registradas</span></div>
+    <div><b class="up">${ns.filter(x=>x.p===1).length}</b><span>Cumplieron todo</span></div><div><b class="down">${ns.filter(x=>x.p<0.5).length}</b><span>Bajo 50%</span></div></div>
+    <div class="pas-diag">${ns.map(x=>`<span class="${x.p===1?"up":x.p<0.5?"down":""}"><b>${esc(x.n.nombre.split(" ")[0])}</b> ${x.a}/${x.b}</span>`).join(" · ")}</div>`;
+}
 function edOut(){
   const e=S.ed,o=$("#e-out");if(!o)return;
   $("#e-vol").textContent="Volumen "+volOf(e).toLocaleString("es-CL")+" m";
   if(!e.nads.length){o.innerHTML=`<div class="muted small">Selecciona nadadores para ver sus tiempos meta.</div>`;return}
-  o.innerHTML=e.series.map(s=>{
+  o.innerHTML=`<div id="e-cump"></div>`+e.series.map((s,si)=>{
     const t=targetsFor(s,e);
     return `<div><h3>${esc(s.reps)}x${esc(s.dist)} ${esc(s.estilo)} ${zb(s.zona)} <span class="small muted" style="font-family:var(--f-body)">${s.salida?"@ "+esc(s.salida):""}</span></h3>
-    <div class="tablewrap"><table><thead><tr><th>Nadador</th><th class="num">Meta por rep</th><th class="num">Descanso</th><th>Referencia</th></tr></thead><tbody>
-    ${t.map(x=>`<tr><td class="nm">${esc(x.n.nombre)}</td>${x.none?`<td class="num muted" colspan="3" style="text-align:left">${esc(x.none)}</td>`:
-      `<td class="num time">${x.rg[0]===x.rg[1]?fmtT(x.rg[0]):fmtT(x.rg[0],1)+" – "+fmtT(x.rg[1],1)}</td><td class="num small ${x.rest!=null&&x.rest<5?"down":""}">${x.rest!=null?"~"+Math.max(0,Math.round(x.rest))+" s":"—"}</td>
-      <td class="small muted">${parseT(s.meta)!=null?"Meta fija"+(x.ref?" · PB "+x.ref.d+" "+esc(s.estilo)+" "+fmtT(x.ref.r.seg):""):`PB ${x.ref.d} ${esc(s.estilo)} ${fmtT(x.ref.r.seg)} (${esc(x.ref.r.piscina)}m)${x.ref.exact?"":" · ajustado"}`}</td>`}</tr>`).join("")}</tbody></table></div></div>`}).join("");
+    <div class="tablewrap"><table class="ed-t"><thead><tr><th>Nadador</th><th class="num">Meta por rep</th><th class="num">Descanso</th><th>Tiempos reales</th><th class="num">En meta</th></tr></thead><tbody>
+    ${t.map(x=>{const ref=x.none?"":parseT(s.meta)!=null?"Meta fija"+(x.ref?" · PB "+x.ref.d+" "+esc(s.estilo)+" "+fmtT(x.ref.r.seg):""):`PB ${x.ref.d} ${esc(s.estilo)} ${fmtT(x.ref.r.seg)} (${esc(x.ref.r.piscina)}m)${x.ref.exact?"":" · ajustado"}`;
+      const v=(s.reales||{})[x.n.id]||"";
+      return `<tr><td class="nm">${esc(x.n.nombre)}<div class="small muted">${x.none?esc(x.none):ref}</div></td>${x.none?`<td class="num muted">—</td><td></td>`:
+      `<td class="num time">${x.rg[0]===x.rg[1]?fmtT(x.rg[0]):fmtT(x.rg[0],1)+" – "+fmtT(x.rg[1],1)}</td><td class="num small ${x.rest!=null&&x.rest<5?"down":""}">${x.rest!=null?"~"+Math.max(0,Math.round(x.rest))+" s":"—"}</td>`}
+      <td><input data-er="${si}|${esc(x.n.id)}" value="${esc(v)}" placeholder="${Array.from({length:Math.min(3,+s.reps||1)},()=>x.rg?fmtT(x.rg[1],0):"1:20").join("/")}…" inputmode="decimal" style="font-family:var(--f-mono);min-width:150px"></td>
+      <td class="num" id="em-${si}-${esc(x.n.id)}">${enMetaCell(edStat(s,e,x.n.id))}</td></tr>`}).join("")}</tbody></table></div></div>`}).join("")+`<div class="row"><button class="btn" data-save2="1">Guardar sesión y tiempos</button><span class="small muted">Los tiempos también aparecen en Evolución.</span></div>`;
+  edResumen();
 }
 function sessionText(e){
   const lines=[`*${e.titulo||"Entrenamiento"}* · ${fmtD(e.fecha)} · ${e.piscina} m`];
@@ -1282,6 +1305,9 @@ function bindEditor(){
     if(ok){S.ev=null;$("#e-msg").innerHTML=`<span class="up">Sesión guardada</span>`}};
   if($("#e-del"))$("#e-del").onclick=async ev=>{const b=ev.target;if(b.dataset.c!=="1"){b.dataset.c="1";b.textContent="¿Eliminar sesión?";b.className="btn danger sm";return}
     if(await dbWrite(db=>db.collection("sesiones").doc(e.id).delete(),$("#e-msg"))){S.ed=null;render(true)}};
+  $("#e-out").addEventListener("click",ev=>{if(ev.target.dataset&&ev.target.dataset.save2){$("#e-save").click();ev.target.textContent="Guardado ✓";setTimeout(()=>{ev.target.textContent="Guardar sesión y tiempos"},1600)}});
+  $("#e-out").addEventListener("input",ev=>{const i=ev.target;if(!i.dataset||!i.dataset.er)return;const [si,nid]=i.dataset.er.split("|"),se=e.series[+si];
+    se.reales=Object.assign({},se.reales,{[nid]:i.value});const c=document.getElementById("em-"+si+"-"+nid);if(c)c.innerHTML=enMetaCell(edStat(se,e,nid));edResumen()});
   edOut();
 }
 
