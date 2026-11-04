@@ -197,6 +197,32 @@ code{font-family:var(--f-mono);font-size:12.5px;background:var(--soft);padding:1
 .pas-old{background:color-mix(in srgb,var(--bad) 18%,transparent)!important;color:var(--ink);font-size:11px}.prog-t td{white-space:nowrap}.prog-t .date{font-size:11px;color:var(--muted)}
 .tor-it{cursor:pointer}.tor-det{display:grid;gap:10px;padding:4px 0 16px}.tor-sep td{border-top:2px solid var(--line)}
 .ed-t td{vertical-align:top}.ed-t td.nm .small{font-weight:400;margin-top:2px}
+.inf{display:grid;gap:12px}
+.inf-hero{border-radius:18px;padding:20px 18px;color:#fff;background:linear-gradient(135deg,#4B1D8F 0%,#1B3A6B 100%);display:grid;gap:10px}
+.inf-hero h2{color:#fff;margin:0;font-size:21px;line-height:1.25}
+.inf-eye{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;opacity:.8}
+.inf-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.inf-kpis div{background:rgba(255,255,255,.12);border-radius:10px;padding:9px 8px;text-align:center;display:grid;gap:2px}
+.inf-kpis span,.inf-kpis small{font-size:10.5px;opacity:.85}.inf-kpis b{font-size:17px;color:#F7D154;font-family:var(--f-mono)}
+.inf-sec{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-top:8px}
+.inf-card{background:var(--surface);border:1px solid var(--line);border-left:4px solid #4B1D8F;border-radius:14px;padding:14px;display:grid;gap:10px}
+.inf-card.dest{border:2px solid #E2B743}
+.inf-sub{font-weight:700;color:var(--accent);font-size:14px}
+.inf-reps{display:flex;flex-wrap:wrap;gap:6px}
+.inf-reps div{border-radius:10px;padding:7px 10px;min-width:62px;text-align:center;display:grid;gap:1px}
+.inf-reps span,.inf-reps small{font-size:10.5px;opacity:.85}.inf-reps b{font-family:var(--f-mono);font-size:16px}
+.r-top{background:#0F5132;color:#fff}.r-top b{color:#F7D154}.r-good{background:#A6E3CF;color:#0E3B2E}.r-base{background:#F6C97A;color:#3D2A06}.r-warn{background:#F2A35E;color:#3D1B04}.r-bad{background:#F3B2A9;color:#4A0F08}
+.inf-tab{background:var(--soft);border-radius:12px;padding:10px 12px}
+.inf-tt{font-weight:600;font-size:14px;padding-bottom:4px}
+.inf-fr{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid var(--line);font-size:13.5px}
+.inf-fr small{display:block;font-size:11px;color:var(--muted)}.inf-fr b{font-family:var(--f-mono);text-align:right}
+.t-top{color:var(--good)}.t-good{color:var(--good)}.t-warn{color:var(--z4)}.t-bad{color:var(--bad)}
+.inf-bars{display:grid;gap:6px}.inf-bar{display:grid;grid-template-columns:42% 1fr;gap:8px;align-items:center;font-size:12.5px}
+.inf-bar>div{background:var(--soft);border-radius:4px;overflow:hidden}.inf-bar i{display:block;font-style:normal;font-size:11px;color:#fff;padding:3px 6px;white-space:nowrap}
+.b-top{background:#0F5132}.b-good{background:#2E9C6A}.b-base{background:#C98A2B}.b-warn{background:#E07A2E}.b-bad{background:#C62828}
+.inf-nota{display:grid;grid-template-columns:auto 1fr;gap:8px;border-radius:12px;padding:10px 12px;font-size:13.5px;line-height:1.5}
+.inf-ic{white-space:nowrap}.inf-nota.ok{background:color-mix(in srgb,var(--good) 18%,transparent)}.inf-nota.idea{background:color-mix(in srgb,var(--z2) 18%,transparent)}.inf-nota.warn{background:color-mix(in srgb,var(--z4) 22%,transparent)}
+.inf-ins{border-radius:12px;padding:12px;background:color-mix(in srgb,var(--accent) 16%,transparent);font-size:14px}
 /* ---- Tema SplitCoach: pizarra + turquesa ---- */
 header.top{border-bottom:1px solid var(--line)}
 .brand{padding-block:14px 8px}
@@ -362,11 +388,12 @@ function route(){
   if(h.startsWith("ficha-")){v="ficha";p=h.slice(6)}
   else if(h.startsWith("video-")){v="video";p=h.slice(6)}
   else if(h.startsWith("chat-")){v="chat";p=h.slice(5)}
+  else if(h.startsWith("inf-")){v="informe";p=h.slice(4)}
   else if(!VIEWS.includes(h))v="plantel";
-  if(S.mode==="nadador"){v=h==="mensajes"?"yo":"mificha";p=""}
+  if(S.mode==="nadador"&&v!=="informe"){v=h==="mensajes"?"yo":"mificha";p=""}
   S.view=v;S.param=p;
   if(S.mode==="coach"&&S.db&&(v==="resultados"||(v==="tiempos"&&S.mt.scope!=="plantel")))loadFullTor();
-  const tab=v==="ficha"?"plantel":v==="video"?"videos":v==="chat"||v==="yo"?"mensajes":v;
+  const tab=v==="informe"?(S.mode==="nadador"?"mificha":"evolucion"):v==="ficha"?"plantel":v==="video"?"videos":v==="chat"||v==="yo"?"mensajes":v;
   $$("#tabs a").forEach(a=>a.setAttribute("aria-current",a.dataset.v===tab?"page":"false"));
   if(v!=="video")stopVideo();
   S.pending=false;
@@ -545,6 +572,7 @@ R.ficha={html(){
     </div>
     <div class="row"><button class="btn" id="f-save">Guardar cambios</button><span class="grow"></span><button class="btn ghost sm" id="f-del">Eliminar nadador</button></div>
   </section>
+  ${infListHTML((S.inf||[]).filter(i=>i.nadador===n.id),"Informes de sesión")}
   <section class="card"><h3>Sensaciones recientes</h3>
     ${sens.length?`<div class="list">${sens.map(s=>{const x=s.resumen.sens[n.id];return `<a class="item" href="#resumen" data-ses="${esc(s.id)}"><div class="main"><div class="nm">${esc(s.titulo||"Sesión")}</div><div class="small muted">${esc(x.txt||"Sin comentario")}</div></div>${x.rpe?`<span class="chip">RPE ${esc(x.rpe)}</span>`:""}<span class="date">${fmtD(s.fecha)}</span></a>`}).join("")}</div>`:`<div class="muted small">Se registran en Resumen de entrenamiento.</div>`}
   </section>
@@ -924,7 +952,8 @@ async function syncFichas(){
     const ks=keysOf(n);
     const payload={nombre:n.nombre||"",sexo:n.sexo||"",nacimiento:n.nacimiento||"",club:n.club||"",objetivos:n.objetivos||"",pruebasFav:n.pruebasFav||"",metas:n.metas||{},
       res:resOf(n.nombre).filter(r=>r.seg!=null).map(r=>({prueba:r.prueba,piscina:String(r.piscina||""),seg:r.seg,tiempo:r.tiempo||"",fecha:r.fecha||"",torneo:r.torneo||"",lugar:r.lugar||null})),
-      par:S.par.filter(p=>ks.has(norm(p.nadador))).map(p=>({prueba:p.prueba,piscina:String(p.piscina||""),tramo:p.tramo,fecha:p.fecha||"",torneo:p.torneo||"",splits:p.splits||[]}))};
+      par:S.par.filter(p=>ks.has(norm(p.nadador))).map(p=>({prueba:p.prueba,piscina:String(p.piscina||""),tramo:p.tramo,tipo:p.tipo||"",fecha:p.fecha||"",torneo:p.torneo||"",splits:p.splits||[]})),
+      inf:(S.inf||[]).filter(i=>i.nadador===n.id).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).slice(0,20).map(i=>({id:i.id,fecha:i.fecha||"",titulo:i.titulo||"",data:i.data}))};
     const h=JSON.stringify(payload);
     if(fichaHash[n.uid]===undefined){try{const s=await S.db.doc("buzon/"+n.uid+"/ficha/datos").get();const d=s.exists?Object.assign({},s.data()):null;if(d)delete d.act;fichaHash[n.uid]=d?JSON.stringify(d):""}catch(_){fichaHash[n.uid]=""}}
     if(fichaHash[n.uid]===h)continue;
@@ -937,6 +966,7 @@ function loadMiFicha(f){
   S.nad=[n];
   S.res=(f.res||[]).map((r,i)=>Object.assign({id:"r"+i,nadador:n.nombre},r));
   S.par=(f.par||[]).map((p,i)=>Object.assign({id:"p"+i,nadador:n.nombre},p));
+  S.miInf=f.inf||[];
   S.got.res=1;
 }
 R.mificha={html(){
@@ -955,6 +985,7 @@ R.mificha={html(){
   return `<section class="card"><div class="row" style="gap:14px"><span class="avatar" style="width:56px;height:56px;font-size:22px">${esc(initials(n.nombre))}</span>
       <div class="grow"><h2>${esc(n.nombre)}</h2><div class="chips" style="margin-top:6px">${n.club?`<span class="chip">${esc(n.club)}</span>`:""}<span class="chip">${sx(n.sexo)}</span>${e!=null?`<span class="chip">${e} años · ${esc(catDe(e))}</span>`:""}</div></div></div>
     ${S.miFicha.act?`<div class="note">Actualizada ${fmtTs(S.miFicha.act)}</div>`:""}</section>
+  ${infListHTML(S.miInf||[],"Mis informes de entrenamiento")}
   ${n.objetivos?`<section class="card"><h3>Objetivos de temporada</h3><div class="bt">${esc(n.objetivos)}</div></section>`:""}
   <section class="card"><h3>Mis mejores tiempos</h3>${ps.length?`<div class="tablewrap"><table><thead><tr><th>Prueba</th><th class="num">Piscina 25 m</th><th class="num">Piscina 50 m</th></tr></thead><tbody>
     ${ps.map(p=>`<tr><td>${esc(p)}</td><td class="num">${cell(pb25[p])}</td><td class="num">${cell(pb50[p])}</td></tr>`).join("")}</tbody></table></div>`:`<div class="muted small">Aún no hay marcas registradas.</div>`}</section>
@@ -1430,9 +1461,9 @@ R.evolucion={html(){
         <td class="num time">${fmtT(p.st.avg,1)}</td><td class="num">${p.st.pctAvg!=null?p.st.pctAvg.toFixed(0)+"%":"—"}</td><td class="num ${p.st.drop>0.5?"down":p.st.drop<-0.5?"up":""}">${p.st.drop>0?"+":""}${p.st.drop.toFixed(1)}</td></tr>`).join("")}</tbody></table></div>
       <div class="note">% de velocidad del PB = tiempo de referencia ÷ tiempo nadado. Caída = última repetición menos la primera (rojo = más lento al final).</div>`
     :`<div class="muted small">Aún no hay tiempos reales registrados.</div>`}</section>`;
-  return reg+evo;
+  return infSesHTML(s)+reg+evo;
 },bind(){
-  if(!S.ev)return;const ev=S.ev;
+  if(!S.ev)return;const ev=S.ev;bindInfSes(S.ses.find(y=>y.id===ev.sid));
   $("#ev-sel").onchange=e=>{const x=S.ses.find(y=>y.id===e.target.value);S.ev={sid:x.id,series:JSON.parse(JSON.stringify(x.series||[]))};render(true)};
   $$("[data-rt]").forEach(i=>i.addEventListener("input",()=>{const [si,nid]=i.dataset.rt.split("|");const se=ev.series[+si];se.reales=Object.assign({},se.reales,{[nid]:i.value});
     const s=S.ses.find(y=>y.id===ev.sid),n=nadById(nid),ref=ESTILOS.includes(se.estilo)?refPB(n.nombre,se.estilo,+se.dist,s.piscina):null;
@@ -1440,6 +1471,122 @@ R.evolucion={html(){
   $("#ev-save").onclick=async()=>{const series=JSON.parse(JSON.stringify(ev.series));
     if(await dbWrite(db=>db.collection("sesiones").doc(ev.sid).update({series}),$("#ev-msg")))$("#ev-msg").innerHTML=`<span class="up">Tiempos guardados</span>`};
   if($("#evf-n")){$("#evf-n").onchange=e=>{S.evf.nid=e.target.value;render(true)};$("#evf-e").onchange=e=>{S.evf.estilo=e.target.value;S.evf.dist="";render(true)};$("#evf-d").onchange=e=>{S.evf.dist=e.target.value;render(true)}}
+}};
+
+/* ================= INFORMES DE SESIÓN (Claude en el chat → pegar aquí) ================= */
+const infId=(sid,nid)=>sid+"_"+nid;
+const infOf=(sid,nid)=>(S.inf||[]).find(i=>i.id===infId(sid,nid));
+function infDatos(s,n){
+  const e=edadMaster(n.nacimiento),pb25=pbsOf(n.nombre,"25"),pb50=pbsOf(n.nombre,"50");
+  const pbs=uniq([...Object.keys(pb25),...Object.keys(pb50)]).sort((a,b)=>ordPrueba(a)-ordPrueba(b)).map(p=>({prueba:p,pb25:pb25[p]?fmtT(pb25[p].seg)+" ("+fmtD(pb25[p].fecha)+")":null,pb50:pb50[p]?fmtT(pb50[p].seg)+" ("+fmtD(pb50[p].fecha)+")":null}));
+  const serie=(se,ses)=>{const ref=ESTILOS.includes(se.estilo)?refPB(n.nombre,se.estilo,+se.dist,ses.piscina):null,st=statsOf((se.reales||{})[n.id],ref&&ref.t,se.zona,parseT(se.meta));
+    return {serie:`${se.reps}x${se.dist} ${se.estilo}${se.salida?" @"+se.salida:""}`,zona:se.zona,detalle:se.desc||"",
+      meta_por_rep:st&&st.rg?(st.rg[0]===st.rg[1]?fmtT(st.rg[0]):fmtT(st.rg[0],1)+"–"+fmtT(st.rg[1],1)):null,
+      referencia_pb:ref?`${fmtT(ref.r.seg)} en ${ref.r.prueba} piscina ${ref.r.piscina}m${ref.exact?"":` (ajustado a ${se.dist} m: ${fmtT(ref.t)})`}`:null,
+      tiempos_reales:st?st.ts.map(t=>fmtT(t)):[],
+      calculado:st?{promedio:fmtT(st.avg),mejor:fmtT(st.best),peor:fmtT(st.worst),pct_pb_promedio:st.pctAvg?+st.pctAvg.toFixed(1):null,pct_pb_mejor:st.pctBest?+st.pctBest.toFixed(1):null,ultima_menos_primera_s:+st.drop.toFixed(2),reps_en_meta:st.rg?`${st.inR}/${st.ts.length}`:null}:null}};
+  const prev=S.ses.filter(x=>x.id!==s.id&&(x.fecha||"")<=(s.fecha||"")&&(x.series||[]).some(se=>(se.reales||{})[n.id])).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).slice(0,5)
+    .map(x=>({fecha:x.fecha,titulo:x.titulo||"",series:(x.series||[]).filter(se=>(se.reales||{})[n.id]).map(se=>serie(se,x))}));
+  const comp=s.nads.filter(id=>id!==n.id).map(nadById).filter(Boolean).map(m=>({nadador:m.nombre,edad:edadMaster(m.nacimiento),series:(s.series||[]).filter(se=>(se.reales||{})[m.id]).map(se=>`${se.reps}x${se.dist} ${se.estilo}: ${se.reales[m.id]}`)})).filter(x=>x.series.length);
+  const ant=(S.inf||[]).filter(i=>i.nadador===n.id&&i.sesion!==s.id&&(i.fecha||"")<=(s.fecha||"")).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""))[0];
+  const rs=s.resumen||{},sens=(rs.sens||{})[n.id];
+  return {nadador:{nombre:n.nombre,edad:e,categoria:catDe(e),rama:sx(n.sexo),pruebas_principales:n.pruebasFav||"",objetivos:n.objetivos||"",notas_tecnicas:n.notas||""},
+    sesion:{fecha:fmtD(s.fecha),piscina:s.piscina+" m",titulo:s.titulo||"",notas_coach:s.notas||"",sensaciones_nadador:sens||null,rpe_sesion:rs.rpe||null},
+    series:(s.series||[]).map(se=>serie(se,s)),
+    zonas:zonas().map(z=>`${z.z} ${z.n}: ${z.min}–${z.max}% vel. PB`).concat(["RP ritmo de carrera: 100%"]),
+    mejores_tiempos:pbs,sesiones_anteriores:prev,
+    companeros_misma_sesion:comp,
+    informe_anterior:ant&&ant.data?{fecha:ant.fecha,instruccion:ant.data.instruccion||"",proyecciones:ant.data.proyecciones||null}:null};
+}
+function infPrompt(s,n){
+  return `Eres el analista de rendimiento de SplitCoach, la app de un entrenador de natación Master en Chile. Escribe el informe de la sesión de entrenamiento de ${n.nombre} con los datos de abajo.
+
+ESTILO
+- Español de Chile, voz de entrenador experto, directo y concreto. Analiza como un coach: patrones intra-set (split negativo, caída, rep más lenta y por qué), consistencia, % del PB y zona, transferencia a sus pruebas de competencia, proyecciones razonadas.
+- Usa SOLO los tiempos de los datos. Si estimas algo (un PB que falta, un parcial), márcalo con "~" o "(est.)". No inventes tiempos.
+- Estrellas: 3 = excelente/hallazgo principal, 2 = bueno, 1 = aceptable.
+- Si hay compañeros en la misma sesión, puedes compararlo en una nota breve. Si hay informe anterior, da continuidad a sus proyecciones e instrucción.
+
+RESPUESTA: devuelve SOLO un bloque \`\`\`json con este esquema (sin texto fuera del bloque):
+{
+ "titulo": "estructura de la sesión en una línea, ej: 4×(2×25 esp+pecho) · 4×50 espalda · All out aletas",
+ "kpis": [ {"label":"50m espalda mejor","valor":"47s","estrellas":3,"sub":"R3 y R4 · split neg."} ],   // exactamente 3
+ "bloques": [ {
+   "titulo": "4×50 espalda @1:10 — split negativo",
+   "estrellas": 3,                      // 0-3
+   "destacado": false,                  // true solo para un bloque especial (test, all out)
+   "grupos": [ {"subtitulo":"opcional","reps":[ {"lbl":"R1","valor":"48s","sub":"arranque","tono":"base"} ]} ],
+   "tablas": [ {"titulo":"4×50 espalda — análisis","filas":[ {"k":"Mejor (R3–R4)","v":"47s ★★★","tono":"top"} ]} ],
+   "barras": [ {"lbl":"R3–R4 hoy (47s)","pct":82.6,"txt":"82.6% PB · Z4 ★★★","tono":"top"} ],   // opcional
+   "notas": [ {"tipo":"3","titulo":"R3=R4=47s — patrón de activación.","texto":"explicación de 2-4 frases"} ]
+ } ],
+ "proyecciones": {"titulo":"Proyecciones actualizadas","filas":[ {"k":"100m espalda","v":"1:23–1:24","sub":"vs PB 1:30.50"} ]},   // o null
+ "instruccion": "una instrucción concreta para la próxima competencia o sesión, ej: L1 en 43s — no en 38s",
+ "feedback": [ {"tipo":"3","titulo":"33.71s aletas","texto":"mensaje directo al nadador, 2-4 frases"} ]   // 2 a 4 puntos
+}
+Valores de "tono": "top" (lo mejor), "good" (bueno), "base" (normal), "warn" (alerta), "bad" (referencia PB o malo).
+Valores de "tipo" en notas y feedback: "3", "2", "1" (estrellas), "idea" (💡 interpretación) o "warn" (⚠ alerta).
+
+DATOS DE LA SESIÓN
+${JSON.stringify(infDatos(s,n),null,1)}`;
+}
+function infParse(txt){
+  const t=String(txt||""),m=t.match(/```(?:json)?\s*([\s\S]*?)```/),raw=m?m[1]:t.slice(t.indexOf("{"),t.lastIndexOf("}")+1);
+  let d;try{d=JSON.parse(raw)}catch(e){throw new Error("No reconocí el JSON. Copia la respuesta completa de Claude, incluido el bloque ```json.")}
+  if(!d||!Array.isArray(d.bloques)||!d.bloques.length)throw new Error("La respuesta no trae los bloques del informe.");
+  d.kpis=Array.isArray(d.kpis)?d.kpis.slice(0,3):[];d.feedback=Array.isArray(d.feedback)?d.feedback:[];
+  return d;
+}
+const stars=k=>(k=Math.max(0,Math.min(3,+k||0)))?"★".repeat(k):"";
+const TONOS=["top","good","base","warn","bad"],tono=t=>TONOS.includes(t)?t:"base";
+function infNota(x){const ic=x.tipo==="idea"?"💡":x.tipo==="warn"?"⚠":stars(x.tipo)||"•",cls=x.tipo==="idea"?"idea":x.tipo==="warn"?"warn":"ok";
+  return `<div class="inf-nota ${cls}"><span class="inf-ic">${ic}</span><div><b>${esc(x.titulo||"")}</b> ${esc(x.texto||"")}</div></div>`}
+function infTabla(t){return `<div class="inf-tab">${t.titulo?`<div class="inf-tt">${esc(t.titulo)}</div>`:""}${(t.filas||[]).map(f=>`<div class="inf-fr"><span>${esc(f.k)}${f.sub?`<small>${esc(f.sub)}</small>`:""}</span><b class="t-${tono(f.tono)}">${esc(f.v)}</b></div>`).join("")}</div>`}
+function infHTML(d,meta){
+  const hero=`<div class="inf-hero"><div class="inf-eye">${esc(meta.nombre)}${meta.edad!=null?` · ${meta.edad} años`:""} · Sesión ${fmtD(meta.fecha)}</div><h2>${esc(d.titulo||meta.titulo||"Sesión")}</h2>
+    <div class="inf-kpis">${d.kpis.map(k=>`<div><span>${esc(k.label)}</span><b>${esc(k.valor)} ${stars(k.estrellas)}</b><small>${esc(k.sub||"")}</small></div>`).join("")}</div></div>`;
+  const bl=d.bloques.map(b=>`<div class="inf-sec">${esc(b.titulo||"")} ${stars(b.estrellas)}</div><div class="inf-card${b.destacado?" dest":""}">
+    ${(b.grupos||[]).map(g=>`${g.subtitulo?`<div class="inf-sub">${esc(g.subtitulo)}</div>`:""}<div class="inf-reps">${(g.reps||[]).map(r=>`<div class="r-${tono(r.tono)}"><span>${esc(r.lbl||"")}</span><b>${esc(r.valor)}</b><small>${esc(r.sub||"")}</small></div>`).join("")}</div>`).join("")}
+    ${(b.tablas||[]).map(infTabla).join("")}
+    ${(b.barras||[]).length?`<div class="inf-bars">${b.barras.map(x=>`<div class="inf-bar"><span>${esc(x.lbl)}</span><div><i class="b-${tono(x.tono)}" style="width:${Math.max(4,Math.min(100,+x.pct||0))}%">${esc(x.txt||"")}</i></div></div>`).join("")}</div>`:""}
+    ${(b.notas||[]).map(infNota).join("")}</div>`).join("");
+  const pr=d.proyecciones&&(d.proyecciones.filas||[]).length?`<div class="inf-sec">${esc(d.proyecciones.titulo||"Proyecciones")}</div><div class="inf-card">${infTabla({filas:d.proyecciones.filas})}</div>`:"";
+  const ins=d.instruccion?`<div class="inf-ins">Instrucción: <b>${esc(d.instruccion)}</b></div>`:"";
+  const fb=d.feedback.length?`<div class="inf-sec">Feedback · ${esc(meta.nombre.split(" ")[0])}</div><div class="inf-card">${d.feedback.map(infNota).join("")}</div>`:"";
+  return `<div class="inf">${hero}${bl}${pr}${ins}${fb}</div>`;
+}
+function infSesHTML(s){
+  const nads=(s.nads||[]).map(nadById).filter(Boolean);if(!nads.length)return "";
+  return `<section class="card"><div class="head"><h2>Informes de la sesión</h2><span class="small muted">${fmtD(s.fecha)} · ${esc(s.titulo||"Sesión")}</span></div>
+    <div class="note">1) Anota los tiempos reales. 2) "Copiar para Claude" y pégalo en un chat con Claude. 3) Copia su respuesta completa y pégala en "Pegar informe".</div>
+    <div class="list">${nads.map(n=>{const i=infOf(s.id,n.id),con=(s.series||[]).some(se=>(se.reales||{})[n.id]);
+      return `<div class="item" style="flex-wrap:wrap"><div class="main"><div class="nm">${esc(n.nombre)}</div><div class="small ${i?"up":"muted"}">${i?"Informe guardado · visible para el nadador":con?"Sin informe":"Sin tiempos reales todavía"}</div></div>
+        <button class="btn ghost sm" data-icp="${esc(n.id)}">Copiar para Claude</button><button class="btn ghost sm" data-ipg="${esc(n.id)}">${i?"Reemplazar":"Pegar informe"}</button>${i?`<a class="btn sm" href="#inf-${encodeURIComponent(i.id)}">Ver</a>`:""}
+        <div id="ipg-${esc(n.id)}" hidden style="flex-basis:100%;display:grid;gap:8px"><textarea rows="6" placeholder="Pega aquí la respuesta completa de Claude (el bloque json)"></textarea><div class="row"><button class="btn sm" data-isv="${esc(n.id)}">Guardar informe</button><span class="small" id="ims-${esc(n.id)}"></span></div></div></div>`}).join("")}</div></section>`;
+}
+function bindInfSes(s){
+  $$("[data-icp]").forEach(b=>b.onclick=()=>{const n=nadById(b.dataset.icp);if(n)copyText(infPrompt(s,n),b)});
+  $$("[data-ipg]").forEach(b=>b.onclick=()=>{const box=document.getElementById("ipg-"+b.dataset.ipg);box.hidden=!box.hidden;if(!box.hidden)box.querySelector("textarea").focus()});
+  $$("[data-isv]").forEach(b=>b.onclick=async()=>{const nid=b.dataset.isv,n=nadById(nid),box=document.getElementById("ipg-"+nid),m=document.getElementById("ims-"+nid);
+    let d;try{d=infParse(box.querySelector("textarea").value)}catch(e){m.innerHTML=`<span class="down">${esc(e.message)}</span>`;return}
+    const doc={sesion:s.id,nadador:nid,nombre:n.nombre,fecha:s.fecha||"",titulo:s.titulo||"",data:d,act:Date.now()};
+    if(await dbWrite(db=>db.collection("informes").doc(infId(s.id,nid)).set(doc),m)){location.hash="#inf-"+encodeURIComponent(infId(s.id,nid))}});
+}
+function infListHTML(list,titulo){
+  if(!list.length)return "";
+  return `<section class="card"><h3>${titulo}</h3><div class="list">${list.slice().sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).map(i=>`<a class="item" href="#inf-${encodeURIComponent(i.id)}"><div class="main"><div class="nm">${esc((i.data&&i.data.titulo)||i.titulo||"Sesión")}</div><div class="small muted">${esc((i.data&&i.data.instruccion)||"")}</div></div><span class="date">${fmtD(i.fecha)}</span></a>`).join("")}</div></section>`;
+}
+R.informe={html(){
+  const i=(S.mode==="nadador"?S.miInf||[]:S.inf||[]).find(x=>x.id===S.param);
+  const back=S.mode==="nadador"?`<a class="back" href="#mificha">← Mi ficha</a>`:`<a class="back" href="#evolucion">← Evolución</a>`;
+  if(!i||!i.data)return back+emptyBox(loading()?"Cargando…":"Informe no encontrado","");
+  const n=S.mode==="nadador"?S.nad[0]:nadById(i.nadador);
+  const meta={nombre:(n&&n.nombre)||i.nombre||"",edad:n?edadMaster(n.nacimiento):null,fecha:i.fecha,titulo:i.titulo};
+  return `${back}${infHTML(i.data,meta)}${S.mode==="nadador"?"":`<div class="row" style="margin-top:12px"><span class="grow"></span><button class="btn ghost sm" id="inf-del">Eliminar informe</button><span id="inf-msg" class="small"></span></div>`}`;
+},bind(){
+  const b=$("#inf-del");if(!b)return;
+  b.onclick=async()=>{if(b.dataset.c!=="1"){b.dataset.c="1";b.textContent="¿Eliminar? El nadador deja de verlo";b.className="btn danger sm";return}
+    if(await dbWrite(db=>db.collection("informes").doc(S.param).delete(),$("#inf-msg")))location.hash="#evolucion"};
 }};
 
 /* ---------- CALCULADORA ---------- */
@@ -1826,6 +1973,7 @@ route();
   sub("sesiones","ses",x=>x);
   sub("videos","vid",x=>x);
   sub("parciales","par",x=>x);
+  sub("informes","inf",x=>x);
   db.doc("config/app").onSnapshot(s=>{const d=s.exists?s.data()||{}:{};S.cfg={miClub:d.miClub||"",zonas:Array.isArray(d.zonas)&&d.zonas.length?d.zonas:Z_DEF};render()},()=>{});
   render(true);
 })();
