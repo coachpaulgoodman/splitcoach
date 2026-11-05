@@ -251,6 +251,12 @@ code{font-family:var(--f-mono);font-size:12.5px;background:var(--soft);padding:1
 .ia-msg.me div{white-space:pre-wrap;font-family:var(--f-mono);font-size:12.5px;margin-top:4px}
 .ia-msg.bot{justify-self:start;background:var(--soft)}
 .ia-prev{border-top:1px solid var(--line);padding-top:12px}
+.inf-graf{display:grid;gap:4px}.inf-graf svg{width:100%;height:auto;display:block}
+.inf-foda{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.inf-foda div{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:start;border-radius:12px;padding:10px;font-size:13px;line-height:1.4}
+.inf-foda b{font-size:18px;font-family:var(--f-display);line-height:1}.inf-foda small{display:block;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;opacity:.75}
+.fd-f{background:color-mix(in srgb,var(--good) 20%,transparent)}.fd-o{background:color-mix(in srgb,var(--z2) 20%,transparent)}.fd-d{background:color-mix(in srgb,var(--z4) 24%,transparent)}.fd-a{background:color-mix(in srgb,var(--bad) 20%,transparent)}
+@media (max-width:420px){.inf-foda{grid-template-columns:1fr}}
 /* ---- Tema SplitCoach: pizarra + turquesa ---- */
 header.top{border-bottom:1px solid var(--line)}
 .brand{padding-block:14px 8px}
@@ -1519,7 +1525,8 @@ function infDatos(s,n){
   const comp=s.nads.filter(id=>id!==n.id).map(nadById).filter(Boolean).map(m=>({nadador:m.nombre,edad:edadMaster(m.nacimiento),series:(s.series||[]).filter(se=>(se.reales||{})[m.id]).map(se=>`${se.reps}x${se.dist} ${se.estilo}: ${se.reales[m.id]}`)})).filter(x=>x.series.length);
   const ant=(S.inf||[]).filter(i=>i.nadador===n.id&&i.sesion!==s.id&&(i.fecha||"")<=(s.fecha||"")).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""))[0];
   const rs=s.resumen||{},sens=(rs.sens||{})[n.id];
-  return {nadador:{nombre:n.nombre,edad:e,categoria:catDe(e),rama:sx(n.sexo),pruebas_principales:n.pruebasFav||"",objetivos:n.objetivos||"",notas_tecnicas:n.notas||""},
+  const metas=Object.entries(n.metas||{}).map(([k,m])=>({prueba:k.split("|")[0],piscina:(k.split("|")[1]||"")+" m",meta:m&&(m.tiempo||m.t)||null,parciales_meta:m&&m.sp||null}));
+  return {nadador:{nombre:n.nombre,edad:e,categoria:catDe(e),rama:sx(n.sexo),pruebas_principales:n.pruebasFav||"",objetivos_temporada:n.objetivos||"",metas_de_tiempo:metas,notas_tecnicas:n.notas||""},
     sesion:{fecha:fmtD(s.fecha),piscina:s.piscina+" m",titulo:s.titulo||"",notas_coach:s.notas||"",sensaciones_nadador:sens||null,rpe_sesion:rs.rpe||null},
     series:(s.series||[]).map(se=>serie(se,s)),
     zonas:zonas().map(z=>`${z.z} ${z.n}: ${z.min}–${z.max}% vel. PB`).concat(["RP ritmo de carrera: 100%"]),
@@ -1529,6 +1536,11 @@ function infDatos(s,n){
 }
 function infPrompt(s,n,texto){
   return `Eres el analista de rendimiento de SplitCoach, la app de un entrenador de natación Master en Chile. Escribe el informe de la sesión de entrenamiento de ${n.nombre} con los datos de abajo.
+
+QUÉ DEBE TENER EL INFORME
+- Todo medido contra SU referencia: % del PB de cada serie/rep (PB de la misma prueba y piscina; si es otra distancia, ajústalo y dilo), la ZONA en que cayó cada serie según "zonas", y la distancia a sus METAS ("objetivos_temporada" y "metas_de_tiempo"): cuánto le falta y si la sesión acerca o no a la meta.
+- FODA muy breve: una frase corta por cuadrante (máx. 15 palabras cada una).
+- 1 o 2 gráficos con números reales de la sesión: barras (ej. % PB promedio por serie, con referencia 100) o línea (ej. tiempos rep a rep de un set para ver la curva/caída, con referencia en la meta por rep).
 
 ESTILO
 - Español de Chile, voz de entrenador experto, directo y concreto. Analiza como un coach: patrones intra-set (split negativo, caída, rep más lenta y por qué), consistencia, % del PB y zona, transferencia a sus pruebas de competencia, proyecciones razonadas.
@@ -1552,6 +1564,10 @@ RESPUESTA: devuelve SOLO un bloque \`\`\`json con este esquema (sin texto fuera 
    "notas": [ {"tipo":"3","titulo":"R3=R4=47s — patrón de activación.","texto":"explicación de 2-4 frases"} ]
  } ],
  "proyecciones": {"titulo":"Proyecciones actualizadas","filas":[ {"k":"100m espalda","v":"1:23–1:24","sub":"vs PB 1:30.50"} ]},   // o null
+ "graficos": [ {"tipo":"barras","titulo":"% del PB por serie","etiquetas":["4×25","4×50","4×75"],"series":[{"nombre":"% PB prom.","valores":[88.5,84.2,82.0]}],"unidad":"%","referencia":100,"referencia_lbl":"PB"},
+               {"tipo":"linea","titulo":"4×50 rep a rep","etiquetas":["R1","R2","R3","R4"],"series":[{"nombre":"Tiempo","valores":[54.5,55.5,55.6,56.1]}],"unidad":"s","referencia":55.0,"referencia_lbl":"meta Z4"} ],   // 1 o 2; valores numéricos (segundos o %)
+ "foda": {"fortalezas":"...","oportunidades":"...","debilidades":"...","amenazas":"..."},
+ "metas": [ {"meta":"100 pecho 1:45.00 (Temuco)","hoy":"1:50.92","falta":"−5.92 s","lectura":"frase corta"} ],   // [] si no tiene metas
  "instruccion": "una instrucción concreta para la próxima competencia o sesión, ej: L1 en 43s — no en 38s",
  "feedback": [ {"tipo":"3","titulo":"33.71s aletas","texto":"mensaje directo al nadador, 2-4 frases"} ]   // 2 a 4 puntos
 }
@@ -1573,6 +1589,30 @@ const TONOS=["top","good","base","warn","bad"],tono=t=>TONOS.includes(t)?t:"base
 function infNota(x){const ic=x.tipo==="idea"?"💡":x.tipo==="warn"?"⚠":stars(x.tipo)||"•",cls=x.tipo==="idea"?"idea":x.tipo==="warn"?"warn":"ok";
   return `<div class="inf-nota ${cls}"><span class="inf-ic">${ic}</span><div><b>${esc(x.titulo||"")}</b> ${esc(x.texto||"")}</div></div>`}
 function infTabla(t){return `<div class="inf-tab">${t.titulo?`<div class="inf-tt">${esc(t.titulo)}</div>`:""}${(t.filas||[]).map(f=>`<div class="inf-fr"><span>${esc(f.k)}${f.sub?`<small>${esc(f.sub)}</small>`:""}</span><b class="t-${tono(f.tono)}">${esc(f.v)}</b></div>`).join("")}</div>`}
+const GCOL=["#4DB6BF","#E2B743","#B58AE6","#5CCB97","#FF7A6B"];
+function infChart(g){
+  const et=(g.etiquetas||[]).map(String),ser=(g.series||[]).filter(s=>Array.isArray(s.valores)).slice(0,4);if(!et.length||!ser.length)return "";
+  const vals=ser.flatMap(s=>s.valores.map(Number).filter(isFinite)).concat(g.referencia!=null&&isFinite(+g.referencia)?[+g.referencia]:[]);if(!vals.length)return "";
+  const W=360,H=200,P={l:40,r:10,t:16,b:34},iw=W-P.l-P.r,ih=H-P.t-P.b,u=g.unidad||"";
+  let lo=Math.min(...vals),hi=Math.max(...vals);const pad=Math.max((hi-lo)*.15,hi*.02||1);
+  lo=g.tipo==="barras"&&!/%/.test(u)&&lo>0&&lo<hi*.5?0:lo-pad;hi=hi+pad;if(/%/.test(u)){lo=Math.max(0,Math.floor(lo/5)*5);hi=Math.ceil(hi/5)*5}
+  const Y=v=>P.t+(1-(v-lo)/(hi-lo))*ih,fmt=v=>/%/.test(u)?Math.round(v)+"%":u==="s"?(v>=60?fmtT(v,1):(+v).toFixed(v<100?1:0)):(+v).toFixed(1);
+  const ticks=[0,1,2,3].map(k=>lo+(hi-lo)*k/3);
+  let out=ticks.map(v=>`<line x1="${P.l}" x2="${W-P.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="${P.l-5}" y="${Y(v)+3.5}" text-anchor="end" font-size="9.5" fill="var(--muted)">${fmt(v)}</text>`).join("");
+  const n=et.length,bw=iw/n;
+  if(g.tipo==="barras"){const k=ser.length,w=Math.min(26,bw*.8/k);
+    ser.forEach((s,si)=>s.valores.forEach((v,i)=>{v=+v;if(!isFinite(v))return;const x=P.l+bw*i+bw/2-w*k/2+w*si,y=Y(v),b=Y(Math.max(lo,0>lo?0:lo));
+      out+=`<rect x="${x}" y="${Math.min(y,b)}" width="${w-2}" height="${Math.max(1,Math.abs(b-y))}" rx="3" fill="${GCOL[si]}"/>${k<=2&&n<=8?`<text x="${x+(w-2)/2}" y="${y-4}" text-anchor="middle" font-size="9" fill="var(--ink)">${/%/.test(u)?(+v).toFixed(1)+"%":fmt(v)}</text>`:""}`}))}
+  else ser.forEach((s,si)=>{const X=i=>P.l+(n===1?iw/2:i*iw/(n-1));const pts=s.valores.map((v,i)=>[X(i),Y(+v),+v]).filter(p=>isFinite(p[2]));
+    out+=`<path d="${pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ")}" fill="none" stroke="${GCOL[si]}" stroke-width="2.4" stroke-linejoin="round"/>`+pts.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="${GCOL[si]}"/>${ser.length<=2&&n<=10?`<text x="${p[0]}" y="${p[1]-7}" text-anchor="middle" font-size="9" fill="var(--ink)">${fmt(p[2])}</text>`:""}`).join("")});
+  if(g.referencia!=null&&isFinite(+g.referencia))out+=`<line x1="${P.l}" x2="${W-P.r}" y1="${Y(+g.referencia)}" y2="${Y(+g.referencia)}" stroke="var(--bad)" stroke-dasharray="5 4"/><text x="${W-P.r}" y="${Y(+g.referencia)-4}" text-anchor="end" font-size="9.5" fill="var(--bad)">${esc(g.referencia_lbl||fmt(+g.referencia))}</text>`;
+  const xl=et.map((e,i)=>`<text x="${g.tipo==="barras"?P.l+bw*i+bw/2:P.l+(n===1?iw/2:i*iw/(n-1))}" y="${H-P.b+14}" text-anchor="middle" font-size="9.5" fill="var(--muted)">${esc(e.length>10?e.slice(0,9)+"…":e)}</text>`).join("");
+  return `<div class="inf-graf">${g.titulo?`<div class="inf-tt">${esc(g.titulo)}</div>`:""}<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(g.titulo||"Gráfico")}">${out}${xl}</svg>
+    ${ser.length>1||ser[0].nombre?`<div class="legend">${ser.map((s,i)=>`<span><i style="background:${GCOL[i]}"></i>${esc(s.nombre||"")}</span>`).join("")}</div>`:""}${g.nota?`<div class="small muted">${esc(g.nota)}</div>`:""}</div>`;
+}
+function infFoda(f){if(!f)return "";const q=[["F","Fortalezas","fortalezas","f"],["O","Oportunidades","oportunidades","o"],["D","Debilidades","debilidades","d"],["A","Amenazas","amenazas","a"]].filter(x=>f[x[2]]);if(!q.length)return "";
+  return `<div class="inf-foda">${q.map(([k,l,key,c])=>`<div class="fd-${c}"><b>${k}</b><span><small>${l}</small>${esc(f[key])}</span></div>`).join("")}</div>`}
+
 function infHTML(d,meta){
   const hero=`<div class="inf-hero"><div class="inf-eye">${esc(meta.nombre)}${meta.edad!=null?` · ${meta.edad} años`:""} · Sesión ${fmtD(meta.fecha)}</div><h2>${esc(d.titulo||meta.titulo||"Sesión")}</h2>
     <div class="inf-kpis">${d.kpis.map(k=>`<div><span>${esc(k.label)}</span><b>${esc(k.valor)} ${stars(k.estrellas)}</b><small>${esc(k.sub||"")}</small></div>`).join("")}</div></div>`;
@@ -1581,10 +1621,14 @@ function infHTML(d,meta){
     ${(b.tablas||[]).map(infTabla).join("")}
     ${(b.barras||[]).length?`<div class="inf-bars">${b.barras.map(x=>`<div class="inf-bar"><span>${esc(x.lbl)}</span><div><i class="b-${tono(x.tono)}" style="width:${Math.max(4,Math.min(100,+x.pct||0))}%">${esc(x.txt||"")}</i></div></div>`).join("")}</div>`:""}
     ${(b.notas||[]).map(infNota).join("")}</div>`).join("");
+  const gr=(d.graficos||[]).slice(0,3).map(infChart).filter(Boolean).join("");
+  const grH=gr?`<div class="inf-sec">Gráficos de la sesión</div><div class="inf-card">${gr}</div>`:"";
+  const mt=Array.isArray(d.metas)&&d.metas.length?`<div class="inf-sec">Metas</div><div class="inf-card"><div class="inf-tab">${d.metas.map(m=>`<div class="inf-fr"><span>${esc(m.meta||"")}${m.lectura?`<small>${esc(m.lectura)}</small>`:""}</span><b>${esc(m.hoy||"")}${m.falta?` <span class="t-warn">${esc(m.falta)}</span>`:""}</b></div>`).join("")}</div></div>`:"";
+  const fo=infFoda(d.foda);const foH=fo?`<div class="inf-sec">FODA</div>${fo}`:"";
   const pr=d.proyecciones&&(d.proyecciones.filas||[]).length?`<div class="inf-sec">${esc(d.proyecciones.titulo||"Proyecciones")}</div><div class="inf-card">${infTabla({filas:d.proyecciones.filas})}</div>`:"";
   const ins=d.instruccion?`<div class="inf-ins">Instrucción: <b>${esc(d.instruccion)}</b></div>`:"";
   const fb=d.feedback.length?`<div class="inf-sec">Feedback · ${esc(meta.nombre.split(" ")[0])}</div><div class="inf-card">${d.feedback.map(infNota).join("")}</div>`:"";
-  return `<div class="inf">${hero}${bl}${pr}${ins}${fb}</div>`;
+  return `<div class="inf">${hero}${grH}${bl}${mt}${pr}${foH}${ins}${fb}</div>`;
 }
 function infSesHTML(s){
   const nads=(s.nads||[]).map(nadById).filter(Boolean);if(!nads.length)return "";
