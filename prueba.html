@@ -245,6 +245,12 @@ code{font-family:var(--f-mono);font-size:12.5px;background:var(--soft);padding:1
 .inf-ins{border-radius:12px;padding:12px;background:color-mix(in srgb,var(--accent) 16%,transparent);font-size:14px}
 .tools-mas summary{cursor:pointer;color:var(--accent);font-weight:600;margin:4px 0}
 .tools .btn.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.ia-chat{display:grid;gap:8px;max-height:420px;overflow:auto;padding:4px}
+.ia-msg{border-radius:14px;padding:9px 12px;font-size:14px;line-height:1.5;max-width:92%;white-space:normal}
+.ia-msg.me{justify-self:end;background:color-mix(in srgb,var(--accent) 18%,transparent)}
+.ia-msg.me div{white-space:pre-wrap;font-family:var(--f-mono);font-size:12.5px;margin-top:4px}
+.ia-msg.bot{justify-self:start;background:var(--soft)}
+.ia-prev{border-top:1px solid var(--line);padding-top:12px}
 /* ---- Tema SplitCoach: pizarra + turquesa ---- */
 header.top{border-bottom:1px solid var(--line)}
 .brand{padding-block:14px 8px}
@@ -1527,6 +1533,7 @@ function infPrompt(s,n,texto){
 ESTILO
 - Español de Chile, voz de entrenador experto, directo y concreto. Analiza como un coach: patrones intra-set (split negativo, caída, rep más lenta y por qué), consistencia, % del PB y zona, transferencia a sus pruebas de competencia, proyecciones razonadas.
 - Si viene "resumen_escrito_por_coach", es la descripción del entreno de hoy (series, tiempos y sensaciones) escrita por el entrenador: úsala como fuente principal y calcula tú los % del PB con "mejores_tiempos" y "zonas".
+- Si falta un dato clave para interpretar la sesión (por ejemplo el estilo, o un parcial que no cuadra con el total), responde SOLO con hasta 3 preguntas breves y numeradas, sin JSON. Cuando tengas lo necesario, responde SOLO con el bloque json. Si el entrenador pide cambios al informe, devuelve el json completo corregido.
 - Usa SOLO los tiempos de los datos. Si estimas algo (un PB que falta, un parcial), márcalo con "~" o "(est.)". No inventes tiempos.
 - Estrellas: 3 = excelente/hallazgo principal, 2 = bueno, 1 = aceptable.
 - Si hay compañeros en la misma sesión, puedes compararlo en una nota breve. Si hay informe anterior, da continuidad a sus proyecciones e instrucción.
@@ -1596,35 +1603,61 @@ function bindInfSes(s){
     const doc={sesion:s.id,nadador:nid,nombre:n.nombre,fecha:s.fecha||"",titulo:s.titulo||"",data:d,act:Date.now()};
     if(await dbWrite(db=>db.collection("informes").doc(infId(s.id,nid)).set(doc),m)){location.hash="#inf-"+encodeURIComponent(infId(s.id,nid))}});
 }
-/* informe desde la ficha del nadador: resumen escrito del entreno de hoy */
+/* informe desde la ficha del nadador: chat con Claude (API) o copiar/pegar */
 S.infDraft=S.infDraft||{};
 function infSesDia(n,fecha,pisc){
   const real=S.ses.find(x=>x.fecha===fecha&&(x.nads||[]).includes(n.id));
   return real||{id:"dia-"+fecha,fecha,piscina:pisc||"25",titulo:"",nads:[n.id],series:[],notas:""};
 }
+function infTryParse(t){try{return /```(?:json)?\s*\{/.test(t)||/^\s*\{/.test(t)?infParse(t):null}catch(_){return null}}
 function infFichaHTML(n){
-  const d=S.infDraft[n.id]=S.infDraft[n.id]||{fecha:today(),pisc:"25",txt:"",open:false},s=infSesDia(n,d.fecha,d.pisc),i=infOf(s.id,n.id);
+  const d=S.infDraft[n.id]=S.infDraft[n.id]||{fecha:today(),pisc:"25",txt:"",open:false,chat:[],busy:false,err:"",rep:null},s=infSesDia(n,d.fecha,d.pisc),i=infOf(s.id,n.id);
+  const chat=d.chat.map((m,k)=>k===0?`<div class="ia-msg me"><b>Entreno enviado</b><div>${esc(d.sent||"(series de Entrenos)")}</div></div>`:
+    m.role==="user"?`<div class="ia-msg me">${esc(m.content)}</div>`:infTryParse(m.content)?`<div class="ia-msg bot"><b>✓ Informe listo</b> — revísalo abajo.</div>`:`<div class="ia-msg bot">${esc(m.content).replace(/\n/g,"<br>")}</div>`).join("");
+  const iaOn=!!S.ia;
   return `<section class="card"><div class="head"><h3>Informe de entrenamiento</h3>${i?`<a class="btn sm" href="#inf-${encodeURIComponent(i.id)}">Ver informe del ${fmtD(d.fecha)}</a>`:""}</div>
     <div class="form three"><label>Fecha<input id="if-f" type="date" value="${esc(d.fecha)}"></label>
       <label>Piscina<select id="if-p"><option value="25" ${d.pisc==="25"?"selected":""}>25 m</option><option value="50" ${d.pisc==="50"?"selected":""}>50 m</option></select></label></div>
     ${s.series.length?`<div class="note">Hay una sesión de Entrenos ese día (${esc(s.titulo||"sin título")}); sus series y tiempos reales se incluyen solos.</div>`:""}
-    <label>Resumen del entreno (series, tiempos, sensaciones)<textarea id="if-t" rows="6" placeholder="4x50 espalda @1:10: 48/50/47/47&#10;4x50 pecho: 56/56/55/56&#10;All out 50 espalda con aletas: 33.71&#10;Sensaciones: buena, algo cansada al final">${esc(d.txt)}</textarea></label>
-    <div class="row"><button class="btn" id="if-cp">1 · Copiar para Claude</button><button class="btn ghost" id="if-pg">2 · Pegar informe</button><span class="small muted">Pega lo copiado en un chat con Claude y trae su respuesta.</span></div>
-    <div id="if-box" ${d.open?"":"hidden"} style="display:grid;gap:8px"><textarea id="if-r" rows="6" placeholder="Pega aquí la respuesta completa de Claude (el bloque json)"></textarea>
-      <div class="row"><button class="btn" id="if-sv">Guardar y publicar al nadador</button><span id="if-msg" class="small"></span></div></div></section>`;
+    ${d.chat.length?"":`<label>Entreno de hoy (series, tiempos, sensaciones)<textarea id="if-t" rows="6" placeholder="100 pecho: 24.54/25.38/29.28 · 1:50.92&#10;4x25 @20'' desc: 23.90/24.50/25.50/25.50&#10;Sensaciones: se cansó al final">${esc(d.txt)}</textarea></label>`}
+    ${iaOn?`${d.chat.length?`<div class="ia-chat">${chat}${d.busy?`<div class="ia-msg bot muted">Claude está escribiendo…</div>`:""}</div>`:""}
+      ${d.err?`<div class="msg err">${esc(d.err)}</div>`:""}
+      ${d.chat.length?`<div class="row"><textarea id="if-say" rows="2" class="grow" placeholder="Responde o pide cambios: es pecho · más corto · enfócate en el pacing…" ${d.busy?"disabled":""}></textarea><button class="btn" id="if-send" ${d.busy?"disabled":""}>Enviar</button></div>
+        <div class="row"><button class="btn ghost sm" id="if-new">Empezar de nuevo</button></div>`
+      :`<div class="row"><button class="btn" id="if-go" ${d.busy?"disabled":""}>✨ Generar informe</button><span class="small muted">Claude puede hacerte preguntas antes de escribirlo.</span></div>`}`
+    :`<div class="note">La IA dentro de la app aún no está activada. Mientras tanto usa copiar y pegar:</div>`}
+    ${d.rep?`<div class="ia-prev">${infHTML(d.rep,{nombre:n.nombre,edad:edadMaster(n.nacimiento),fecha:d.fecha,titulo:s.titulo})}</div>
+      <div class="row"><button class="btn" id="if-pub">Guardar y publicar al nadador</button><span id="if-msg" class="small"></span></div>`:""}
+    <details ${iaOn?"":"open"}><summary class="small" style="cursor:pointer;color:var(--accent);font-weight:600">Sin IA: copiar y pegar en un chat de Claude</summary>
+      <div class="row" style="margin-top:8px"><button class="btn ghost sm" id="if-cp">1 · Copiar para Claude</button><button class="btn ghost sm" id="if-pg">2 · Pegar informe</button></div>
+      <div id="if-box" ${d.open?"":"hidden"} style="display:grid;gap:8px;margin-top:8px"><textarea id="if-r" rows="5" placeholder="Pega aquí la respuesta completa de Claude (el bloque json)"></textarea>
+        <div class="row"><button class="btn sm" id="if-load">Ver informe</button><span id="if-msg2" class="small"></span></div></div></details></section>`;
 }
 function bindInfFicha(n){
-  const d=S.infDraft[n.id];if(!d||!$("#if-t"))return;
+  const d=S.infDraft[n.id];if(!d||!$("#if-f"))return;
+  const rerender=()=>{if(location.hash==="#ficha-"+encodeURIComponent(n.id))render(true)};
   $("#if-f").onchange=e=>{d.fecha=e.target.value||today();render(true)};
   $("#if-p").onchange=e=>{d.pisc=e.target.value};
-  $("#if-t").addEventListener("input",e=>{d.txt=e.target.value});
-  $("#if-cp").onclick=ev=>{if(!d.txt.trim()&&!infSesDia(n,d.fecha,d.pisc).series.length){ev.target.textContent="Escribe primero el resumen";setTimeout(()=>ev.target.textContent="1 · Copiar para Claude",1600);return}
+  if($("#if-t"))$("#if-t").addEventListener("input",e=>{d.txt=e.target.value});
+  const hasData=()=>d.txt.trim()||infSesDia(n,d.fecha,d.pisc).series.length;
+  async function ask(){
+    d.busy=true;d.err="";rerender();
+    try{const t=await S.ia.chat(d.chat.map(m=>({role:m.role,content:m.content})));d.chat.push({role:"assistant",content:t});const r=infTryParse(t);if(r)d.rep=r}
+    catch(e){d.err=e.code==="no_ia"?"La función de IA no está instalada en Supabase todavía.":e.code==="sin_clave"?"Falta guardar la clave de Claude en Supabase (ANTHROPIC_API_KEY).":e.code==="solo_coach"?"Solo el entrenador puede generar informes.":"No se pudo generar: "+(e.message||e.code||e);
+      if(d.chat.length&&d.chat[d.chat.length-1].role==="user"&&d.chat.length===1)d.chat=[]}
+    d.busy=false;rerender();
+  }
+  if($("#if-go"))$("#if-go").onclick=()=>{if(!hasData()){d.err="Escribe primero el entreno.";render(true);return}
+    d.sent=d.txt.trim();d.rep=null;d.chat=[{role:"user",content:infPrompt(infSesDia(n,d.fecha,d.pisc),n,d.txt)}];ask()};
+  if($("#if-send"))$("#if-send").onclick=()=>{const t=$("#if-say").value.trim();if(!t)return;d.chat.push({role:"user",content:t});ask()};
+  if($("#if-new"))$("#if-new").onclick=()=>{d.chat=[];d.rep=null;d.err="";render(true)};
+  $("#if-cp").onclick=ev=>{if(!hasData()){ev.target.textContent="Escribe primero el entreno";setTimeout(()=>ev.target.textContent="1 · Copiar para Claude",1600);return}
     copyText(infPrompt(infSesDia(n,d.fecha,d.pisc),n,d.txt),ev.target)};
-  $("#if-pg").onclick=()=>{d.open=true;const b=$("#if-box");b.hidden=false;$("#if-r").focus()};
-  $("#if-sv").onclick=async()=>{const m=$("#if-msg");let data;try{data=infParse($("#if-r").value)}catch(e){m.innerHTML=`<span class="down">${esc(e.message)}</span>`;return}
-    const s=infSesDia(n,d.fecha,d.pisc),id=infId(s.id,n.id);
-    const doc={sesion:s.id,nadador:n.id,nombre:n.nombre,fecha:d.fecha,titulo:s.titulo||"",texto:d.txt,data,act:Date.now()};
-    if(await dbWrite(db=>db.collection("informes").doc(id).set(doc),m)){S.infDraft[n.id]={fecha:today(),pisc:d.pisc,txt:"",open:false};location.hash="#inf-"+encodeURIComponent(id)}};
+  $("#if-pg").onclick=()=>{d.open=true;$("#if-box").hidden=false;$("#if-r").focus()};
+  $("#if-load").onclick=()=>{try{d.rep=infParse($("#if-r").value);d.sent=d.txt;render(true)}catch(e){$("#if-msg2").innerHTML=`<span class="down">${esc(e.message)}</span>`}};
+  if($("#if-pub"))$("#if-pub").onclick=async()=>{const m=$("#if-msg"),s=infSesDia(n,d.fecha,d.pisc),id=infId(s.id,n.id);
+    const doc={sesion:s.id,nadador:n.id,nombre:n.nombre,fecha:d.fecha,titulo:s.titulo||"",texto:d.sent||d.txt,data:d.rep,act:Date.now()};
+    if(await dbWrite(db=>db.collection("informes").doc(id).set(doc),m)){S.infDraft[n.id]=null;location.hash="#inf-"+encodeURIComponent(id)}};
 }
 
 function infListHTML(list,titulo){
@@ -2076,6 +2109,7 @@ route();
   S.mode="coach";$("#tabs").hidden=false;route();
   db.collection("buzon").onSnapshot(snap=>{const o={};snap.docs.forEach(d=>o[d.id]=d.data()||{});S.buz=o;render();autoLink()},()=>{});
   try{S.assets=await window.claude.use("assets")}catch(_){}
+  try{S.ia=await window.claude.use("ia")}catch(_){}
   try{S.sample=await window.claude.use("sample")}catch(_){}
   const sub=(col,key,map)=>db.collection(col).onSnapshot(snap=>{S[key]=snap.docs.map(d=>map(Object.assign({},d.data()||{},{id:d.id})));S.got[key]=1;render()},
     e=>{S.got[key]=1;$("#view").insertAdjacentHTML("afterbegin",`<div class="msg err">No se pudieron leer los datos (${esc(e.code)}). Recarga la página.</div>`)});

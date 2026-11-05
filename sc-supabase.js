@@ -219,12 +219,27 @@
     async delete(id) { await sb.storage.from("media").remove([id]); }
   };
 
+  /* IA: conversa con Claude a través de la función "claude-informe" (la clave vive en Supabase) */
+  const ia = {
+    async chat(messages) {
+      const { data, error } = await sb.functions.invoke("claude-informe", { body: { messages } });
+      if (error) {
+        let code = "no_ia", msg = error.message || String(error);
+        try { const c = await error.context.json(); code = c.error || code; msg = c.detail || c.error || msg; } catch (_) {}
+        if (error.context && error.context.status === 404) code = "no_ia";
+        throw { code, message: msg };
+      }
+      return (data && data.text) || "";
+    }
+  };
+
   window.claude = {
     use: async name => {
       await ready;
       if (name === "db") return db;
       if (name === "user") return user;
       if (name === "assets") return rol === "coach" ? assets : null;
+      if (name === "ia") return rol === "coach" ? ia : null;
       return null; // sin funciones de IA en esta versión
     }
   };
