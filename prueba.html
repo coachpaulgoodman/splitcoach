@@ -565,6 +565,7 @@ R.ficha={html(){
         ${e!=null?`<span class="chip">${e} años · ${esc(catDe(e))}</span>`:""}</div></div>
       <a class="btn ghost sm" href="#chat-${encodeURIComponent(n.id)}">Mensajes${unread(S.buz[tk(n)],"coach")?" · nuevo":""}</a></div>
   </section>
+  ${infFichaHTML(n)}
   <section class="card"><h3>Mejores tiempos</h3>${pbTable}
     <details><summary class="small" style="cursor:pointer;color:var(--accent);font-weight:600">Agregar marca (control o test)</summary>
       <div class="form three" style="margin-top:10px">
@@ -594,7 +595,7 @@ R.ficha={html(){
     </div>
     <div class="row"><button class="btn" id="f-save">Guardar cambios</button><span class="grow"></span><button class="btn ghost sm" id="f-del">Eliminar nadador</button></div>
   </section>
-  ${infListHTML((S.inf||[]).filter(i=>i.nadador===n.id),"Informes de sesión")}
+  ${infListHTML((S.inf||[]).filter(i=>i.nadador===n.id),"Informes anteriores")}
   <section class="card"><h3>Sensaciones recientes</h3>
     ${sens.length?`<div class="list">${sens.map(s=>{const x=s.resumen.sens[n.id];return `<a class="item" href="#resumen" data-ses="${esc(s.id)}"><div class="main"><div class="nm">${esc(s.titulo||"Sesión")}</div><div class="small muted">${esc(x.txt||"Sin comentario")}</div></div>${x.rpe?`<span class="chip">RPE ${esc(x.rpe)}</span>`:""}<span class="date">${fmtD(s.fecha)}</span></a>`}).join("")}</div>`:`<div class="muted small">Se registran en Resumen de entrenamiento.</div>`}
   </section>
@@ -607,7 +608,7 @@ R.ficha={html(){
     if(await dbWrite(db=>db.collection("nadadores").doc(n.id).update(d),$("#f-msg")))$("#f-msg").innerHTML=`<span class="up">Guardado</span>`};
   $("#f-del").onclick=async e=>{const b=e.target;if(b.dataset.c!=="1"){b.dataset.c="1";b.textContent="¿Eliminar ficha? Los resultados se mantienen";b.className="btn danger sm";return}
     if(await dbWrite(db=>db.collection("nadadores").doc(n.id).delete(),$("#f-msg")))location.hash="#plantel"};
-  bindPasadas(n);bindIM(n);
+  bindPasadas(n);bindIM(n);bindInfFicha(n);
   $("#m-save").onclick=async()=>{const t=$("#m-t").value,seg=parseT(t);if(seg==null){$("#m-msg").innerHTML=`<span class="down">Tiempo no reconocido. Usa 1:24.00 o 31.45.</span>`;return}
     const e=edadMaster(n.nacimiento);
     const r={torneo:$("#m-o").value.trim()||"Control interno",fecha:$("#m-f").value||today(),piscina:$("#m-pi").value,nadador:n.nombre,sexo:n.sexo||"",edad:e,categoria:catDe(e),club:n.club||"",prueba:$("#m-p").value,tiempo:t.trim(),seg,lugar:null,tipo:"control"};
@@ -1520,11 +1521,12 @@ function infDatos(s,n){
     companeros_misma_sesion:comp,
     informe_anterior:ant&&ant.data?{fecha:ant.fecha,instruccion:ant.data.instruccion||"",proyecciones:ant.data.proyecciones||null}:null};
 }
-function infPrompt(s,n){
+function infPrompt(s,n,texto){
   return `Eres el analista de rendimiento de SplitCoach, la app de un entrenador de natación Master en Chile. Escribe el informe de la sesión de entrenamiento de ${n.nombre} con los datos de abajo.
 
 ESTILO
 - Español de Chile, voz de entrenador experto, directo y concreto. Analiza como un coach: patrones intra-set (split negativo, caída, rep más lenta y por qué), consistencia, % del PB y zona, transferencia a sus pruebas de competencia, proyecciones razonadas.
+- Si viene "resumen_escrito_por_coach", es la descripción del entreno de hoy (series, tiempos y sensaciones) escrita por el entrenador: úsala como fuente principal y calcula tú los % del PB con "mejores_tiempos" y "zonas".
 - Usa SOLO los tiempos de los datos. Si estimas algo (un PB que falta, un parcial), márcalo con "~" o "(est.)". No inventes tiempos.
 - Estrellas: 3 = excelente/hallazgo principal, 2 = bueno, 1 = aceptable.
 - Si hay compañeros en la misma sesión, puedes compararlo en una nota breve. Si hay informe anterior, da continuidad a sus proyecciones e instrucción.
@@ -1550,7 +1552,7 @@ Valores de "tono": "top" (lo mejor), "good" (bueno), "base" (normal), "warn" (al
 Valores de "tipo" en notas y feedback: "3", "2", "1" (estrellas), "idea" (💡 interpretación) o "warn" (⚠ alerta).
 
 DATOS DE LA SESIÓN
-${JSON.stringify(infDatos(s,n),null,1)}`;
+${JSON.stringify(Object.assign(infDatos(s,n),texto&&texto.trim()?{resumen_escrito_por_coach:texto.trim()}:{}),null,1)}`;
 }
 function infParse(txt){
   const t=String(txt||""),m=t.match(/```(?:json)?\s*([\s\S]*?)```/),raw=m?m[1]:t.slice(t.indexOf("{"),t.lastIndexOf("}")+1);
@@ -1594,6 +1596,37 @@ function bindInfSes(s){
     const doc={sesion:s.id,nadador:nid,nombre:n.nombre,fecha:s.fecha||"",titulo:s.titulo||"",data:d,act:Date.now()};
     if(await dbWrite(db=>db.collection("informes").doc(infId(s.id,nid)).set(doc),m)){location.hash="#inf-"+encodeURIComponent(infId(s.id,nid))}});
 }
+/* informe desde la ficha del nadador: resumen escrito del entreno de hoy */
+S.infDraft=S.infDraft||{};
+function infSesDia(n,fecha,pisc){
+  const real=S.ses.find(x=>x.fecha===fecha&&(x.nads||[]).includes(n.id));
+  return real||{id:"dia-"+fecha,fecha,piscina:pisc||"25",titulo:"",nads:[n.id],series:[],notas:""};
+}
+function infFichaHTML(n){
+  const d=S.infDraft[n.id]=S.infDraft[n.id]||{fecha:today(),pisc:"25",txt:"",open:false},s=infSesDia(n,d.fecha,d.pisc),i=infOf(s.id,n.id);
+  return `<section class="card"><div class="head"><h3>Informe de entrenamiento</h3>${i?`<a class="btn sm" href="#inf-${encodeURIComponent(i.id)}">Ver informe del ${fmtD(d.fecha)}</a>`:""}</div>
+    <div class="form three"><label>Fecha<input id="if-f" type="date" value="${esc(d.fecha)}"></label>
+      <label>Piscina<select id="if-p"><option value="25" ${d.pisc==="25"?"selected":""}>25 m</option><option value="50" ${d.pisc==="50"?"selected":""}>50 m</option></select></label></div>
+    ${s.series.length?`<div class="note">Hay una sesión de Entrenos ese día (${esc(s.titulo||"sin título")}); sus series y tiempos reales se incluyen solos.</div>`:""}
+    <label>Resumen del entreno (series, tiempos, sensaciones)<textarea id="if-t" rows="6" placeholder="4x50 espalda @1:10: 48/50/47/47&#10;4x50 pecho: 56/56/55/56&#10;All out 50 espalda con aletas: 33.71&#10;Sensaciones: buena, algo cansada al final">${esc(d.txt)}</textarea></label>
+    <div class="row"><button class="btn" id="if-cp">1 · Copiar para Claude</button><button class="btn ghost" id="if-pg">2 · Pegar informe</button><span class="small muted">Pega lo copiado en un chat con Claude y trae su respuesta.</span></div>
+    <div id="if-box" ${d.open?"":"hidden"} style="display:grid;gap:8px"><textarea id="if-r" rows="6" placeholder="Pega aquí la respuesta completa de Claude (el bloque json)"></textarea>
+      <div class="row"><button class="btn" id="if-sv">Guardar y publicar al nadador</button><span id="if-msg" class="small"></span></div></div></section>`;
+}
+function bindInfFicha(n){
+  const d=S.infDraft[n.id];if(!d||!$("#if-t"))return;
+  $("#if-f").onchange=e=>{d.fecha=e.target.value||today();render(true)};
+  $("#if-p").onchange=e=>{d.pisc=e.target.value};
+  $("#if-t").addEventListener("input",e=>{d.txt=e.target.value});
+  $("#if-cp").onclick=ev=>{if(!d.txt.trim()&&!infSesDia(n,d.fecha,d.pisc).series.length){ev.target.textContent="Escribe primero el resumen";setTimeout(()=>ev.target.textContent="1 · Copiar para Claude",1600);return}
+    copyText(infPrompt(infSesDia(n,d.fecha,d.pisc),n,d.txt),ev.target)};
+  $("#if-pg").onclick=()=>{d.open=true;const b=$("#if-box");b.hidden=false;$("#if-r").focus()};
+  $("#if-sv").onclick=async()=>{const m=$("#if-msg");let data;try{data=infParse($("#if-r").value)}catch(e){m.innerHTML=`<span class="down">${esc(e.message)}</span>`;return}
+    const s=infSesDia(n,d.fecha,d.pisc),id=infId(s.id,n.id);
+    const doc={sesion:s.id,nadador:n.id,nombre:n.nombre,fecha:d.fecha,titulo:s.titulo||"",texto:d.txt,data,act:Date.now()};
+    if(await dbWrite(db=>db.collection("informes").doc(id).set(doc),m)){S.infDraft[n.id]={fecha:today(),pisc:d.pisc,txt:"",open:false};location.hash="#inf-"+encodeURIComponent(id)}};
+}
+
 function infListHTML(list,titulo){
   if(!list.length)return "";
   return `<section class="card"><h3>${titulo}</h3><div class="list">${list.slice().sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).map(i=>`<a class="item" href="#inf-${encodeURIComponent(i.id)}"><div class="main"><div class="nm">${esc((i.data&&i.data.titulo)||i.titulo||"Sesión")}</div><div class="small muted">${esc((i.data&&i.data.instruccion)||"")}</div></div><span class="date">${fmtD(i.fecha)}</span></a>`).join("")}</div></section>`;
