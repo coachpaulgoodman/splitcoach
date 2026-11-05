@@ -257,6 +257,7 @@ code{font-family:var(--f-mono);font-size:12.5px;background:var(--soft);padding:1
 .inf-foda b{font-size:18px;font-family:var(--f-display);line-height:1}.inf-foda small{display:block;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;opacity:.75}
 .fd-f{background:color-mix(in srgb,var(--good) 20%,transparent)}.fd-o{background:color-mix(in srgb,var(--z2) 20%,transparent)}.fd-d{background:color-mix(in srgb,var(--z4) 24%,transparent)}.fd-a{background:color-mix(in srgb,var(--bad) 20%,transparent)}
 @media (max-width:420px){.inf-foda{grid-template-columns:1fr}}
+.vro #hint,.vro #meas,.vro .tools,.vro .tools-mas,.vro .coach-only,.vro #clrplay,.vro [data-mdel]{display:none!important}
 /* ---- Tema SplitCoach: pizarra + turquesa ---- */
 header.top{border-bottom:1px solid var(--line)}
 .brand{padding-block:14px 8px}
@@ -424,10 +425,10 @@ function route(){
   else if(h.startsWith("chat-")){v="chat";p=h.slice(5)}
   else if(h.startsWith("inf-")){v="informe";p=h.slice(4)}
   else if(!VIEWS.includes(h))v="plantel";
-  if(S.mode==="nadador"&&v!=="informe"){v=h==="mensajes"?"yo":"mificha";p=""}
+  if(S.mode==="nadador"&&v!=="informe"&&v!=="video"){v=h==="mensajes"?"yo":"mificha";p=""}
   S.view=v;S.param=p;
   if(S.mode==="coach"&&S.db&&(v==="resultados"||(v==="tiempos"&&S.mt.scope!=="plantel")))loadFullTor();
-  const tab=v==="informe"?(S.mode==="nadador"?"mificha":"evolucion"):v==="ficha"?"plantel":v==="video"?"videos":v==="chat"||v==="yo"?"mensajes":v;
+  const tab=S.mode==="nadador"&&v==="video"?"mificha":v==="informe"?(S.mode==="nadador"?"mificha":"evolucion"):v==="ficha"?"plantel":v==="video"?"videos":v==="chat"||v==="yo"?"mensajes":v;
   $$("#tabs a").forEach(a=>a.setAttribute("aria-current",a.dataset.v===tab?"page":"false"));
   if(v!=="video")stopVideo();
   S.pending=false;
@@ -988,6 +989,7 @@ async function syncFichas(){
     const payload={nombre:n.nombre||"",sexo:n.sexo||"",nacimiento:n.nacimiento||"",club:n.club||"",objetivos:n.objetivos||"",pruebasFav:n.pruebasFav||"",metas:n.metas||{},
       res:resOf(n.nombre).filter(r=>r.seg!=null).map(r=>({prueba:r.prueba,piscina:String(r.piscina||""),seg:r.seg,tiempo:r.tiempo||"",fecha:r.fecha||"",torneo:r.torneo||"",lugar:r.lugar||null})),
       par:S.par.filter(p=>ks.has(norm(p.nadador))).map(p=>({prueba:p.prueba,piscina:String(p.piscina||""),tramo:p.tramo,tipo:p.tipo||"",fecha:p.fecha||"",torneo:p.torneo||"",splits:p.splits||[]})),
+      vid:S.vid.filter(v=>v.nadadorId===n.id&&v.compartido).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).slice(0,30).map(v=>({id:v.id,assetId:v.assetId,prueba:v.prueba||"",fecha:v.fecha||"",notas:v.notas||"",marcas:v.marcas||[],trazos:v.trazos||[]})),
       inf:(S.inf||[]).filter(i=>i.nadador===n.id).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).slice(0,20).map(i=>({id:i.id,fecha:i.fecha||"",titulo:i.titulo||"",data:i.data}))};
     const h=JSON.stringify(payload);
     if(fichaHash[n.uid]===undefined){try{const s=await S.db.doc("buzon/"+n.uid+"/ficha/datos").get();const d=s.exists?Object.assign({},s.data()):null;if(d)delete d.act;fichaHash[n.uid]=d?JSON.stringify(d):""}catch(_){fichaHash[n.uid]=""}}
@@ -1002,6 +1004,7 @@ function loadMiFicha(f){
   S.res=(f.res||[]).map((r,i)=>Object.assign({id:"r"+i,nadador:n.nombre},r));
   S.par=(f.par||[]).map((p,i)=>Object.assign({id:"p"+i,nadador:n.nombre},p));
   S.miInf=f.inf||[];
+  S.vid=(f.vid||[]).map(v=>Object.assign({nadadorId:"yo"},v));S.got.vid=1;
   S.got.res=1;
 }
 R.mificha={html(){
@@ -1021,6 +1024,7 @@ R.mificha={html(){
       <div class="grow"><h2>${esc(n.nombre)}</h2><div class="chips" style="margin-top:6px">${n.club?`<span class="chip">${esc(n.club)}</span>`:""}<span class="chip">${sx(n.sexo)}</span>${e!=null?`<span class="chip">${e} años · ${esc(catDe(e))}</span>`:""}</div></div></div>
     ${S.miFicha.act?`<div class="note">Actualizada ${fmtTs(S.miFicha.act)}</div>`:""}</section>
   ${infListHTML(S.miInf||[],"Mis informes de entrenamiento")}
+  ${(S.vid||[]).length?`<section class="card"><h3>Mis videos</h3><div class="list">${S.vid.map(v=>`<a class="item" href="#video-${encodeURIComponent(v.id)}"><div class="main"><div class="nm">${esc(v.prueba||"Video")}</div><div class="small muted">${(v.trazos||[]).length} correcciones${(v.marcas||[]).length?` · ${v.marcas.length} notas`:""}</div></div><span class="date">${fmtD(v.fecha)}</span></a>`).join("")}</div></section>`:""}
   ${n.objetivos?`<section class="card"><h3>Objetivos de temporada</h3><div class="bt">${esc(n.objetivos)}</div></section>`:""}
   <section class="card"><h3>Mis mejores tiempos</h3>${ps.length?`<div class="tablewrap"><table><thead><tr><th>Prueba</th><th class="num">Piscina 25 m</th><th class="num">Piscina 50 m</th></tr></thead><tbody>
     ${ps.map(p=>`<tr><td>${esc(p)}</td><td class="num">${cell(pb25[p])}</td><td class="num">${cell(pb50[p])}</td></tr>`).join("")}</tbody></table></div>`:`<div class="muted small">Aún no hay marcas registradas.</div>`}</section>
@@ -1924,9 +1928,11 @@ function stopVideo(){if(S.vp&&S.vp.stop)S.vp.stop();S.vp=null}
 R.video={html(){
   const v=S.vid.find(x=>x.id===S.param);
   if(!v)return `<section class="card"><a class="back" href="#videos">← Videos</a><div class="muted">${loading()||!S.got.vid?"Cargando…":"Video no encontrado."}</div></section>`;
-  const n=nadById(v.nadadorId);
-  return `<section class="card"><a class="back" href="#videos">← Videos</a>
-    <div class="head"><div><h2>${esc(n?n.nombre:"Video")}</h2><div class="small muted">${esc(v.prueba||"")} · ${fmtD(v.fecha)}</div></div></div>
+  const n=nadById(v.nadadorId),ro=S.mode==="nadador";
+  return `<div class="${ro?"vro":""}"><section class="card"><a class="back" href="${ro?"#mificha":"#videos"}">← ${ro?"Mi ficha":"Videos"}</a>
+    <div class="head"><div><h2>${esc(ro?(v.prueba||"Video"):n?n.nombre:"Video")}</h2><div class="small muted">${ro?"":esc(v.prueba||"")+" · "}${fmtD(v.fecha)}</div></div>
+      ${ro?"":n?`<button class="btn ${v.compartido?"":"ghost "}sm" id="vshare">${v.compartido?"✓ Compartido con "+esc(n.nombre.split(" ")[0]):"Compartir con "+esc(n.nombre.split(" ")[0])}</button>`:`<span class="small muted">Asigna un nadador para compartir</span>`}</div>
+    ${ro?`<div class="note">Dale ▶: las correcciones de tu entrenador aparecen sobre el video en el momento justo. Usa 0,25× para verlas con calma.</div>`:""}
     <div class="stage" id="stage"><div class="vbox"><video id="vid" src="${SC_BLOB}${esc(v.assetId)}" crossorigin="anonymous" playsinline preload="auto" muted></video><canvas id="ov"></canvas></div></div>
     <div class="ctrl"><button class="btn sm" id="pp">▶</button><button class="btn ghost sm" id="fb" aria-label="Cuadro anterior">◀︎ 1</button><button class="btn ghost sm" id="ff" aria-label="Cuadro siguiente">1 ▶︎</button>
       <select id="rate" style="width:auto;padding:4px 8px" aria-label="Velocidad"><option value="0.1">0,1×</option><option value="0.25">0,25×</option><option value="0.5">0,5×</option><option value="1" selected>1×</option></select>
@@ -1941,20 +1947,25 @@ R.video={html(){
     <div class="note" id="hint">Elige Flecha, Círculo o Ángulo y dibuja: el video se pausa solo. "Borrar y seguir" limpia lo que dibujaste y continúa; si sigues con ▶, los dibujos se ven 2 s y desaparecen.</div>
     <div class="kpi" id="meas"></div>
   </section>
-  <section class="card"><h3>Frecuencia de brazada</h3>
+  <section class="card coach-only"><h3>Frecuencia de brazada</h3>
     <div class="row"><button class="btn" id="tap">Ciclo</button><button class="btn ghost sm" id="tapr">Reiniciar</button><span class="small muted">Toca en cada entrada de la misma mano. Usa el tiempo del video, así funciona en cámara lenta.</span></div>
     <div class="kpi" id="sr"></div></section>
-  <section class="card"><div class="head"><h3>Marcas y notas</h3></div>
-    <div class="row"><input id="mk" class="grow" placeholder="Nota en el segundo actual: codo cae en el agarre…"><button class="btn sm" id="mkadd">Agregar</button></div>
+  <section class="card"><div class="head"><h3>${ro?"Correcciones":"Marcas y notas"}</h3></div>
+    <div class="row coach-only"><input id="mk" class="grow" placeholder="Nota en el segundo actual: codo cae en el agarre…"><button class="btn sm" id="mkadd">Agregar</button></div>
     <div class="list marks" id="marks"></div>
-    <label>Notas generales<textarea id="vn">${esc(v.notas||"")}</textarea></label>
-    <div class="row"><button class="btn" id="vsave">Guardar análisis</button><span id="vmsg" class="small"></span><span class="grow"></span><button class="btn ghost sm" id="vdel">Eliminar video</button></div></section>
+    ${ro?(v.notas?`<div class="bt">${esc(v.notas)}</div>`:""):""}<label class="coach-only">Notas generales<textarea id="vn">${esc(v.notas||"")}</textarea></label>
+    <div class="row coach-only"><button class="btn" id="vsave">Guardar análisis</button><span id="vmsg" class="small"></span><span class="grow"></span><button class="btn ghost sm" id="vdel">Eliminar video</button></div></section>
   ${S.sample||v.analisis?`<section class="card"><div class="head"><h3>Análisis técnico</h3>${S.sample?'<button class="btn ghost sm" id="ai">Analizar 4 cuadros</button>':""}</div>
     ${S.sample?`<div class="note">Toma 4 cuadros desde la posición actual (cada 0,25 s) y pide una revisión técnica. Es una ayuda, no reemplaza tu ojo.</div>`:""}
-    <div id="aiout">${v.analisis?`<div class="ai">${esc(v.analisis)}</div>`:""}</div></section>`:""}`;
+    <div id="aiout">${v.analisis?`<div class="ai">${esc(v.analisis)}</div>`:""}</div></section>`:""}</div>`;
 },bind(){
   const v=S.vid.find(x=>x.id===S.param);if(!v)return;
   initPlayer(v);
+  const b=$("#vshare");if(b)b.onclick=async()=>{const P=S.vp||{};const on=!v.compartido;
+    const d={compartido:on,notas:($("#vn")||{}).value||"",marcas:P.marks||v.marcas||[],trazos:P.shapes||v.trazos||[],track:P.track||v.track||[],calib:P.calib||null};
+    b.disabled=true;if(await dbWrite(db=>db.collection("videos").doc(v.id).update(d),$("#vmsg"))){Object.assign(v,d);P.dirty=false;
+      $("#vmsg").innerHTML=on?`<span class="up">Compartido: lo verá en su ficha, con tus dibujos y notas.</span>`:`<span class="muted">Ya no lo ve.</span>`;
+      b.textContent=on?"✓ Compartido":"Compartir";b.className="btn "+(on?"":"ghost ")+"sm"}b.disabled=false};
 }};
 function refreshMarks(){if(S.vp&&S.vp.drawMarks)S.vp.drawMarks()}
 function initPlayer(v){
