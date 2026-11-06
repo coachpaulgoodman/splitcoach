@@ -258,6 +258,7 @@ code{font-family:var(--f-mono);font-size:12.5px;background:var(--soft);padding:1
 .fd-f{background:color-mix(in srgb,var(--good) 20%,transparent)}.fd-o{background:color-mix(in srgb,var(--z2) 20%,transparent)}.fd-d{background:color-mix(in srgb,var(--z4) 24%,transparent)}.fd-a{background:color-mix(in srgb,var(--bad) 20%,transparent)}
 @media (max-width:420px){.inf-foda{grid-template-columns:1fr}}
 .vro #hint,.vro #meas,.vro .tools,.vro .tools-mas,.vro .coach-only,.vro #clrplay,.vro [data-mdel]{display:none!important}
+.inf-last{border:1px solid var(--accent);border-radius:14px;padding:12px;margin-top:10px}
 /* ---- Tema SplitCoach: pizarra + turquesa ---- */
 header.top{border-bottom:1px solid var(--line)}
 .brand{padding-block:14px 8px}
@@ -425,10 +426,10 @@ function route(){
   else if(h.startsWith("chat-")){v="chat";p=h.slice(5)}
   else if(h.startsWith("inf-")){v="informe";p=h.slice(4)}
   else if(!VIEWS.includes(h))v="plantel";
-  if(S.mode==="nadador"&&v!=="informe"&&v!=="video"){v=h==="mensajes"?"yo":h==="torneos"?"mistorneos":h==="misvideos"?"misvideos":"mificha";p=""}
+  if(S.mode==="nadador"&&v!=="informe"&&v!=="video"){v=h==="mensajes"?"yo":h==="torneos"?"mistorneos":h==="misvideos"?"misvideos":h==="misentrenos"?"misinformes":"mificha";p=""}
   S.view=v;S.param=p;
   if(S.mode==="coach"&&S.db&&(v==="resultados"||(v==="tiempos"&&S.mt.scope!=="plantel")))loadFullTor();
-  const tab=S.mode==="nadador"&&v==="video"?"misvideos":S.mode==="nadador"&&v==="informe"?"mificha":v==="mistorneos"?"torneos":v==="informe"?(S.mode==="nadador"?"mificha":"evolucion"):v==="ficha"?"plantel":v==="video"?"videos":v==="chat"||v==="yo"?"mensajes":v;
+  const tab=S.mode==="nadador"&&v==="video"?"misvideos":S.mode==="nadador"&&v==="informe"?"misentrenos":v==="misinformes"?"misentrenos":v==="mistorneos"?"torneos":v==="informe"?(S.mode==="nadador"?"mificha":"evolucion"):v==="ficha"?"plantel":v==="video"?"videos":v==="chat"||v==="yo"?"mensajes":v;
   $$("#tabs a").forEach(a=>a.setAttribute("aria-current",a.dataset.v===tab?"page":"false"));
   if(v!=="video")stopVideo();
   S.pending=false;
@@ -1715,7 +1716,7 @@ function infListHTML(list,titulo){
 }
 R.informe={html(){
   const i=(S.mode==="nadador"?S.miInf||[]:S.inf||[]).find(x=>x.id===S.param);
-  const back=S.mode==="nadador"?`<a class="back" href="#mificha">← Mi ficha</a>`:`<a class="back" href="#evolucion">← Evolución</a>`;
+  const back=S.mode==="nadador"?`<a class="back" href="#misentrenos">← Mis entrenos</a>`:`<a class="back" href="#evolucion">← Evolución</a>`;
   if(!i||!i.data)return back+emptyBox(loading()?"Cargando…":"Informe no encontrado","");
   const n=S.mode==="nadador"?S.nad[0]:nadById(i.nadador);
   const meta={nombre:(n&&n.nombre)||i.nombre||"",edad:n?edadMaster(n.nacimiento):null,fecha:i.fecha,titulo:i.titulo};
@@ -1748,6 +1749,14 @@ R.mistorneos={html(){
   return `<section class="card"><h2>Mis torneos</h2>
     <div class="kpi"><div><b>${keys.length}</b><span>Torneos</span></div><div><b>${rs.length}</b><span>Pruebas nadadas</span></div><div><b class="up">${pbs}</b><span>PB logrados</span></div><div><b>${med[0]} · ${med[1]} · ${med[2]}</b><span>Oro · Plata · Bronce</span></div></div>
     <div class="note">vs PB previo: tu tiempo comparado con tu mejor marca anterior a ese torneo (misma prueba y piscina). Verde = mejoraste.</div></section>${cards}`;
+},bind(){}};
+R.misinformes={html(){
+  const l=S.miInf||[];
+  if(!l.length)return `<section class="card"><h2>Mis entrenos</h2><div class="muted small">Cuando tu entrenador publique el informe de una sesión, aparecerá aquí con tus tiempos, % de tu PB, gráficos y su feedback.</div></section>`;
+  const u=l[0];
+  return `<section class="card"><h2>Mis entrenos</h2><div class="note">Informes de tus sesiones: tiempos, % de tu PB, zonas, gráficos y el feedback de tu entrenador.</div>
+    <a class="item inf-last" href="#inf-${encodeURIComponent(u.id)}"><div class="main"><div class="small muted">Último informe · ${fmtD(u.fecha)}</div><div class="nm">${esc((u.data&&u.data.titulo)||u.titulo||"Sesión")}</div>${u.data&&u.data.instruccion?`<div class="small">Instrucción: <b>${esc(u.data.instruccion)}</b></div>`:""}</div><span class="btn sm">Ver</span></a></section>
+    ${infListHTML(l.slice(1),"Anteriores")}`;
 },bind(){}};
 R.misvideos={html(){
   const vs=S.vid||[];
@@ -2185,7 +2194,7 @@ route();
   let coach=true;if(S.user){try{coach=await S.user.canEdit()}catch(_){}}
   if(!coach){
     S.mode="nadador";$("#tag").textContent="Nadador";
-    $("#tabs").innerHTML=`<a href="#mificha" data-v="mificha">Mi ficha</a><a href="#torneos" data-v="torneos">Mis torneos</a><a href="#misvideos" data-v="misvideos">Mis videos</a><a href="#mensajes" data-v="mensajes">Mensajes<span id="nb"></span></a>`;$("#tabs").hidden=false;
+    $("#tabs").innerHTML=`<a href="#mificha" data-v="mificha">Mi ficha</a><a href="#misentrenos" data-v="misentrenos">Mis entrenos</a><a href="#torneos" data-v="torneos">Mis torneos</a><a href="#misvideos" data-v="misvideos">Mis videos</a><a href="#mensajes" data-v="mensajes">Mensajes<span id="nb"></span></a>`;$("#tabs").hidden=false;
     try{S.me=await S.user.id()}catch(_){}
     try{S.canWrite=await S.user.can("data.write")}catch(_){S.canWrite=null}
     if(S.me){db.doc("buzon/"+S.me).onSnapshot(s=>{S.myThread=s.exists?s.data()||{}:null;S.gotThread=true;render()},()=>{S.gotThread=true;render()});
