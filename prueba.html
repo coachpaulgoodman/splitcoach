@@ -425,10 +425,10 @@ function route(){
   else if(h.startsWith("chat-")){v="chat";p=h.slice(5)}
   else if(h.startsWith("inf-")){v="informe";p=h.slice(4)}
   else if(!VIEWS.includes(h))v="plantel";
-  if(S.mode==="nadador"&&v!=="informe"&&v!=="video"){v=h==="mensajes"?"yo":"mificha";p=""}
+  if(S.mode==="nadador"&&v!=="informe"&&v!=="video"){v=h==="mensajes"?"yo":h==="torneos"?"mistorneos":h==="misvideos"?"misvideos":"mificha";p=""}
   S.view=v;S.param=p;
   if(S.mode==="coach"&&S.db&&(v==="resultados"||(v==="tiempos"&&S.mt.scope!=="plantel")))loadFullTor();
-  const tab=S.mode==="nadador"&&v==="video"?"mificha":v==="informe"?(S.mode==="nadador"?"mificha":"evolucion"):v==="ficha"?"plantel":v==="video"?"videos":v==="chat"||v==="yo"?"mensajes":v;
+  const tab=S.mode==="nadador"&&v==="video"?"misvideos":S.mode==="nadador"&&v==="informe"?"mificha":v==="mistorneos"?"torneos":v==="informe"?(S.mode==="nadador"?"mificha":"evolucion"):v==="ficha"?"plantel":v==="video"?"videos":v==="chat"||v==="yo"?"mensajes":v;
   $$("#tabs a").forEach(a=>a.setAttribute("aria-current",a.dataset.v===tab?"page":"false"));
   if(v!=="video")stopVideo();
   S.pending=false;
@@ -1726,6 +1726,36 @@ R.informe={html(){
     if(await dbWrite(db=>db.collection("informes").doc(S.param).delete(),$("#inf-msg")))location.hash="#evolucion"};
 }};
 
+/* ================= vistas del nadador: Mis torneos y Mis videos ================= */
+R.mistorneos={html(){
+  const n=S.nad[0];if(!n)return emptyBox(loading()?"Cargando…":"Tu ficha aún no está publicada","");
+  const rs=resOf(n.nombre).filter(r=>r.seg!=null&&r.torneo);
+  if(!rs.length)return `<section class="card"><h2>Mis torneos</h2><div class="muted small">Todavía no hay resultados de torneos cargados con tu nombre.</div></section>`;
+  const prevPB=r=>resOf(n.nombre).filter(x=>x.seg!=null&&x.prueba===r.prueba&&String(x.piscina)===String(r.piscina)&&(x.fecha||"")<(r.fecha||"")).reduce((m,x)=>m==null||x.seg<m?x.seg:m,null);
+  const groups={};rs.forEach(r=>{const k=(r.fecha||"")+"|"+r.torneo;(groups[k]=groups[k]||[]).push(r)});
+  const keys=Object.keys(groups).sort((a,b)=>b.localeCompare(a));
+  let pbs=0;const med=[0,0,0];
+  const cards=keys.map(k=>{const g=groups[k].slice().sort((a,b)=>ordPrueba(a.prueba)-ordPrueba(b.prueba)),[f,t]=[k.split("|")[0],k.slice(k.indexOf("|")+1)];
+    let gpb=0;
+    const filas=g.map(r=>{const pb=prevPB(r),d=pb==null?null:r.seg-pb;if(d!=null&&d<0){pbs++;gpb++}if(r.lugar>=1&&r.lugar<=3)med[r.lugar-1]++;
+      return `<tr><td><b>${esc(r.prueba)}</b><div class="small muted">${esc(r.piscina)} m</div></td><td class="num time">${fmtT(r.seg)}</td>
+        <td class="num">${r.lugar>=1&&r.lugar<=3?`<span class="medal m${r.lugar}">${r.lugar}</span>`:r.lugar?r.lugar+"°":"—"}</td>
+        <td class="num">${pb==null?`<span class="chip">1ª vez</span>`:d<0?`<span class="chip pas-pb">PB</span> ${difS(d)}`:difS(d)}</td></tr>`}).join("");
+    const gm=[1,2,3].map(x=>g.filter(r=>r.lugar===x).length);
+    return `<section class="card"><div class="head"><div><h3>${esc(t)}</h3><div class="small muted">${fmtD(f)} · ${g.length} prueba${g.length>1?"s":""}</div></div>
+      <div class="row" style="gap:6px">${gpb?`<span class="chip pas-pb">${gpb} PB</span>`:""}${gm.map((c,i)=>c?`<span class="medal m${i+1}" title="${["Oro","Plata","Bronce"][i]}">${c}</span>`:"").join("")}</div></div>
+      <div class="tablewrap"><table class="pas-t prog-t"><thead><tr><th>Prueba</th><th class="num">Tiempo</th><th class="num">Lugar</th><th class="num">vs PB previo</th></tr></thead><tbody>${filas}</tbody></table></div></section>`}).join("");
+  return `<section class="card"><h2>Mis torneos</h2>
+    <div class="kpi"><div><b>${keys.length}</b><span>Torneos</span></div><div><b>${rs.length}</b><span>Pruebas nadadas</span></div><div><b class="up">${pbs}</b><span>PB logrados</span></div><div><b>${med[0]} · ${med[1]} · ${med[2]}</b><span>Oro · Plata · Bronce</span></div></div>
+    <div class="note">vs PB previo: tu tiempo comparado con tu mejor marca anterior a ese torneo (misma prueba y piscina). Verde = mejoraste.</div></section>${cards}`;
+},bind(){}};
+R.misvideos={html(){
+  const vs=S.vid||[];
+  if(!vs.length)return `<section class="card"><h2>Mis videos</h2><div class="muted small">Cuando tu entrenador te comparta un video con correcciones, aparecerá aquí.</div></section>`;
+  return `<section class="card"><h2>Mis videos</h2><div class="note">Ábrelo y dale ▶: las correcciones aparecen sobre el video en el momento justo.</div>
+    <div class="list">${vs.map(v=>`<a class="item" href="#video-${encodeURIComponent(v.id)}"><div class="main"><div class="nm">${esc(v.prueba||"Video")}</div><div class="small muted">${(v.trazos||[]).length} correcci${(v.trazos||[]).length===1?"ón":"ones"}${(v.marcas||[]).length?` · ${v.marcas.length} nota${v.marcas.length===1?"":"s"}`:""}${v.notas?" · "+esc(v.notas.slice(0,60))+(v.notas.length>60?"…":""):""}</div></div><span class="date">${fmtD(v.fecha)}</span></a>`).join("")}</div></section>`;
+},bind(){}};
+
 /* ---------- CALCULADORA ---------- */
 R.calculadora={html(){
   const c=S.calc,dp=S.dps,sp=S.split;
@@ -1929,7 +1959,7 @@ R.video={html(){
   const v=S.vid.find(x=>x.id===S.param);
   if(!v)return `<section class="card"><a class="back" href="#videos">← Videos</a><div class="muted">${loading()||!S.got.vid?"Cargando…":"Video no encontrado."}</div></section>`;
   const n=nadById(v.nadadorId),ro=S.mode==="nadador";
-  return `<div class="${ro?"vro":""}"><section class="card"><a class="back" href="${ro?"#mificha":"#videos"}">← ${ro?"Mi ficha":"Videos"}</a>
+  return `<div class="${ro?"vro":""}"><section class="card"><a class="back" href="${ro?"#misvideos":"#videos"}">← ${ro?"Mis videos":"Videos"}</a>
     <div class="head"><div><h2>${esc(ro?(v.prueba||"Video"):n?n.nombre:"Video")}</h2><div class="small muted">${ro?"":esc(v.prueba||"")+" · "}${fmtD(v.fecha)}</div></div>
       ${ro?"":n?`<button class="btn ${v.compartido?"":"ghost "}sm" id="vshare">${v.compartido?"✓ Compartido con "+esc(n.nombre.split(" ")[0]):"Compartir con "+esc(n.nombre.split(" ")[0])}</button>`:`<span class="small muted">Asigna un nadador para compartir</span>`}</div>
     ${ro?`<div class="note">Dale ▶: las correcciones de tu entrenador aparecen sobre el video en el momento justo. Usa 0,25× para verlas con calma.</div>`:""}
@@ -2155,7 +2185,7 @@ route();
   let coach=true;if(S.user){try{coach=await S.user.canEdit()}catch(_){}}
   if(!coach){
     S.mode="nadador";$("#tag").textContent="Nadador";
-    $("#tabs").innerHTML=`<a href="#mificha" data-v="mificha">Mi ficha</a><a href="#mensajes" data-v="mensajes">Mensajes<span id="nb"></span></a>`;$("#tabs").hidden=false;
+    $("#tabs").innerHTML=`<a href="#mificha" data-v="mificha">Mi ficha</a><a href="#torneos" data-v="torneos">Mis torneos</a><a href="#misvideos" data-v="misvideos">Mis videos</a><a href="#mensajes" data-v="mensajes">Mensajes<span id="nb"></span></a>`;$("#tabs").hidden=false;
     try{S.me=await S.user.id()}catch(_){}
     try{S.canWrite=await S.user.can("data.write")}catch(_){S.canWrite=null}
     if(S.me){db.doc("buzon/"+S.me).onSnapshot(s=>{S.myThread=s.exists?s.data()||{}:null;S.gotThread=true;render()},()=>{S.gotThread=true;render()});
