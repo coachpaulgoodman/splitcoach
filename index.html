@@ -11,6 +11,26 @@
 <script src="config.js"></script>
 <script src="sc-supabase.js"></script>
 </head><body>
+<div id="splash" role="dialog" aria-label="SplitCoach">
+<style>
+#splash{position:fixed;inset:0;z-index:100;display:grid;place-items:center;overflow:hidden;background:#0E5F7A;transition:opacity .6s ease}
+#splash::before{content:"";position:absolute;inset:-20px;background:url(splash-bg.jpg) center/cover;filter:blur(3px)}
+#splash.out{opacity:0;pointer-events:none}
+#splash img{--sz:min(112vw,100vh,1024px);position:absolute;left:50%;top:50%;margin:calc(var(--sz)/-2) 0 0 calc(var(--sz)/-2);max-width:none;width:var(--sz);height:var(--sz);animation:sp-in 1.1s ease both;-webkit-mask-image:radial-gradient(closest-side,#000 82%,transparent 100%);mask-image:radial-gradient(closest-side,#000 82%,transparent 100%)}
+#splash button{position:absolute;left:50%;bottom:max(7vh,calc(env(safe-area-inset-bottom,0px) + 32px));transform:translateX(-50%);background:rgba(255,255,255,.14);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.55);color:#fff;border-radius:99px;padding:11px 34px;font:600 12px/1 "Figtree",system-ui,sans-serif;letter-spacing:.34em;text-transform:uppercase;cursor:pointer;opacity:0;animation:sp-btn .8s ease 1s forwards;transition:background .2s}
+#splash button:hover,#splash button:focus-visible{background:rgba(255,255,255,.26);outline:none}
+@keyframes sp-in{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:none}}
+@keyframes sp-btn{to{opacity:.95}}
+@media (prefers-reduced-motion:reduce){#splash img,#splash button{animation:none;opacity:1}}
+</style>
+<img src="splash.jpg" alt="SplitCoach">
+<button type="button" id="sp-go">Entrar</button>
+<script>(function(){var el=document.getElementById("splash"),seen=false;try{seen=sessionStorage.getItem("sc-splash")==="1"}catch(e){}
+if(seen){el.remove();return}
+function go(){try{sessionStorage.setItem("sc-splash","1")}catch(e){}el.classList.add("out");setTimeout(function(){el.remove()},620)}
+document.getElementById("sp-go").onclick=go;document.addEventListener("keydown",function k(e){if(e.key==="Enter"&&document.getElementById("splash")){document.removeEventListener("keydown",k);go()}});})();</script>
+</div>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
@@ -195,6 +215,51 @@ code{font-family:var(--f-mono);font-size:12.5px;background:var(--soft);padding:1
 
 .pas-diag{background:var(--soft);border-radius:12px;padding:10px 12px;font-size:14px;line-height:1.5}.pas-pb{background:color-mix(in srgb,var(--gold) 25%,transparent)!important;color:var(--ink)}.pas-t td,.pas-t th{padding:6px 8px}.pas-t td.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
 .pas-old{background:color-mix(in srgb,var(--bad) 18%,transparent)!important;color:var(--ink);font-size:11px}.prog-t td{white-space:nowrap}.prog-t .date{font-size:11px;color:var(--muted)}
+.tor-it{cursor:pointer}.tor-det{display:grid;gap:10px;padding:4px 0 16px}.tor-sep td{border-top:2px solid var(--line)}
+.ed-t td{vertical-align:top}.ed-t td.nm .small{font-weight:400;margin-top:2px}
+.inf{display:grid;gap:12px}
+.inf-hero{border-radius:18px;padding:20px 18px;color:#fff;background:linear-gradient(135deg,#4B1D8F 0%,#1B3A6B 100%);display:grid;gap:10px}
+.inf-hero h2{color:#fff;margin:0;font-size:21px;line-height:1.25}
+.inf-eye{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;opacity:.8}
+.inf-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.inf-kpis div{background:rgba(255,255,255,.12);border-radius:10px;padding:9px 8px;text-align:center;display:grid;gap:2px}
+.inf-kpis span,.inf-kpis small{font-size:10.5px;opacity:.85}.inf-kpis b{font-size:17px;color:#F7D154;font-family:var(--f-mono)}
+.inf-sec{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-top:8px}
+.inf-card{background:var(--surface);border:1px solid var(--line);border-left:4px solid #4B1D8F;border-radius:14px;padding:14px;display:grid;gap:10px}
+.inf-card.dest{border:2px solid #E2B743}
+.inf-sub{font-weight:700;color:var(--accent);font-size:14px}
+.inf-reps{display:flex;flex-wrap:wrap;gap:6px}
+.inf-reps div{border-radius:10px;padding:7px 10px;min-width:62px;text-align:center;display:grid;gap:1px}
+.inf-reps span,.inf-reps small{font-size:10.5px;opacity:.85}.inf-reps b{font-family:var(--f-mono);font-size:16px}
+.r-top{background:#0F5132;color:#fff}.r-top b{color:#F7D154}.r-good{background:#A6E3CF;color:#0E3B2E}.r-base{background:#F6C97A;color:#3D2A06}.r-warn{background:#F2A35E;color:#3D1B04}.r-bad{background:#F3B2A9;color:#4A0F08}
+.inf-tab{background:var(--soft);border-radius:12px;padding:10px 12px}
+.inf-tt{font-weight:600;font-size:14px;padding-bottom:4px}
+.inf-fr{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid var(--line);font-size:13.5px}
+.inf-fr small{display:block;font-size:11px;color:var(--muted)}.inf-fr b{font-family:var(--f-mono);text-align:right}
+.t-top{color:var(--good)}.t-good{color:var(--good)}.t-warn{color:var(--z4)}.t-bad{color:var(--bad)}
+.inf-bars{display:grid;gap:6px}.inf-bar{display:grid;grid-template-columns:42% 1fr;gap:8px;align-items:center;font-size:12.5px}
+.inf-bar>div{background:var(--soft);border-radius:4px;overflow:hidden}.inf-bar i{display:block;font-style:normal;font-size:11px;color:#fff;padding:3px 6px;white-space:nowrap}
+.b-top{background:#0F5132}.b-good{background:#2E9C6A}.b-base{background:#C98A2B}.b-warn{background:#E07A2E}.b-bad{background:#C62828}
+.inf-nota{display:grid;grid-template-columns:auto 1fr;gap:8px;border-radius:12px;padding:10px 12px;font-size:13.5px;line-height:1.5}
+.inf-ic{white-space:nowrap}.inf-nota.ok{background:color-mix(in srgb,var(--good) 18%,transparent)}.inf-nota.idea{background:color-mix(in srgb,var(--z2) 18%,transparent)}.inf-nota.warn{background:color-mix(in srgb,var(--z4) 22%,transparent)}
+.inf-ins{border-radius:12px;padding:12px;background:color-mix(in srgb,var(--accent) 16%,transparent);font-size:14px}
+.tools-mas summary{cursor:pointer;color:var(--accent);font-weight:600;margin:4px 0}
+.tools .btn.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.ia-chat{display:grid;gap:8px;max-height:420px;overflow:auto;padding:4px}
+.ia-msg{border-radius:14px;padding:9px 12px;font-size:14px;line-height:1.5;max-width:92%;white-space:normal}
+.ia-msg.me{justify-self:end;background:color-mix(in srgb,var(--accent) 18%,transparent)}
+.ia-msg.me div{white-space:pre-wrap;font-family:var(--f-mono);font-size:12.5px;margin-top:4px}
+.ia-msg.bot{justify-self:start;background:var(--soft)}
+.ia-prev{border-top:1px solid var(--line);padding-top:12px}
+.inf-graf{display:grid;gap:4px}.inf-graf svg{width:100%;height:auto;display:block}
+.inf-foda{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.inf-foda div{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:start;border-radius:12px;padding:10px;font-size:13px;line-height:1.4}
+.inf-foda b{font-size:18px;font-family:var(--f-display);line-height:1}.inf-foda small{display:block;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;opacity:.75}
+.fd-f{background:color-mix(in srgb,var(--good) 20%,transparent)}.fd-o{background:color-mix(in srgb,var(--z2) 20%,transparent)}.fd-d{background:color-mix(in srgb,var(--z4) 24%,transparent)}.fd-a{background:color-mix(in srgb,var(--bad) 20%,transparent)}
+@media (max-width:420px){.inf-foda{grid-template-columns:1fr}}
+.vro #hint,.vro #meas,.vro .tools,.vro .tools-mas,.vro .coach-only,.vro #clrplay,.vro [data-mdel]{display:none!important}
+.inf-last{border:1px solid var(--accent);border-radius:14px;padding:12px;margin-top:10px}
+.inf-pdf{width:100%;height:75vh;border:1px solid var(--line);border-radius:12px;background:#fff;margin-top:10px}
 /* ---- Tema SplitCoach: pizarra + turquesa ---- */
 header.top{border-bottom:1px solid var(--line)}
 .brand{padding-block:14px 8px}
@@ -360,11 +425,12 @@ function route(){
   if(h.startsWith("ficha-")){v="ficha";p=h.slice(6)}
   else if(h.startsWith("video-")){v="video";p=h.slice(6)}
   else if(h.startsWith("chat-")){v="chat";p=h.slice(5)}
+  else if(h.startsWith("inf-")){v="informe";p=h.slice(4)}
   else if(!VIEWS.includes(h))v="plantel";
-  if(S.mode==="nadador"){v=h==="mensajes"?"yo":"mificha";p=""}
+  if(S.mode==="nadador"&&v!=="informe"&&v!=="video"){v=h==="mensajes"?"yo":h==="torneos"?"mistorneos":h==="misvideos"?"misvideos":h==="misentrenos"?"misinformes":"mificha";p=""}
   S.view=v;S.param=p;
   if(S.mode==="coach"&&S.db&&(v==="resultados"||(v==="tiempos"&&S.mt.scope!=="plantel")))loadFullTor();
-  const tab=v==="ficha"?"plantel":v==="video"?"videos":v==="chat"||v==="yo"?"mensajes":v;
+  const tab=S.mode==="nadador"&&v==="video"?"misvideos":S.mode==="nadador"&&v==="informe"?"misentrenos":v==="misinformes"?"misentrenos":v==="mistorneos"?"torneos":v==="informe"?(S.mode==="nadador"?"mificha":"evolucion"):v==="ficha"?"plantel":v==="video"?"videos":v==="chat"||v==="yo"?"mensajes":v;
   $$("#tabs a").forEach(a=>a.setAttribute("aria-current",a.dataset.v===tab?"page":"false"));
   if(v!=="video")stopVideo();
   S.pending=false;
@@ -514,6 +580,7 @@ R.ficha={html(){
         ${e!=null?`<span class="chip">${e} años · ${esc(catDe(e))}</span>`:""}</div></div>
       <a class="btn ghost sm" href="#chat-${encodeURIComponent(n.id)}">Mensajes${unread(S.buz[tk(n)],"coach")?" · nuevo":""}</a></div>
   </section>
+  ${infFichaHTML(n)}
   <section class="card"><h3>Mejores tiempos</h3>${pbTable}
     <details><summary class="small" style="cursor:pointer;color:var(--accent);font-weight:600">Agregar marca (control o test)</summary>
       <div class="form three" style="margin-top:10px">
@@ -543,6 +610,7 @@ R.ficha={html(){
     </div>
     <div class="row"><button class="btn" id="f-save">Guardar cambios</button><span class="grow"></span><button class="btn ghost sm" id="f-del">Eliminar nadador</button></div>
   </section>
+  ${infListHTML((S.inf||[]).filter(i=>i.nadador===n.id),"Informes anteriores")}
   <section class="card"><h3>Sensaciones recientes</h3>
     ${sens.length?`<div class="list">${sens.map(s=>{const x=s.resumen.sens[n.id];return `<a class="item" href="#resumen" data-ses="${esc(s.id)}"><div class="main"><div class="nm">${esc(s.titulo||"Sesión")}</div><div class="small muted">${esc(x.txt||"Sin comentario")}</div></div>${x.rpe?`<span class="chip">RPE ${esc(x.rpe)}</span>`:""}<span class="date">${fmtD(s.fecha)}</span></a>`}).join("")}</div>`:`<div class="muted small">Se registran en Resumen de entrenamiento.</div>`}
   </section>
@@ -555,7 +623,7 @@ R.ficha={html(){
     if(await dbWrite(db=>db.collection("nadadores").doc(n.id).update(d),$("#f-msg")))$("#f-msg").innerHTML=`<span class="up">Guardado</span>`};
   $("#f-del").onclick=async e=>{const b=e.target;if(b.dataset.c!=="1"){b.dataset.c="1";b.textContent="¿Eliminar ficha? Los resultados se mantienen";b.className="btn danger sm";return}
     if(await dbWrite(db=>db.collection("nadadores").doc(n.id).delete(),$("#f-msg")))location.hash="#plantel"};
-  bindPasadas(n);bindIM(n);
+  bindPasadas(n);bindIM(n);bindInfFicha(n);
   $("#m-save").onclick=async()=>{const t=$("#m-t").value,seg=parseT(t);if(seg==null){$("#m-msg").innerHTML=`<span class="down">Tiempo no reconocido. Usa 1:24.00 o 31.45.</span>`;return}
     const e=edadMaster(n.nacimiento);
     const r={torneo:$("#m-o").value.trim()||"Control interno",fecha:$("#m-f").value||today(),piscina:$("#m-pi").value,nadador:n.nombre,sexo:n.sexo||"",edad:e,categoria:catDe(e),club:n.club||"",prueba:$("#m-p").value,tiempo:t.trim(),seg,lugar:null,tipo:"control"};
@@ -922,7 +990,9 @@ async function syncFichas(){
     const ks=keysOf(n);
     const payload={nombre:n.nombre||"",sexo:n.sexo||"",nacimiento:n.nacimiento||"",club:n.club||"",objetivos:n.objetivos||"",pruebasFav:n.pruebasFav||"",metas:n.metas||{},
       res:resOf(n.nombre).filter(r=>r.seg!=null).map(r=>({prueba:r.prueba,piscina:String(r.piscina||""),seg:r.seg,tiempo:r.tiempo||"",fecha:r.fecha||"",torneo:r.torneo||"",lugar:r.lugar||null})),
-      par:S.par.filter(p=>ks.has(norm(p.nadador))).map(p=>({prueba:p.prueba,piscina:String(p.piscina||""),tramo:p.tramo,fecha:p.fecha||"",torneo:p.torneo||"",splits:p.splits||[]}))};
+      par:S.par.filter(p=>ks.has(norm(p.nadador))).map(p=>({prueba:p.prueba,piscina:String(p.piscina||""),tramo:p.tramo,tipo:p.tipo||"",fecha:p.fecha||"",torneo:p.torneo||"",splits:p.splits||[]})),
+      vid:S.vid.filter(v=>v.nadadorId===n.id&&v.compartido).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).slice(0,30).map(v=>({id:v.id,assetId:v.assetId,prueba:v.prueba||"",fecha:v.fecha||"",notas:v.notas||"",marcas:v.marcas||[],trazos:v.trazos||[]})),
+      inf:(S.inf||[]).filter(i=>i.nadador===n.id).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).slice(0,20).map(i=>({id:i.id,fecha:i.fecha||"",titulo:i.titulo||"",data:i.data||null,pdf:i.pdf||null}))};
     const h=JSON.stringify(payload);
     if(fichaHash[n.uid]===undefined){try{const s=await S.db.doc("buzon/"+n.uid+"/ficha/datos").get();const d=s.exists?Object.assign({},s.data()):null;if(d)delete d.act;fichaHash[n.uid]=d?JSON.stringify(d):""}catch(_){fichaHash[n.uid]=""}}
     if(fichaHash[n.uid]===h)continue;
@@ -935,6 +1005,8 @@ function loadMiFicha(f){
   S.nad=[n];
   S.res=(f.res||[]).map((r,i)=>Object.assign({id:"r"+i,nadador:n.nombre},r));
   S.par=(f.par||[]).map((p,i)=>Object.assign({id:"p"+i,nadador:n.nombre},p));
+  S.miInf=f.inf||[];
+  S.vid=(f.vid||[]).map(v=>Object.assign({nadadorId:"yo"},v));S.got.vid=1;
   S.got.res=1;
 }
 R.mificha={html(){
@@ -953,6 +1025,8 @@ R.mificha={html(){
   return `<section class="card"><div class="row" style="gap:14px"><span class="avatar" style="width:56px;height:56px;font-size:22px">${esc(initials(n.nombre))}</span>
       <div class="grow"><h2>${esc(n.nombre)}</h2><div class="chips" style="margin-top:6px">${n.club?`<span class="chip">${esc(n.club)}</span>`:""}<span class="chip">${sx(n.sexo)}</span>${e!=null?`<span class="chip">${e} años · ${esc(catDe(e))}</span>`:""}</div></div></div>
     ${S.miFicha.act?`<div class="note">Actualizada ${fmtTs(S.miFicha.act)}</div>`:""}</section>
+  ${infListHTML(S.miInf||[],"Mis informes de entrenamiento")}
+  ${(S.vid||[]).length?`<section class="card"><h3>Mis videos</h3><div class="list">${S.vid.map(v=>`<a class="item" href="#video-${encodeURIComponent(v.id)}"><div class="main"><div class="nm">${esc(v.prueba||"Video")}</div><div class="small muted">${(v.trazos||[]).length} correcciones${(v.marcas||[]).length?` · ${v.marcas.length} notas`:""}</div></div><span class="date">${fmtD(v.fecha)}</span></a>`).join("")}</div></section>`:""}
   ${n.objetivos?`<section class="card"><h3>Objetivos de temporada</h3><div class="bt">${esc(n.objetivos)}</div></section>`:""}
   <section class="card"><h3>Mis mejores tiempos</h3>${ps.length?`<div class="tablewrap"><table><thead><tr><th>Prueba</th><th class="num">Piscina 25 m</th><th class="num">Piscina 50 m</th></tr></thead><tbody>
     ${ps.map(p=>`<tr><td>${esc(p)}</td><td class="num">${cell(pb25[p])}</td><td class="num">${cell(pb50[p])}</td></tr>`).join("")}</tbody></table></div>`:`<div class="muted small">Aún no hay marcas registradas.</div>`}</section>
@@ -1027,6 +1101,33 @@ R.resultados={html(){
   if($("#year"))$("#year").onchange=e=>{S.year=e.target.value;render(true)};
   if(S.rTab==="torneos")bindTorneos();else if(S.rTab==="rivales")bindRivales();else bindCargar();
 }};
+/* ---------- rendimiento del team en un torneo ---------- */
+function torTeamHTML(rs){
+  const tr=rs.filter(r=>r.seg!=null&&nadByName(r.nadador));
+  if(!tr.length)return `<div class="tor-det muted small">Ningún nadador de tu plantel en este torneo. Si nadaron con otro nombre, agrégalo en "Otros nombres" de su ficha.</div>`;
+  const items=tr.map(r=>{const n=nadByName(r.nadador),y=yearOf(r);
+    const prev=resOf(n.nombre).filter(x=>x.seg!=null&&x.prueba===r.prueba&&String(x.piscina)===String(r.piscina)&&(x.fecha||"")<(r.fecha||""));
+    const pb=prev.reduce((m,x)=>!m||x.seg<m.seg?x:m,null),py=prev.filter(x=>yearOf(x)===y).reduce((m,x)=>!m||x.seg<m.seg?x:m,null);
+    return {r,n,pb,py,dPB:pb?r.seg-pb.seg:null,dY:py?r.seg-py.seg:null}});
+  const conRef=items.filter(i=>i.pb),pbs=items.filter(i=>i.pb&&i.dPB<0),nuevas=items.filter(i=>!i.pb);
+  const med=[1,2,3].map(k=>items.filter(i=>i.r.lugar===k).length);
+  const top=pbs.slice().sort((a,b)=>a.dPB/a.pb.seg-b.dPB/b.pb.seg).slice(0,3);
+  items.sort((a,b)=>a.n.nombre.localeCompare(b.n.nombre,"es")||ordPrueba(a.r.prueba)-ordPrueba(b.r.prueba));
+  const cell=d=>d==null?`<span class="muted">—</span>`:difS(d);
+  const filas=items.map((i,k)=>{const first=k===0||items[k-1].n.id!==i.n.id;
+    return `<tr${first&&k?' class="tor-sep"':""}><td>${first?`<a href="#ficha-${encodeURIComponent(i.n.id)}"><b>${esc(i.n.nombre)}</b></a>`:""}</td><td>${esc(i.r.prueba)}</td>
+      <td class="num time">${fmtT(i.r.seg)}</td><td class="num">${i.r.lugar>=1&&i.r.lugar<=3?`<span class="medal m${i.r.lugar}">${i.r.lugar}</span>`:i.r.lugar||"—"}</td>
+      <td class="num">${!i.pb?`<span class="chip">1ª vez</span>`:i.dPB<0?`<span class="chip pas-pb">PB</span> ${difS(i.dPB)}`:cell(i.dPB)}</td><td class="num">${cell(i.dY)}</td></tr>`}).join("");
+  return `<div class="tor-det">
+    <div class="kpi"><div><b>${uniq(items.map(i=>i.n.id)).length}</b><span>Nadadores</span></div><div><b>${items.length}</b><span>Nadadas</span></div>
+      <div><b class="up">${pbs.length}</b><span>PB logrados</span></div>
+      <div><b>${conRef.length?Math.round(pbs.length/conRef.length*100)+"%":"—"}</b><span>Mejoró su PB*</span></div>
+      <div><b>${med[0]} · ${med[1]} · ${med[2]}</b><span>Oro · Plata · Bronce</span></div></div>
+    ${top.length?`<div class="pas-diag">Mayores mejoras: ${top.map(i=>`<b>${esc(i.n.nombre.split(" ")[0])}</b> ${esc(i.r.prueba)} ${difS(i.dPB)} (−${Math.abs(i.dPB/i.pb.seg*100).toFixed(1)}%)`).join(" · ")}</div>`:""}
+    <div class="tablewrap"><table class="pas-t prog-t"><thead><tr><th>Nadador</th><th>Prueba</th><th class="num">Tiempo</th><th class="num">Lugar</th><th class="num">vs PB previo</th><th class="num">vs mejor del año</th></tr></thead><tbody>${filas}</tbody></table></div>
+    <div class="note">* De ${conRef.length} nadadas con marca previa${nuevas.length?`; ${nuevas.length} ${nuevas.length>1?"fueron":"fue"} primera vez en la prueba`:""}. PB previo y mejor del año: solo marcas anteriores a este torneo, misma prueba y piscina.</div></div>`;
+}
+
 function torneosHTML(){
   const rows=S.res.filter(r=>r.tipo!=="control"&&inYear(r));
   const club=`<section class="card"><h3>Mi club</h3><div class="row"><input id="club" class="grow" value="${esc(S.cfg.miClub)}" placeholder="Sigla, ej. PH2OE" list="dl-club" autocomplete="off"><button class="btn" id="saveclub">Guardar</button></div>
@@ -1038,10 +1139,10 @@ function torneosHTML(){
   return `<div class="stats"><div class="stat"><b>${ks.length}</b><span>Torneos</span></div><div class="stat"><b>${uniq(rows.map(r=>norm(r.nadador))).length}</b><span>Nadadores</span></div>
     <div class="stat"><b>${rows.length}</b><span>Resultados</span></div><div class="stat"><b>${S.cfg.miClub?pod:"—"}</b><span>Podios mi club</span></div></div>
     <section class="card"><h2>Torneos</h2><div class="list">${ks.map(k=>{const rs=T[k],r0=rs[0],m=rs.filter(isMine),p=[1,2,3].map(n=>m.filter(r=>r.lugar===n).length);
-      return `<div class="item"><div class="main"><div class="nm">${esc(r0.torneo||"Sin nombre")}</div><div class="small muted">${rs.length} resultados · ${uniq(rs.map(r=>r.club)).length} clubes${r0.piscina?" · "+esc(r0.piscina)+" m":""}</div></div>
-      ${S.cfg.miClub&&m.length?`<div class="row" style="gap:3px"><span class="medal m1">${p[0]}</span><span class="medal m2">${p[1]}</span><span class="medal m3">${p[2]}</span></div>`:""}<span class="date">${fmtD(r0.fecha)}</span></div>`}).join("")}</div></section>`+club;
+      const op=S.torOpen===k;return `<div class="item tor-it" data-tk="${esc(k)}" role="button" tabindex="0" aria-expanded="${op}"><div class="main"><div class="nm">${op?"▾":"▸"} ${esc(r0.torneo||"Sin nombre")}</div><div class="small muted">${rs.length} resultados · ${uniq(rs.map(r=>r.club)).length} clubes${r0.piscina?" · "+esc(r0.piscina)+" m":""}</div></div>
+      ${S.cfg.miClub&&m.length?`<div class="row" style="gap:3px"><span class="medal m1">${p[0]}</span><span class="medal m2">${p[1]}</span><span class="medal m3">${p[2]}</span></div>`:""}<span class="date">${fmtD(r0.fecha)}</span></div>${op?torTeamHTML(rs):""}`}).join("")}</div></section>`+club;
 }
-function bindTorneos(){if($("#saveclub"))$("#saveclub").onclick=async()=>{const v=$("#club").value.trim();S.cfg.miClub=v;await dbWrite(db=>db.doc("config/app").set(Object.assign({},S.cfg,{miClub:v})));render(true)}}
+function bindTorneos(){$$("[data-tk]").forEach(el=>{const go=()=>{S.torOpen=S.torOpen===el.dataset.tk?null:el.dataset.tk;render(true)};el.onclick=go;el.onkeydown=e=>{if(e.key==="Enter")go()}});if($("#saveclub"))$("#saveclub").onclick=async()=>{const v=$("#club").value.trim();S.cfg.miClub=v;await dbWrite(db=>db.doc("config/app").set(Object.assign({},S.cfg,{miClub:v})));render(true)}}
 /* ---------- RANKINGS nacional / internacional ---------- */
 const ambitoOf=t=>t.ambito||(/sudamericano|mundial|panamericano|world|pan ?am/i.test(t.torneo||"")?"internacional":"nacional");
 function periodOk(r,per){
@@ -1209,7 +1310,7 @@ function editorHTML(){
     <label>Notas de la sesión<textarea id="e-notas">${esc(e.notas)}</textarea></label>
     <div class="row"><button class="btn" id="e-save">Guardar sesión</button><button class="btn ghost" id="e-copy">Copiar para WhatsApp</button>${e.id?'<span class="grow"></span><button class="btn ghost sm" id="e-del">Eliminar</button>':""}<span id="e-msg" class="small"></span></div>
   </section>
-  <section class="card"><div class="head"><h2>Tiempos meta</h2><span class="small muted">según PB de cada nadador</span></div><div class="out" id="e-out"></div></section>`;
+  <section class="card"><div class="head"><h2>Metas y cumplimiento</h2><span class="small muted">meta según PB · real después de la sesión</span></div><div class="out" id="e-out"></div></section>`;
 }
 function targetsFor(s,e){
   return e.nads.map(id=>nadById(id)).filter(Boolean).map(n=>{
@@ -1221,17 +1322,39 @@ function targetsFor(s,e){
     return {n,ref,rg,rest:sal!=null?sal-rg[1]:null};
   });
 }
+function enMetaCell(st){
+  if(!st)return `<span class="muted small">—</span>`;
+  if(!st.rg)return `<span class="small">${fmtT(st.avg,1)} prom.</span>`;
+  const ok=st.inR===st.ts.length,cls=ok?"up":st.inR/st.ts.length>=0.5?"":"down";
+  const fast=st.ts.filter(t=>t<st.rg[0]-(st.rg[0]===st.rg[1]?st.rg[0]*0.02:0.05)).length,slow=st.ts.length-st.inR-fast;
+  return `<b class="${cls}">${st.inR}/${st.ts.length}</b><div class="small muted">prom. ${fmtT(st.avg,1)}${slow?` · ${slow} lenta${slow>1?"s":""}`:""}${fast?` · ${fast} rápida${fast>1?"s":""}`:""}</div>`;
+}
+function edStat(s,e,nid){const x=targetsFor(s,e).find(y=>y.n.id===nid);const txt=(s.reales||{})[nid]||"";return statsOf(txt,x&&x.ref?x.ref.t:null,s.zona,parseT(s.meta))}
+function edResumen(){
+  const e=S.ed,box=$("#e-cump");if(!box)return;
+  let tot=0,ok=0;const byN={};
+  e.series.forEach(s=>e.nads.forEach(nid=>{const st=edStat(s,e,nid);if(!st||!st.rg)return;tot+=st.ts.length;ok+=st.inR;const b=byN[nid]=byN[nid]||[0,0];b[0]+=st.inR;b[1]+=st.ts.length}));
+  if(!tot){box.innerHTML=`<div class="note">Después de la sesión, escribe los tiempos reales de cada nadador (separados por /) para ver quién cumplió la meta.</div>`;return}
+  const ns=Object.entries(byN).map(([id,[a,b]])=>({n:nadById(id),p:a/b,a,b})).filter(x=>x.n).sort((x,y)=>y.p-x.p);
+  box.innerHTML=`<div class="kpi"><div><b class="${ok/tot>=0.8?"up":ok/tot<0.5?"down":""}">${Math.round(ok/tot*100)}%</b><span>Reps en meta</span></div><div><b>${ok}/${tot}</b><span>Reps registradas</span></div>
+    <div><b class="up">${ns.filter(x=>x.p===1).length}</b><span>Cumplieron todo</span></div><div><b class="down">${ns.filter(x=>x.p<0.5).length}</b><span>Bajo 50%</span></div></div>
+    <div class="pas-diag">${ns.map(x=>`<span class="${x.p===1?"up":x.p<0.5?"down":""}"><b>${esc(x.n.nombre.split(" ")[0])}</b> ${x.a}/${x.b}</span>`).join(" · ")}</div>`;
+}
 function edOut(){
   const e=S.ed,o=$("#e-out");if(!o)return;
   $("#e-vol").textContent="Volumen "+volOf(e).toLocaleString("es-CL")+" m";
   if(!e.nads.length){o.innerHTML=`<div class="muted small">Selecciona nadadores para ver sus tiempos meta.</div>`;return}
-  o.innerHTML=e.series.map(s=>{
+  o.innerHTML=`<div id="e-cump"></div>`+e.series.map((s,si)=>{
     const t=targetsFor(s,e);
     return `<div><h3>${esc(s.reps)}x${esc(s.dist)} ${esc(s.estilo)} ${zb(s.zona)} <span class="small muted" style="font-family:var(--f-body)">${s.salida?"@ "+esc(s.salida):""}</span></h3>
-    <div class="tablewrap"><table><thead><tr><th>Nadador</th><th class="num">Meta por rep</th><th class="num">Descanso</th><th>Referencia</th></tr></thead><tbody>
-    ${t.map(x=>`<tr><td class="nm">${esc(x.n.nombre)}</td>${x.none?`<td class="num muted" colspan="3" style="text-align:left">${esc(x.none)}</td>`:
-      `<td class="num time">${x.rg[0]===x.rg[1]?fmtT(x.rg[0]):fmtT(x.rg[0],1)+" – "+fmtT(x.rg[1],1)}</td><td class="num small ${x.rest!=null&&x.rest<5?"down":""}">${x.rest!=null?"~"+Math.max(0,Math.round(x.rest))+" s":"—"}</td>
-      <td class="small muted">${parseT(s.meta)!=null?"Meta fija"+(x.ref?" · PB "+x.ref.d+" "+esc(s.estilo)+" "+fmtT(x.ref.r.seg):""):`PB ${x.ref.d} ${esc(s.estilo)} ${fmtT(x.ref.r.seg)} (${esc(x.ref.r.piscina)}m)${x.ref.exact?"":" · ajustado"}`}</td>`}</tr>`).join("")}</tbody></table></div></div>`}).join("");
+    <div class="tablewrap"><table class="ed-t"><thead><tr><th>Nadador</th><th class="num">Meta por rep</th><th class="num">Descanso</th><th>Tiempos reales</th><th class="num">En meta</th></tr></thead><tbody>
+    ${t.map(x=>{const ref=x.none?"":parseT(s.meta)!=null?"Meta fija"+(x.ref?" · PB "+x.ref.d+" "+esc(s.estilo)+" "+fmtT(x.ref.r.seg):""):`PB ${x.ref.d} ${esc(s.estilo)} ${fmtT(x.ref.r.seg)} (${esc(x.ref.r.piscina)}m)${x.ref.exact?"":" · ajustado"}`;
+      const v=(s.reales||{})[x.n.id]||"";
+      return `<tr><td class="nm">${esc(x.n.nombre)}<div class="small muted">${x.none?esc(x.none):ref}</div></td>${x.none?`<td class="num muted">—</td><td></td>`:
+      `<td class="num time">${x.rg[0]===x.rg[1]?fmtT(x.rg[0]):fmtT(x.rg[0],1)+" – "+fmtT(x.rg[1],1)}</td><td class="num small ${x.rest!=null&&x.rest<5?"down":""}">${x.rest!=null?"~"+Math.max(0,Math.round(x.rest))+" s":"—"}</td>`}
+      <td><input data-er="${si}|${esc(x.n.id)}" value="${esc(v)}" placeholder="${Array.from({length:Math.min(3,+s.reps||1)},()=>x.rg?fmtT(x.rg[1],0):"1:20").join("/")}…" inputmode="decimal" style="font-family:var(--f-mono);min-width:150px"></td>
+      <td class="num" id="em-${si}-${esc(x.n.id)}">${enMetaCell(edStat(s,e,x.n.id))}</td></tr>`}).join("")}</tbody></table></div></div>`}).join("")+`<div class="row"><button class="btn" data-save2="1">Guardar sesión y tiempos</button><span class="small muted">Los tiempos también aparecen en Evolución.</span></div>`;
+  edResumen();
 }
 function sessionText(e){
   const lines=[`*${e.titulo||"Entrenamiento"}* · ${fmtD(e.fecha)} · ${e.piscina} m`];
@@ -1254,6 +1377,9 @@ function bindEditor(){
     if(ok){S.ev=null;$("#e-msg").innerHTML=`<span class="up">Sesión guardada</span>`}};
   if($("#e-del"))$("#e-del").onclick=async ev=>{const b=ev.target;if(b.dataset.c!=="1"){b.dataset.c="1";b.textContent="¿Eliminar sesión?";b.className="btn danger sm";return}
     if(await dbWrite(db=>db.collection("sesiones").doc(e.id).delete(),$("#e-msg"))){S.ed=null;render(true)}};
+  $("#e-out").addEventListener("click",ev=>{if(ev.target.dataset&&ev.target.dataset.save2){$("#e-save").click();ev.target.textContent="Guardado ✓";setTimeout(()=>{ev.target.textContent="Guardar sesión y tiempos"},1600)}});
+  $("#e-out").addEventListener("input",ev=>{const i=ev.target;if(!i.dataset||!i.dataset.er)return;const [si,nid]=i.dataset.er.split("|"),se=e.series[+si];
+    se.reales=Object.assign({},se.reales,{[nid]:i.value});const c=document.getElementById("em-"+si+"-"+nid);if(c)c.innerHTML=enMetaCell(edStat(se,e,nid));edResumen()});
   edOut();
 }
 
@@ -1376,9 +1502,9 @@ R.evolucion={html(){
         <td class="num time">${fmtT(p.st.avg,1)}</td><td class="num">${p.st.pctAvg!=null?p.st.pctAvg.toFixed(0)+"%":"—"}</td><td class="num ${p.st.drop>0.5?"down":p.st.drop<-0.5?"up":""}">${p.st.drop>0?"+":""}${p.st.drop.toFixed(1)}</td></tr>`).join("")}</tbody></table></div>
       <div class="note">% de velocidad del PB = tiempo de referencia ÷ tiempo nadado. Caída = última repetición menos la primera (rojo = más lento al final).</div>`
     :`<div class="muted small">Aún no hay tiempos reales registrados.</div>`}</section>`;
-  return reg+evo;
+  return infSesHTML(s)+reg+evo;
 },bind(){
-  if(!S.ev)return;const ev=S.ev;
+  if(!S.ev)return;const ev=S.ev;bindInfSes(S.ses.find(y=>y.id===ev.sid));
   $("#ev-sel").onchange=e=>{const x=S.ses.find(y=>y.id===e.target.value);S.ev={sid:x.id,series:JSON.parse(JSON.stringify(x.series||[]))};render(true)};
   $$("[data-rt]").forEach(i=>i.addEventListener("input",()=>{const [si,nid]=i.dataset.rt.split("|");const se=ev.series[+si];se.reales=Object.assign({},se.reales,{[nid]:i.value});
     const s=S.ses.find(y=>y.id===ev.sid),n=nadById(nid),ref=ESTILOS.includes(se.estilo)?refPB(n.nombre,se.estilo,+se.dist,s.piscina):null;
@@ -1387,6 +1513,273 @@ R.evolucion={html(){
     if(await dbWrite(db=>db.collection("sesiones").doc(ev.sid).update({series}),$("#ev-msg")))$("#ev-msg").innerHTML=`<span class="up">Tiempos guardados</span>`};
   if($("#evf-n")){$("#evf-n").onchange=e=>{S.evf.nid=e.target.value;render(true)};$("#evf-e").onchange=e=>{S.evf.estilo=e.target.value;S.evf.dist="";render(true)};$("#evf-d").onchange=e=>{S.evf.dist=e.target.value;render(true)}}
 }};
+
+/* ================= INFORMES DE SESIÓN (Claude en el chat → pegar aquí) ================= */
+const infId=(sid,nid)=>sid+"_"+nid;
+const infOf=(sid,nid)=>(S.inf||[]).find(i=>i.id===infId(sid,nid));
+function infDatos(s,n){
+  const e=edadMaster(n.nacimiento),pb25=pbsOf(n.nombre,"25"),pb50=pbsOf(n.nombre,"50");
+  const pbs=uniq([...Object.keys(pb25),...Object.keys(pb50)]).sort((a,b)=>ordPrueba(a)-ordPrueba(b)).map(p=>({prueba:p,pb25:pb25[p]?fmtT(pb25[p].seg)+" ("+fmtD(pb25[p].fecha)+")":null,pb50:pb50[p]?fmtT(pb50[p].seg)+" ("+fmtD(pb50[p].fecha)+")":null}));
+  const serie=(se,ses)=>{const ref=ESTILOS.includes(se.estilo)?refPB(n.nombre,se.estilo,+se.dist,ses.piscina):null,st=statsOf((se.reales||{})[n.id],ref&&ref.t,se.zona,parseT(se.meta));
+    return {serie:`${se.reps}x${se.dist} ${se.estilo}${se.salida?" @"+se.salida:""}`,zona:se.zona,detalle:se.desc||"",
+      meta_por_rep:st&&st.rg?(st.rg[0]===st.rg[1]?fmtT(st.rg[0]):fmtT(st.rg[0],1)+"–"+fmtT(st.rg[1],1)):null,
+      referencia_pb:ref?`${fmtT(ref.r.seg)} en ${ref.r.prueba} piscina ${ref.r.piscina}m${ref.exact?"":` (ajustado a ${se.dist} m: ${fmtT(ref.t)})`}`:null,
+      tiempos_reales:st?st.ts.map(t=>fmtT(t)):[],
+      calculado:st?{promedio:fmtT(st.avg),mejor:fmtT(st.best),peor:fmtT(st.worst),pct_pb_promedio:st.pctAvg?+st.pctAvg.toFixed(1):null,pct_pb_mejor:st.pctBest?+st.pctBest.toFixed(1):null,ultima_menos_primera_s:+st.drop.toFixed(2),reps_en_meta:st.rg?`${st.inR}/${st.ts.length}`:null}:null}};
+  const prev=S.ses.filter(x=>x.id!==s.id&&(x.fecha||"")<=(s.fecha||"")&&(x.series||[]).some(se=>(se.reales||{})[n.id])).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).slice(0,5)
+    .map(x=>({fecha:x.fecha,titulo:x.titulo||"",series:(x.series||[]).filter(se=>(se.reales||{})[n.id]).map(se=>serie(se,x))}));
+  const comp=s.nads.filter(id=>id!==n.id).map(nadById).filter(Boolean).map(m=>({nadador:m.nombre,edad:edadMaster(m.nacimiento),series:(s.series||[]).filter(se=>(se.reales||{})[m.id]).map(se=>`${se.reps}x${se.dist} ${se.estilo}: ${se.reales[m.id]}`)})).filter(x=>x.series.length);
+  const ant=(S.inf||[]).filter(i=>i.nadador===n.id&&i.sesion!==s.id&&(i.fecha||"")<=(s.fecha||"")).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""))[0];
+  const rs=s.resumen||{},sens=(rs.sens||{})[n.id];
+  const metas=Object.entries(n.metas||{}).map(([k,m])=>({prueba:k.split("|")[0],piscina:(k.split("|")[1]||"")+" m",meta:m&&(m.tiempo||m.t)||null,parciales_meta:m&&m.sp||null}));
+  return {nadador:{nombre:n.nombre,edad:e,categoria:catDe(e),rama:sx(n.sexo),pruebas_principales:n.pruebasFav||"",objetivos_temporada:n.objetivos||"",metas_de_tiempo:metas,notas_tecnicas:n.notas||""},
+    sesion:{fecha:fmtD(s.fecha),piscina:s.piscina+" m",titulo:s.titulo||"",notas_coach:s.notas||"",sensaciones_nadador:sens||null,rpe_sesion:rs.rpe||null},
+    series:(s.series||[]).map(se=>serie(se,s)),
+    zonas:zonas().map(z=>`${z.z} ${z.n}: ${z.min}–${z.max}% vel. PB`).concat(["RP ritmo de carrera: 100%"]),
+    mejores_tiempos:pbs,sesiones_anteriores:prev,
+    companeros_misma_sesion:comp,
+    informe_anterior:ant&&ant.data?{fecha:ant.fecha,instruccion:ant.data.instruccion||"",proyecciones:ant.data.proyecciones||null}:null};
+}
+function infPrompt(s,n,texto){
+  return `Eres el analista de rendimiento de SplitCoach, la app de un entrenador de natación Master en Chile. Escribe el informe de la sesión de entrenamiento de ${n.nombre} con los datos de abajo.
+
+QUÉ DEBE TENER EL INFORME
+- Cada serie puede ser de un estilo distinto: usa el estilo escrito en esa línea (acepta abreviaturas en español e inglés: lib/free/fr, esp/back/bk, pe/pecho/breast/br, mar/mari/fly, CI/comb/IM; FRIM o "IM frim" = combinado SIN mariposa: libre en lugar de mariposa (libre–espalda–pecho–libre). El FRIM no tiene PB oficial: compáralo con su mejor FRIM anterior si existe, o con una referencia estimada (PB de IM sin el costo de la mariposa, o suma de sus PB por estilo) marcada "(est.)"; y tipos de trabajo: kick = patada, pull = pull/tracción, drill = técnica, swim = nado completo, scull = remadas. Patada, pull y drill NO se comparan con el PB de nado completo: analízalos por consistencia y progresión) y compárala con el PB de ESE estilo. Si una línea no dice estilo, asume el de la línea anterior; si es la primera y el nadador no tiene un solo estilo en "pruebas_principales" o "notas_tecnicas", pregunta.
+- Todo medido contra SU referencia: % del PB de cada serie/rep (PB de la misma prueba y piscina; si es otra distancia, ajústalo y dilo), la ZONA en que cayó cada serie según "zonas", y la distancia a sus METAS ("objetivos_temporada" y "metas_de_tiempo"): cuánto le falta y si la sesión acerca o no a la meta.
+- FODA muy breve: una frase corta por cuadrante (máx. 15 palabras cada una).
+- 1 o 2 gráficos con números reales de la sesión: barras (ej. % PB promedio por serie, con referencia 100) o línea (ej. tiempos rep a rep de un set para ver la curva/caída, con referencia en la meta por rep).
+
+ESTILO
+- Español de Chile, voz de entrenador experto, directo y concreto. Analiza como un coach: patrones intra-set (split negativo, caída, rep más lenta y por qué), consistencia, % del PB y zona, transferencia a sus pruebas de competencia, proyecciones razonadas.
+- Si viene "resumen_escrito_por_coach", es la descripción del entreno de hoy (series, tiempos y sensaciones) escrita por el entrenador: úsala como fuente principal y calcula tú los % del PB con "mejores_tiempos" y "zonas".
+- Si falta un dato clave para interpretar la sesión (por ejemplo el estilo, o un parcial que no cuadra con el total), responde SOLO con hasta 3 preguntas breves y numeradas, sin JSON. Cuando tengas lo necesario, responde SOLO con el bloque json. Si el entrenador pide cambios al informe, devuelve el json completo corregido.
+- Usa SOLO los tiempos de los datos. Si estimas algo (un PB que falta, un parcial), márcalo con "~" o "(est.)". No inventes tiempos.
+- Estrellas: 3 = excelente/hallazgo principal, 2 = bueno, 1 = aceptable.
+- Si hay compañeros en la misma sesión, puedes compararlo en una nota breve. Si hay informe anterior, da continuidad a sus proyecciones e instrucción.
+
+RESPUESTA: devuelve SOLO un bloque \`\`\`json con este esquema (sin texto fuera del bloque):
+{
+ "titulo": "estructura de la sesión en una línea, ej: 4×(2×25 esp+pecho) · 4×50 espalda · All out aletas",
+ "kpis": [ {"label":"50m espalda mejor","valor":"47s","estrellas":3,"sub":"R3 y R4 · split neg."} ],   // exactamente 3
+ "bloques": [ {
+   "titulo": "4×50 espalda @1:10 — split negativo",
+   "estrellas": 3,                      // 0-3
+   "destacado": false,                  // true solo para un bloque especial (test, all out)
+   "grupos": [ {"subtitulo":"opcional","reps":[ {"lbl":"R1","valor":"48s","sub":"arranque","tono":"base"} ]} ],
+   "tablas": [ {"titulo":"4×50 espalda — análisis","filas":[ {"k":"Mejor (R3–R4)","v":"47s ★★★","tono":"top"} ]} ],
+   "barras": [ {"lbl":"R3–R4 hoy (47s)","pct":82.6,"txt":"82.6% PB · Z4 ★★★","tono":"top"} ],   // opcional
+   "notas": [ {"tipo":"3","titulo":"R3=R4=47s — patrón de activación.","texto":"explicación de 2-4 frases"} ]
+ } ],
+ "proyecciones": {"titulo":"Proyecciones actualizadas","filas":[ {"k":"100m espalda","v":"1:23–1:24","sub":"vs PB 1:30.50"} ]},   // o null
+ "graficos": [ {"tipo":"barras","titulo":"% del PB por serie","etiquetas":["4×25","4×50","4×75"],"series":[{"nombre":"% PB prom.","valores":[88.5,84.2,82.0]}],"unidad":"%","referencia":100,"referencia_lbl":"PB"},
+               {"tipo":"linea","titulo":"4×50 rep a rep","etiquetas":["R1","R2","R3","R4"],"series":[{"nombre":"Tiempo","valores":[54.5,55.5,55.6,56.1]}],"unidad":"s","referencia":55.0,"referencia_lbl":"meta Z4"} ],   // 1 o 2; valores numéricos (segundos o %)
+ "foda": {"fortalezas":"...","oportunidades":"...","debilidades":"...","amenazas":"..."},
+ "metas": [ {"meta":"100 pecho 1:45.00 (Temuco)","hoy":"1:50.92","falta":"−5.92 s","lectura":"frase corta"} ],   // [] si no tiene metas
+ "instruccion": "una instrucción concreta para la próxima competencia o sesión, ej: L1 en 43s — no en 38s",
+ "feedback": [ {"tipo":"3","titulo":"33.71s aletas","texto":"mensaje directo al nadador, 2-4 frases"} ]   // 2 a 4 puntos
+}
+Valores de "tono": "top" (lo mejor), "good" (bueno), "base" (normal), "warn" (alerta), "bad" (referencia PB o malo).
+Valores de "tipo" en notas y feedback: "3", "2", "1" (estrellas), "idea" (💡 interpretación) o "warn" (⚠ alerta).
+
+DATOS DE LA SESIÓN
+${JSON.stringify(Object.assign(infDatos(s,n),texto&&texto.trim()?{resumen_escrito_por_coach:texto.trim()}:{}),null,1)}`;
+}
+function infParse(txt){
+  const t=String(txt||""),m=t.match(/```(?:json)?\s*([\s\S]*?)```/),raw=m?m[1]:t.slice(t.indexOf("{"),t.lastIndexOf("}")+1);
+  let d;try{d=JSON.parse(raw)}catch(e){throw new Error("No reconocí el JSON. Copia la respuesta completa de Claude, incluido el bloque ```json.")}
+  if(!d||!Array.isArray(d.bloques)||!d.bloques.length)throw new Error("La respuesta no trae los bloques del informe.");
+  d.kpis=Array.isArray(d.kpis)?d.kpis.slice(0,3):[];d.feedback=Array.isArray(d.feedback)?d.feedback:[];
+  return d;
+}
+const stars=k=>(k=Math.max(0,Math.min(3,+k||0)))?"★".repeat(k):"";
+const TONOS=["top","good","base","warn","bad"],tono=t=>TONOS.includes(t)?t:"base";
+function infNota(x){const ic=x.tipo==="idea"?"💡":x.tipo==="warn"?"⚠":stars(x.tipo)||"•",cls=x.tipo==="idea"?"idea":x.tipo==="warn"?"warn":"ok";
+  return `<div class="inf-nota ${cls}"><span class="inf-ic">${ic}</span><div><b>${esc(x.titulo||"")}</b> ${esc(x.texto||"")}</div></div>`}
+function infTabla(t){return `<div class="inf-tab">${t.titulo?`<div class="inf-tt">${esc(t.titulo)}</div>`:""}${(t.filas||[]).map(f=>`<div class="inf-fr"><span>${esc(f.k)}${f.sub?`<small>${esc(f.sub)}</small>`:""}</span><b class="t-${tono(f.tono)}">${esc(f.v)}</b></div>`).join("")}</div>`}
+const GCOL=["#4DB6BF","#E2B743","#B58AE6","#5CCB97","#FF7A6B"];
+function infChart(g){
+  const et=(g.etiquetas||[]).map(String),ser=(g.series||[]).filter(s=>Array.isArray(s.valores)).slice(0,4);if(!et.length||!ser.length)return "";
+  const vals=ser.flatMap(s=>s.valores.map(Number).filter(isFinite)).concat(g.referencia!=null&&isFinite(+g.referencia)?[+g.referencia]:[]);if(!vals.length)return "";
+  const W=360,H=200,P={l:40,r:10,t:16,b:34},iw=W-P.l-P.r,ih=H-P.t-P.b,u=g.unidad||"";
+  let lo=Math.min(...vals),hi=Math.max(...vals);const pad=Math.max((hi-lo)*.15,hi*.02||1);
+  lo=g.tipo==="barras"&&!/%/.test(u)&&lo>0&&lo<hi*.5?0:lo-pad;hi=hi+pad;if(/%/.test(u)){lo=Math.max(0,Math.floor(lo/5)*5);hi=Math.ceil(hi/5)*5}
+  const Y=v=>P.t+(1-(v-lo)/(hi-lo))*ih,fmt=v=>/%/.test(u)?Math.round(v)+"%":u==="s"?(v>=60?fmtT(v,1):(+v).toFixed(v<100?1:0)):(+v).toFixed(1);
+  const ticks=[0,1,2,3].map(k=>lo+(hi-lo)*k/3);
+  let out=ticks.map(v=>`<line x1="${P.l}" x2="${W-P.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="${P.l-5}" y="${Y(v)+3.5}" text-anchor="end" font-size="9.5" fill="var(--muted)">${fmt(v)}</text>`).join("");
+  const n=et.length,bw=iw/n;
+  if(g.tipo==="barras"){const k=ser.length,w=Math.min(26,bw*.8/k);
+    ser.forEach((s,si)=>s.valores.forEach((v,i)=>{v=+v;if(!isFinite(v))return;const x=P.l+bw*i+bw/2-w*k/2+w*si,y=Y(v),b=Y(Math.max(lo,0>lo?0:lo));
+      out+=`<rect x="${x}" y="${Math.min(y,b)}" width="${w-2}" height="${Math.max(1,Math.abs(b-y))}" rx="3" fill="${GCOL[si]}"/>${k<=2&&n<=8?`<text x="${x+(w-2)/2}" y="${y-4}" text-anchor="middle" font-size="9" fill="var(--ink)">${/%/.test(u)?(+v).toFixed(1)+"%":fmt(v)}</text>`:""}`}))}
+  else ser.forEach((s,si)=>{const X=i=>P.l+(n===1?iw/2:i*iw/(n-1));const pts=s.valores.map((v,i)=>[X(i),Y(+v),+v]).filter(p=>isFinite(p[2]));
+    out+=`<path d="${pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ")}" fill="none" stroke="${GCOL[si]}" stroke-width="2.4" stroke-linejoin="round"/>`+pts.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="${GCOL[si]}"/>${ser.length<=2&&n<=10?`<text x="${p[0]}" y="${p[1]-7}" text-anchor="middle" font-size="9" fill="var(--ink)">${fmt(p[2])}</text>`:""}`).join("")});
+  if(g.referencia!=null&&isFinite(+g.referencia))out+=`<line x1="${P.l}" x2="${W-P.r}" y1="${Y(+g.referencia)}" y2="${Y(+g.referencia)}" stroke="var(--bad)" stroke-dasharray="5 4"/><text x="${W-P.r}" y="${Y(+g.referencia)-4}" text-anchor="end" font-size="9.5" fill="var(--bad)">${esc(g.referencia_lbl||fmt(+g.referencia))}</text>`;
+  const xl=et.map((e,i)=>`<text x="${g.tipo==="barras"?P.l+bw*i+bw/2:P.l+(n===1?iw/2:i*iw/(n-1))}" y="${H-P.b+14}" text-anchor="middle" font-size="9.5" fill="var(--muted)">${esc(e.length>10?e.slice(0,9)+"…":e)}</text>`).join("");
+  return `<div class="inf-graf">${g.titulo?`<div class="inf-tt">${esc(g.titulo)}</div>`:""}<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(g.titulo||"Gráfico")}">${out}${xl}</svg>
+    ${ser.length>1||ser[0].nombre?`<div class="legend">${ser.map((s,i)=>`<span><i style="background:${GCOL[i]}"></i>${esc(s.nombre||"")}</span>`).join("")}</div>`:""}${g.nota?`<div class="small muted">${esc(g.nota)}</div>`:""}</div>`;
+}
+function infFoda(f){if(!f)return "";const q=[["F","Fortalezas","fortalezas","f"],["O","Oportunidades","oportunidades","o"],["D","Debilidades","debilidades","d"],["A","Amenazas","amenazas","a"]].filter(x=>f[x[2]]);if(!q.length)return "";
+  return `<div class="inf-foda">${q.map(([k,l,key,c])=>`<div class="fd-${c}"><b>${k}</b><span><small>${l}</small>${esc(f[key])}</span></div>`).join("")}</div>`}
+
+function infHTML(d,meta){
+  const hero=`<div class="inf-hero"><div class="inf-eye">${esc(meta.nombre)}${meta.edad!=null?` · ${meta.edad} años`:""} · Sesión ${fmtD(meta.fecha)}</div><h2>${esc(d.titulo||meta.titulo||"Sesión")}</h2>
+    <div class="inf-kpis">${d.kpis.map(k=>`<div><span>${esc(k.label)}</span><b>${esc(k.valor)} ${stars(k.estrellas)}</b><small>${esc(k.sub||"")}</small></div>`).join("")}</div></div>`;
+  const bl=d.bloques.map(b=>`<div class="inf-sec">${esc(b.titulo||"")} ${stars(b.estrellas)}</div><div class="inf-card${b.destacado?" dest":""}">
+    ${(b.grupos||[]).map(g=>`${g.subtitulo?`<div class="inf-sub">${esc(g.subtitulo)}</div>`:""}<div class="inf-reps">${(g.reps||[]).map(r=>`<div class="r-${tono(r.tono)}"><span>${esc(r.lbl||"")}</span><b>${esc(r.valor)}</b><small>${esc(r.sub||"")}</small></div>`).join("")}</div>`).join("")}
+    ${(b.tablas||[]).map(infTabla).join("")}
+    ${(b.barras||[]).length?`<div class="inf-bars">${b.barras.map(x=>`<div class="inf-bar"><span>${esc(x.lbl)}</span><div><i class="b-${tono(x.tono)}" style="width:${Math.max(4,Math.min(100,+x.pct||0))}%">${esc(x.txt||"")}</i></div></div>`).join("")}</div>`:""}
+    ${(b.notas||[]).map(infNota).join("")}</div>`).join("");
+  const gr=(d.graficos||[]).slice(0,3).map(infChart).filter(Boolean).join("");
+  const grH=gr?`<div class="inf-sec">Gráficos de la sesión</div><div class="inf-card">${gr}</div>`:"";
+  const mt=Array.isArray(d.metas)&&d.metas.length?`<div class="inf-sec">Metas</div><div class="inf-card"><div class="inf-tab">${d.metas.map(m=>`<div class="inf-fr"><span>${esc(m.meta||"")}${m.lectura?`<small>${esc(m.lectura)}</small>`:""}</span><b>${esc(m.hoy||"")}${m.falta?` <span class="t-warn">${esc(m.falta)}</span>`:""}</b></div>`).join("")}</div></div>`:"";
+  const fo=infFoda(d.foda);const foH=fo?`<div class="inf-sec">FODA</div>${fo}`:"";
+  const pr=d.proyecciones&&(d.proyecciones.filas||[]).length?`<div class="inf-sec">${esc(d.proyecciones.titulo||"Proyecciones")}</div><div class="inf-card">${infTabla({filas:d.proyecciones.filas})}</div>`:"";
+  const ins=d.instruccion?`<div class="inf-ins">Instrucción: <b>${esc(d.instruccion)}</b></div>`:"";
+  const fb=d.feedback.length?`<div class="inf-sec">Feedback · ${esc(meta.nombre.split(" ")[0])}</div><div class="inf-card">${d.feedback.map(infNota).join("")}</div>`:"";
+  return `<div class="inf">${hero}${grH}${bl}${mt}${pr}${foH}${ins}${fb}</div>`;
+}
+function infSesHTML(s){
+  const nads=(s.nads||[]).map(nadById).filter(Boolean);if(!nads.length)return "";
+  return `<section class="card"><div class="head"><h2>Informes de la sesión</h2><span class="small muted">${fmtD(s.fecha)} · ${esc(s.titulo||"Sesión")}</span></div>
+    <div class="note">1) Anota los tiempos reales. 2) "Copiar para Claude" y pégalo en un chat con Claude. 3) Copia su respuesta completa y pégala en "Pegar informe".</div>
+    <div class="list">${nads.map(n=>{const i=infOf(s.id,n.id),con=(s.series||[]).some(se=>(se.reales||{})[n.id]);
+      return `<div class="item" style="flex-wrap:wrap"><div class="main"><div class="nm">${esc(n.nombre)}</div><div class="small ${i?"up":"muted"}">${i?"Informe guardado · visible para el nadador":con?"Sin informe":"Sin tiempos reales todavía"}</div></div>
+        <button class="btn ghost sm" data-icp="${esc(n.id)}">Copiar para Claude</button><button class="btn ghost sm" data-ipg="${esc(n.id)}">${i?"Reemplazar":"Pegar informe"}</button>${i?`<a class="btn sm" href="#inf-${encodeURIComponent(i.id)}">Ver</a>`:""}
+        <div id="ipg-${esc(n.id)}" hidden style="flex-basis:100%;display:grid;gap:8px"><textarea rows="6" placeholder="Pega aquí la respuesta completa de Claude (el bloque json)"></textarea><div class="row"><button class="btn sm" data-isv="${esc(n.id)}">Guardar informe</button><span class="small" id="ims-${esc(n.id)}"></span></div></div></div>`}).join("")}</div></section>`;
+}
+function bindInfSes(s){
+  $$("[data-icp]").forEach(b=>b.onclick=()=>{const n=nadById(b.dataset.icp);if(n)copyText(infPrompt(s,n),b)});
+  $$("[data-ipg]").forEach(b=>b.onclick=()=>{const box=document.getElementById("ipg-"+b.dataset.ipg);box.hidden=!box.hidden;if(!box.hidden)box.querySelector("textarea").focus()});
+  $$("[data-isv]").forEach(b=>b.onclick=async()=>{const nid=b.dataset.isv,n=nadById(nid),box=document.getElementById("ipg-"+nid),m=document.getElementById("ims-"+nid);
+    let d;try{d=infParse(box.querySelector("textarea").value)}catch(e){m.innerHTML=`<span class="down">${esc(e.message)}</span>`;return}
+    const doc={sesion:s.id,nadador:nid,nombre:n.nombre,fecha:s.fecha||"",titulo:s.titulo||"",data:d,act:Date.now()};
+    if(await dbWrite(db=>db.collection("informes").doc(infId(s.id,nid)).set(doc),m)){location.hash="#inf-"+encodeURIComponent(infId(s.id,nid))}});
+}
+/* informe desde la ficha del nadador: chat con Claude (API) o copiar/pegar */
+S.infDraft=S.infDraft||{};
+function infSesDia(n,fecha,pisc){
+  const real=S.ses.find(x=>x.fecha===fecha&&(x.nads||[]).includes(n.id));
+  return real||{id:"dia-"+fecha,fecha,piscina:pisc||"25",titulo:"",nads:[n.id],series:[],notas:""};
+}
+function infTryParse(t){try{return /```(?:json)?\s*\{/.test(t)||/^\s*\{/.test(t)?infParse(t):null}catch(_){return null}}
+function infFichaHTML(n){
+  const d=S.infDraft[n.id]=S.infDraft[n.id]||{fecha:today(),pisc:"25",txt:"",open:false,chat:[],busy:false,err:"",rep:null},s=infSesDia(n,d.fecha,d.pisc),i=infOf(s.id,n.id);
+  const chat=d.chat.map((m,k)=>k===0?`<div class="ia-msg me"><b>Entreno enviado</b><div>${esc(d.sent||"(series de Entrenos)")}</div></div>`:
+    m.role==="user"?`<div class="ia-msg me">${esc(m.content)}</div>`:infTryParse(m.content)?`<div class="ia-msg bot"><b>✓ Informe listo</b> — revísalo abajo.</div>`:`<div class="ia-msg bot">${esc(m.content).replace(/\n/g,"<br>")}</div>`).join("");
+  const iaOn=!!S.ia;
+  return `<section class="card"><div class="head"><h3>Informe de entrenamiento</h3>${i?`<a class="btn sm" href="#inf-${encodeURIComponent(i.id)}">Ver informe del ${fmtD(d.fecha)}</a>`:""}</div>
+    <div class="form three"><label>Fecha<input id="if-f" type="date" value="${esc(d.fecha)}"></label>
+      <label>Piscina<select id="if-p"><option value="25" ${d.pisc==="25"?"selected":""}>25 m</option><option value="50" ${d.pisc==="50"?"selected":""}>50 m</option></select></label></div>
+    ${s.series.length?`<div class="note">Hay una sesión de Entrenos ese día (${esc(s.titulo||"sin título")}); sus series y tiempos reales se incluyen solos.</div>`:""}
+    ${d.chat.length?"":`<label>Entreno de hoy (series, tiempos, sensaciones)<textarea id="if-t" rows="6" placeholder="100 pecho: 24.54/25.38/29.28 · 1:50.92&#10;4x25 @20'' desc: 23.90/24.50/25.50/25.50&#10;Sensaciones: se cansó al final">${esc(d.txt)}</textarea></label>`}
+    ${iaOn?`${d.chat.length?`<div class="ia-chat">${chat}${d.busy?`<div class="ia-msg bot muted">Claude está escribiendo…</div>`:""}</div>`:""}
+      ${d.err?`<div class="msg err">${esc(d.err)}</div>`:""}
+      ${d.chat.length?`<div class="row"><textarea id="if-say" rows="2" class="grow" placeholder="Responde o pide cambios: es pecho · más corto · enfócate en el pacing…" ${d.busy?"disabled":""}></textarea><button class="btn" id="if-send" ${d.busy?"disabled":""}>Enviar</button></div>
+        <div class="row"><button class="btn ghost sm" id="if-new">Empezar de nuevo</button></div>`
+      :`<div class="row"><button class="btn" id="if-go" ${d.busy?"disabled":""}>✨ Generar informe</button><span class="small muted">Claude puede hacerte preguntas antes de escribirlo.</span></div>`}`
+    :`<div class="note">La IA dentro de la app aún no está activada. Mientras tanto usa copiar y pegar:</div>`}
+    ${d.rep?`<div class="ia-prev">${infHTML(d.rep,{nombre:n.nombre,edad:edadMaster(n.nacimiento),fecha:d.fecha,titulo:s.titulo})}</div>
+      <div class="row"><button class="btn" id="if-pub">Guardar y publicar al nadador</button><span id="if-msg" class="small"></span></div>`:""}
+    <details ${iaOn?"":"open"}><summary class="small" style="cursor:pointer;color:var(--accent);font-weight:600">Sin IA: copiar y pegar en un chat de Claude</summary>
+      <div class="row" style="margin-top:8px"><button class="btn ghost sm" id="if-cp">1 · Copiar para Claude</button><button class="btn ghost sm" id="if-pg">2 · Pegar informe</button></div>
+      <div id="if-box" ${d.open?"":"hidden"} style="display:grid;gap:8px;margin-top:8px"><textarea id="if-r" rows="5" placeholder="Pega aquí la respuesta completa de Claude (el bloque json)"></textarea>
+        <div class="row"><button class="btn sm" id="if-load">Ver informe</button><span id="if-msg2" class="small"></span></div></div></details>
+    <div class="row" style="border-top:1px solid var(--line);padding-top:10px"><label class="btn ghost sm" style="cursor:pointer">📄 Subir informe en PDF<input id="if-pdf" type="file" accept="application/pdf,.pdf" hidden></label>
+      <span class="small muted">Se publica tal cual para el nadador, con la fecha de arriba.</span><span id="if-pmsg" class="small"></span></div></section>`;
+}
+function bindInfFicha(n){
+  const d=S.infDraft[n.id];if(!d||!$("#if-f"))return;
+  const rerender=()=>{if(location.hash==="#ficha-"+encodeURIComponent(n.id))render(true)};
+  $("#if-f").onchange=e=>{d.fecha=e.target.value||today();render(true)};
+  $("#if-p").onchange=e=>{d.pisc=e.target.value};
+  if($("#if-t"))$("#if-t").addEventListener("input",e=>{d.txt=e.target.value});
+  const hasData=()=>d.txt.trim()||infSesDia(n,d.fecha,d.pisc).series.length;
+  async function ask(){
+    d.busy=true;d.err="";rerender();
+    try{const t=await S.ia.chat(d.chat.map(m=>({role:m.role,content:m.content})));d.chat.push({role:"assistant",content:t});const r=infTryParse(t);if(r)d.rep=r}
+    catch(e){d.err=e.code==="no_ia"?"La función de IA no está instalada en Supabase todavía.":e.code==="sin_clave"?"Falta guardar la clave de Claude en Supabase (ANTHROPIC_API_KEY).":e.code==="solo_coach"?"Solo el entrenador puede generar informes.":"No se pudo generar: "+(e.message||e.code||e);
+      if(d.chat.length&&d.chat[d.chat.length-1].role==="user"&&d.chat.length===1)d.chat=[]}
+    d.busy=false;rerender();
+  }
+  if($("#if-go"))$("#if-go").onclick=()=>{if(!hasData()){d.err="Escribe primero el entreno.";render(true);return}
+    d.sent=d.txt.trim();d.rep=null;d.chat=[{role:"user",content:infPrompt(infSesDia(n,d.fecha,d.pisc),n,d.txt)}];ask()};
+  if($("#if-send"))$("#if-send").onclick=()=>{const t=$("#if-say").value.trim();if(!t)return;d.chat.push({role:"user",content:t});ask()};
+  if($("#if-new"))$("#if-new").onclick=()=>{d.chat=[];d.rep=null;d.err="";render(true)};
+  $("#if-cp").onclick=ev=>{if(!hasData()){ev.target.textContent="Escribe primero el entreno";setTimeout(()=>ev.target.textContent="1 · Copiar para Claude",1600);return}
+    copyText(infPrompt(infSesDia(n,d.fecha,d.pisc),n,d.txt),ev.target)};
+  $("#if-pg").onclick=()=>{d.open=true;$("#if-box").hidden=false;$("#if-r").focus()};
+  $("#if-load").onclick=()=>{try{d.rep=infParse($("#if-r").value);d.sent=d.txt;render(true)}catch(e){$("#if-msg2").innerHTML=`<span class="down">${esc(e.message)}</span>`}};
+  $("#if-pdf").onchange=async e=>{const f=e.target.files[0],m=$("#if-pmsg");if(!f)return;
+    if(!/pdf$/i.test(f.type)&&!/\.pdf$/i.test(f.name)){m.innerHTML=`<span class="down">Elige un archivo PDF.</span>`;return}
+    if(!S.assets){m.innerHTML=`<span class="down">No se pudo conectar el almacenamiento.</span>`;return}
+    m.textContent="Subiendo…";
+    try{const up=await S.assets.upload(f,{type:"application/pdf"}),s=infSesDia(n,d.fecha,d.pisc),id=infId(s.id,n.id);
+      const tit=f.name.replace(/\.pdf$/i,"").replace(/[_-]+/g," ").trim();
+      const doc={sesion:s.id,nadador:n.id,nombre:n.nombre,fecha:d.fecha,titulo:s.titulo||tit,pdf:up.id,data:null,act:Date.now()};
+      if(await dbWrite(db=>db.collection("informes").doc(id).set(doc),m)){location.hash="#inf-"+encodeURIComponent(id)}}
+    catch(err){m.innerHTML=`<span class="down">${err.code==="too_large"?"El PDF pesa más de 50 MB.":/mime|type/i.test(err.message||"")?"Supabase no acepta PDF en el almacenamiento: en Storage → media → Edit bucket, agrega application/pdf a los tipos permitidos.":"No se pudo subir: "+esc(err.message||err.code||err)}</span>`}
+    e.target.value=""};
+  if($("#if-pub"))$("#if-pub").onclick=async()=>{const m=$("#if-msg"),s=infSesDia(n,d.fecha,d.pisc),id=infId(s.id,n.id);
+    const doc={sesion:s.id,nadador:n.id,nombre:n.nombre,fecha:d.fecha,titulo:s.titulo||"",texto:d.sent||d.txt,data:d.rep,act:Date.now()};
+    if(await dbWrite(db=>db.collection("informes").doc(id).set(doc),m)){S.infDraft[n.id]=null;location.hash="#inf-"+encodeURIComponent(id)}};
+}
+
+function infListHTML(list,titulo){
+  if(!list.length)return "";
+  return `<section class="card"><h3>${titulo}</h3><div class="list">${list.slice().sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).map(i=>`<a class="item" href="#inf-${encodeURIComponent(i.id)}"><div class="main"><div class="nm">${i.pdf?"📄 ":""}${esc((i.data&&i.data.titulo)||i.titulo||"Sesión")}</div><div class="small muted">${esc((i.data&&i.data.instruccion)||(i.pdf?"Informe en PDF":""))}</div></div><span class="date">${fmtD(i.fecha)}</span></a>`).join("")}</div></section>`;
+}
+R.informe={html(){
+  const i=(S.mode==="nadador"?S.miInf||[]:S.inf||[]).find(x=>x.id===S.param);
+  const back=S.mode==="nadador"?`<a class="back" href="#misentrenos">← Mis entrenos</a>`:`<a class="back" href="#evolucion">← Evolución</a>`;
+  if(i&&i.pdf){const url=SC_BLOB+i.pdf;
+    return `${back}<section class="card"><div class="head"><div><h2>${esc(i.titulo||"Informe de entrenamiento")}</h2><div class="small muted">${fmtD(i.fecha)}</div></div><a class="btn sm" href="${esc(url)}" target="_blank" rel="noopener">Abrir PDF</a></div>
+      <object data="${esc(url)}#view=FitH" type="application/pdf" class="inf-pdf"><div class="note">Tu navegador no muestra el PDF aquí. Usa "Abrir PDF".</div></object></section>${S.mode==="nadador"?"":`<div class="row" style="margin-top:12px"><span class="grow"></span><button class="btn ghost sm" id="inf-del">Eliminar informe</button><span id="inf-msg" class="small"></span></div>`}`}
+  if(!i||!i.data)return back+emptyBox(loading()?"Cargando…":"Informe no encontrado","");
+  const n=S.mode==="nadador"?S.nad[0]:nadById(i.nadador);
+  const meta={nombre:(n&&n.nombre)||i.nombre||"",edad:n?edadMaster(n.nacimiento):null,fecha:i.fecha,titulo:i.titulo};
+  return `${back}${infHTML(i.data,meta)}${S.mode==="nadador"?"":`<div class="row" style="margin-top:12px"><span class="grow"></span><button class="btn ghost sm" id="inf-del">Eliminar informe</button><span id="inf-msg" class="small"></span></div>`}`;
+},bind(){
+  const b=$("#inf-del");if(!b)return;
+  b.onclick=async()=>{if(b.dataset.c!=="1"){b.dataset.c="1";b.textContent="¿Eliminar? El nadador deja de verlo";b.className="btn danger sm";return}
+    if(await dbWrite(db=>db.collection("informes").doc(S.param).delete(),$("#inf-msg")))location.hash="#evolucion"};
+}};
+
+/* ================= vistas del nadador: Mis torneos y Mis videos ================= */
+R.mistorneos={html(){
+  const n=S.nad[0];if(!n)return emptyBox(loading()?"Cargando…":"Tu ficha aún no está publicada","");
+  const rs=resOf(n.nombre).filter(r=>r.seg!=null&&r.torneo);
+  if(!rs.length)return `<section class="card"><h2>Mis torneos</h2><div class="muted small">Todavía no hay resultados de torneos cargados con tu nombre.</div></section>`;
+  const prevPB=r=>resOf(n.nombre).filter(x=>x.seg!=null&&x.prueba===r.prueba&&String(x.piscina)===String(r.piscina)&&(x.fecha||"")<(r.fecha||"")).reduce((m,x)=>m==null||x.seg<m?x.seg:m,null);
+  const groups={};rs.forEach(r=>{const k=(r.fecha||"")+"|"+r.torneo;(groups[k]=groups[k]||[]).push(r)});
+  const keys=Object.keys(groups).sort((a,b)=>b.localeCompare(a));
+  let pbs=0;const med=[0,0,0];
+  const cards=keys.map(k=>{const g=groups[k].slice().sort((a,b)=>ordPrueba(a.prueba)-ordPrueba(b.prueba)),[f,t]=[k.split("|")[0],k.slice(k.indexOf("|")+1)];
+    let gpb=0;
+    const filas=g.map(r=>{const pb=prevPB(r),d=pb==null?null:r.seg-pb;if(d!=null&&d<0){pbs++;gpb++}if(r.lugar>=1&&r.lugar<=3)med[r.lugar-1]++;
+      return `<tr><td><b>${esc(r.prueba)}</b><div class="small muted">${esc(r.piscina)} m</div></td><td class="num time">${fmtT(r.seg)}</td>
+        <td class="num">${r.lugar>=1&&r.lugar<=3?`<span class="medal m${r.lugar}">${r.lugar}</span>`:r.lugar?r.lugar+"°":"—"}</td>
+        <td class="num">${pb==null?`<span class="chip">1ª vez</span>`:d<0?`<span class="chip pas-pb">PB</span> ${difS(d)}`:difS(d)}</td></tr>`}).join("");
+    const gm=[1,2,3].map(x=>g.filter(r=>r.lugar===x).length);
+    return `<section class="card"><div class="head"><div><h3>${esc(t)}</h3><div class="small muted">${fmtD(f)} · ${g.length} prueba${g.length>1?"s":""}</div></div>
+      <div class="row" style="gap:6px">${gpb?`<span class="chip pas-pb">${gpb} PB</span>`:""}${gm.map((c,i)=>c?`<span class="medal m${i+1}" title="${["Oro","Plata","Bronce"][i]}">${c}</span>`:"").join("")}</div></div>
+      <div class="tablewrap"><table class="pas-t prog-t"><thead><tr><th>Prueba</th><th class="num">Tiempo</th><th class="num">Lugar</th><th class="num">vs PB previo</th></tr></thead><tbody>${filas}</tbody></table></div></section>`}).join("");
+  return `<section class="card"><h2>Mis torneos</h2>
+    <div class="kpi"><div><b>${keys.length}</b><span>Torneos</span></div><div><b>${rs.length}</b><span>Pruebas nadadas</span></div><div><b class="up">${pbs}</b><span>PB logrados</span></div><div><b>${med[0]} · ${med[1]} · ${med[2]}</b><span>Oro · Plata · Bronce</span></div></div>
+    <div class="note">vs PB previo: tu tiempo comparado con tu mejor marca anterior a ese torneo (misma prueba y piscina). Verde = mejoraste.</div></section>${cards}`;
+},bind(){}};
+R.misinformes={html(){
+  const l=S.miInf||[];
+  if(!l.length)return `<section class="card"><h2>Mis entrenos</h2><div class="muted small">Cuando tu entrenador publique el informe de una sesión, aparecerá aquí con tus tiempos, % de tu PB, gráficos y su feedback.</div></section>`;
+  const u=l[0];
+  return `<section class="card"><h2>Mis entrenos</h2><div class="note">Informes de tus sesiones: tiempos, % de tu PB, zonas, gráficos y el feedback de tu entrenador.</div>
+    <a class="item inf-last" href="#inf-${encodeURIComponent(u.id)}"><div class="main"><div class="small muted">Último informe · ${fmtD(u.fecha)}</div><div class="nm">${u.pdf?"📄 ":""}${esc((u.data&&u.data.titulo)||u.titulo||"Sesión")}</div>${u.data&&u.data.instruccion?`<div class="small">Instrucción: <b>${esc(u.data.instruccion)}</b></div>`:""}</div><span class="btn sm">Ver</span></a></section>
+    ${infListHTML(l.slice(1),"Anteriores")}`;
+},bind(){}};
+R.misvideos={html(){
+  const vs=S.vid||[];
+  if(!vs.length)return `<section class="card"><h2>Mis videos</h2><div class="muted small">Cuando tu entrenador te comparta un video con correcciones, aparecerá aquí.</div></section>`;
+  return `<section class="card"><h2>Mis videos</h2><div class="note">Ábrelo y dale ▶: las correcciones aparecen sobre el video en el momento justo.</div>
+    <div class="list">${vs.map(v=>`<a class="item" href="#video-${encodeURIComponent(v.id)}"><div class="main"><div class="nm">${esc(v.prueba||"Video")}</div><div class="small muted">${(v.trazos||[]).length} correcci${(v.trazos||[]).length===1?"ón":"ones"}${(v.marcas||[]).length?` · ${v.marcas.length} nota${v.marcas.length===1?"":"s"}`:""}${v.notas?" · "+esc(v.notas.slice(0,60))+(v.notas.length>60?"…":""):""}</div></div><span class="date">${fmtD(v.fecha)}</span></a>`).join("")}</div></section>`;
+},bind(){}};
 
 /* ---------- CALCULADORA ---------- */
 R.calculadora={html(){
@@ -1523,10 +1916,13 @@ R.videos={html(){
       <label>Nadador<select id="v-nad"><option value="">—</option>${S.nad.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")).map(n=>`<option value="${esc(n.id)}">${esc(n.nombre)}</option>`).join("")}</select></label>
       <label>Prueba o ejercicio<input id="v-pr" list="dl-pr" placeholder="100 Espalda · subacuático"></label>
       <label>Fecha<input id="v-f" type="date" value="${today()}"></label>
-      <label>Archivo (MP4 o WebM, máx. 20 MB)<input id="v-file" type="file" accept="video/mp4,video/webm"></label>
-      <div class="row full"><button class="btn" id="v-up">Subir</button><span id="v-msg" class="small"></span></div></div>
+      <div class="row full"><label class="btn" style="cursor:pointer">🎥 Grabar<input id="v-cam" type="file" accept="video/*" capture="environment" hidden></label>
+        <label class="btn ghost" style="cursor:pointer">Elegir de la galería<input id="v-file" type="file" accept="video/*" hidden></label><span id="v-fn" class="small muted"></span></div>
+      <div id="v-prep" class="full" hidden><video id="v-pv" playsinline muted controls style="width:100%;max-height:260px;background:#000;border-radius:10px"></video>
+        <label id="v-cut" hidden>Inicio del recorte (se suben 30 s) <input id="v-ini" type="range" min="0" max="0" step="0.1" value="0"><span class="small" id="v-ini-t"></span></label></div>
+      <div class="row full"><button class="btn" id="v-up">Subir y analizar</button><span id="v-msg" class="small"></span></div></div>
       <datalist id="dl-pr">${PRUEBAS.map(p=>`<option value="${p}">`).join("")}</datalist>
-      <div class="note">Videos de iPhone (.MOV): expórtalos como MP4 o recórtalos antes de subir. Clips cortos de 5 a 20 segundos funcionan mejor para análisis.</div>`
+      <div class="note">Máximo 30 segundos. Si el video es más largo, eliges desde dónde recortar. Los videos de iPhone (.MOV) se convierten solos antes de subir (tarda lo que dura el clip).</div>`
     :`<div class="msg">Solo el entrenador puede subir videos.</div>`}</section>
     <section class="card"><h2>Biblioteca</h2>
     ${list.length?`<div class="vgrid">${list.map(v=>{const n=nadById(v.nadadorId);return `<a class="vcard" href="#video-${encodeURIComponent(v.id)}"><video src="${SC_BLOB}${esc(v.assetId)}#t=0.5" crossorigin="anonymous" preload="metadata" muted playsinline></video>
@@ -1534,54 +1930,97 @@ R.videos={html(){
       :`<div class="muted small">${loading()?"Cargando…":"Aún no hay videos."}</div>`}</section>`;
 },bind(){
   if(!$("#v-up"))return;
+  let file=null,dur=0;
+  const pick=async inp=>{const f=inp.files[0];if(!f)return;file=f;$("#v-fn").textContent=f.name;$("#v-msg").textContent="";
+    const pv=$("#v-pv");pv.src=URL.createObjectURL(f);$("#v-prep").hidden=false;
+    pv.onloadedmetadata=()=>{dur=pv.duration||0;const cut=dur>30.5;$("#v-cut").hidden=!cut;const r=$("#v-ini");r.max=Math.max(0,dur-30).toFixed(1);r.value=0;$("#v-ini-t").textContent=cut?` 0.0–30.0 s de ${dur.toFixed(1)} s`:""};
+    pv.onerror=()=>{dur=0;$("#v-msg").innerHTML=`<span class="small muted">Este navegador no muestra la vista previa de este formato; se intentará convertir al subir.</span>`}};
+  $("#v-cam").onchange=e=>pick(e.target);$("#v-file").onchange=e=>pick(e.target);
+  $("#v-ini").oninput=e=>{const t=+e.target.value;$("#v-ini-t").textContent=` ${t.toFixed(1)}–${(t+30).toFixed(1)} s de ${dur.toFixed(1)} s`;$("#v-pv").currentTime=t};
   $("#v-up").onclick=async()=>{
-    const f=$("#v-file").files[0],m=$("#v-msg");
-    if(!f){m.innerHTML=`<span class="down">Elige un archivo.</span>`;return}
-    if(f.size>20*1024*1024){m.innerHTML=`<span class="down">El archivo pesa ${(f.size/1048576).toFixed(1)} MB. El máximo es 20 MB: recórtalo o comprímelo.</span>`;return}
-    const type=/\.webm$/i.test(f.name)?"video/webm":/\.mp4$/i.test(f.name)||f.type==="video/mp4"?"video/mp4":f.type;
-    if(!["video/mp4","video/webm"].includes(type)){m.innerHTML=`<span class="down">Formato no compatible. Usa MP4 o WebM.</span>`;return}
-    $("#v-up").disabled=true;m.textContent="Subiendo…";
-    try{const up=await S.assets.upload(f,{type});
+    const f=file,m=$("#v-msg");
+    if(!f){m.innerHTML=`<span class="down">Graba o elige un video.</span>`;return}
+    $("#v-up").disabled=true;
+    try{
+      const ok=["video/mp4","video/webm"].includes(f.type)||/\.(mp4|webm)$/i.test(f.name);
+      let out=f;
+      if(!ok||dur>30.5||f.size>25*1024*1024){out=await recodeVideo(f,+$("#v-ini").value||0,30,t=>{m.textContent=`Preparando video… ${t.toFixed(0)} s`})}
+      if(out.size>45*1024*1024)throw {code:"too_large"};
+      const type=out.type.startsWith("video/webm")?"video/webm":"video/mp4";
+      m.textContent="Subiendo…";
+      const up=await S.assets.upload(out,{type});
       const doc={nadadorId:$("#v-nad").value,prueba:$("#v-pr").value.trim(),fecha:$("#v-f").value||today(),assetId:up.id,notas:"",marcas:[],trazos:[],analisis:"",subido:today()};
       const ref=await S.db.collection("videos").add(doc);location.hash="#video-"+encodeURIComponent(ref.id)}
-    catch(e){m.innerHTML=`<span class="down">${e.code==="too_large"?"Archivo demasiado grande (máx. 20 MB).":e.code==="unsupported_type"?"Formato no compatible. Usa MP4 o WebM.":e.code==="quota_or_state"?"Se llenó el espacio de almacenamiento. Elimina videos antiguos.":"No se pudo subir: "+esc(e.message||e.code||e)}</span>`;$("#v-up").disabled=false}
+    catch(e){m.innerHTML=`<span class="down">${e.code==="too_large"?"El video quedó muy pesado. Graba un clip más corto.":e.code==="no_recode"?"Este navegador no puede convertir el video. Súbelo desde el iPhone (Safari) o expórtalo como MP4.":e.code==="quota_or_state"?"Se llenó el espacio de almacenamiento. Elimina videos antiguos.":"No se pudo subir: "+esc(e.message||e.code||e)}</span>`;$("#v-up").disabled=false}
   };
 }};
+// convierte a MP4/WebM (H.264 o VP8/9), recorta a "max" s y baja a 1280 px: dibuja el video en un canvas y lo graba
+async function recodeVideo(file,start,max,onProg){
+  if(!window.MediaRecorder||!HTMLCanvasElement.prototype.captureStream)throw {code:"no_recode"};
+  const mime=["video/mp4;codecs=avc1","video/mp4","video/webm;codecs=vp9","video/webm;codecs=vp8","video/webm"].find(t=>MediaRecorder.isTypeSupported(t));if(!mime)throw {code:"no_recode"};
+  const v=document.createElement("video");v.muted=true;v.playsInline=true;v.setAttribute("playsinline","");v.src=URL.createObjectURL(file);
+  v.style.cssText="position:fixed;left:0;top:0;width:2px;height:2px;opacity:0;pointer-events:none";document.body.appendChild(v);
+  try{
+    await new Promise((res,rej)=>{v.onloadedmetadata=res;v.onerror=()=>rej({code:"no_recode"})});
+    const sc=Math.min(1,1280/Math.max(v.videoWidth,v.videoHeight)),cw=Math.round(v.videoWidth*sc/2)*2,ch=Math.round(v.videoHeight*sc/2)*2;
+    const c=document.createElement("canvas");c.width=cw;c.height=ch;const x=c.getContext("2d");
+    const end=Math.min(v.duration,start+max);
+    await new Promise(res=>{v.onseeked=res;v.currentTime=start});
+    const st=c.captureStream(30),rec=new MediaRecorder(st,{mimeType:mime,videoBitsPerSecond:4000000}),parts=[];
+    rec.ondataavailable=e=>{if(e.data&&e.data.size)parts.push(e.data)};
+    const done=new Promise(res=>rec.onstop=res);
+    x.drawImage(v,0,0,cw,ch);rec.start(250);await v.play();
+    await new Promise(res=>{const tick=()=>{x.drawImage(v,0,0,cw,ch);onProg&&onProg(v.currentTime-start);if(v.currentTime>=end-0.03||v.ended){res();return}
+      (v.requestVideoFrameCallback?v.requestVideoFrameCallback(tick):requestAnimationFrame(tick))};tick()});
+    v.pause();rec.stop();await done;
+    const type=mime.split(";")[0],blob=new Blob(parts,{type});
+    return new File([blob],"clip."+(type==="video/mp4"?"mp4":"webm"),{type});
+  }finally{v.remove();URL.revokeObjectURL(v.src)}
+}
 
 /* ----- reproductor tipo Kinovea ----- */
 function stopVideo(){if(S.vp&&S.vp.stop)S.vp.stop();S.vp=null}
 R.video={html(){
   const v=S.vid.find(x=>x.id===S.param);
   if(!v)return `<section class="card"><a class="back" href="#videos">← Videos</a><div class="muted">${loading()||!S.got.vid?"Cargando…":"Video no encontrado."}</div></section>`;
-  const n=nadById(v.nadadorId);
-  return `<section class="card"><a class="back" href="#videos">← Videos</a>
-    <div class="head"><div><h2>${esc(n?n.nombre:"Video")}</h2><div class="small muted">${esc(v.prueba||"")} · ${fmtD(v.fecha)}</div></div></div>
+  const n=nadById(v.nadadorId),ro=S.mode==="nadador";
+  return `<div class="${ro?"vro":""}"><section class="card"><a class="back" href="${ro?"#misvideos":"#videos"}">← ${ro?"Mis videos":"Videos"}</a>
+    <div class="head"><div><h2>${esc(ro?(v.prueba||"Video"):n?n.nombre:"Video")}</h2><div class="small muted">${ro?"":esc(v.prueba||"")+" · "}${fmtD(v.fecha)}</div></div>
+      ${ro?"":n?`<button class="btn ${v.compartido?"":"ghost "}sm" id="vshare">${v.compartido?"✓ Compartido con "+esc(n.nombre.split(" ")[0]):"Compartir con "+esc(n.nombre.split(" ")[0])}</button>`:`<span class="small muted">Asigna un nadador para compartir</span>`}</div>
+    ${ro?`<div class="note">Dale ▶: las correcciones de tu entrenador aparecen sobre el video en el momento justo. Usa 0,25× para verlas con calma.</div>`:""}
     <div class="stage" id="stage"><div class="vbox"><video id="vid" src="${SC_BLOB}${esc(v.assetId)}" crossorigin="anonymous" playsinline preload="auto" muted></video><canvas id="ov"></canvas></div></div>
     <div class="ctrl"><button class="btn sm" id="pp">▶</button><button class="btn ghost sm" id="fb" aria-label="Cuadro anterior">◀︎ 1</button><button class="btn ghost sm" id="ff" aria-label="Cuadro siguiente">1 ▶︎</button>
       <select id="rate" style="width:auto;padding:4px 8px" aria-label="Velocidad"><option value="0.1">0,1×</option><option value="0.25">0,25×</option><option value="0.5">0,5×</option><option value="1" selected>1×</option></select>
-      <span class="time" id="tc">0.00</span></div>
+      <span class="time" id="tc">0.00</span><button class="btn danger sm" id="clrplay" hidden>✕ Borrar y seguir</button></div>
     <input type="range" id="scrub" min="0" max="1000" value="0" aria-label="Posición">
-    <div class="tools" role="toolbar" aria-label="Herramientas">
-      <button class="btn ghost sm" data-tool="linea">Línea</button><button class="btn ghost sm" data-tool="angulo">Ángulo</button>
-      <button class="btn ghost sm" data-tool="calib">Calibrar</button><button class="btn ghost sm" data-tool="track">Trayectoria</button>
-      <button class="btn ghost sm" id="auto">Auto-seguir</button><button class="btn ghost sm" id="clr">Limpiar</button></div>
-    <div class="note" id="hint">Elige una herramienta y toca sobre el video. Trayectoria: marca el mismo punto (mano, cadera, cabeza) y avanza cuadro a cuadro; se dibujan los vectores de velocidad.</div>
+    <div class="tools" role="toolbar" aria-label="Dibujo">
+      <button class="btn ghost sm" data-tool="flecha">➜ Flecha</button><button class="btn ghost sm" data-tool="circulo">◯ Círculo</button><button class="btn ghost sm" data-tool="angulo">∠ Ángulo</button>
+      <button class="btn ghost sm" id="undo">↶ Deshacer</button><button class="btn ghost sm" id="clr">Limpiar</button></div>
+    <details class="tools-mas"><summary class="small">Medición avanzada</summary><div class="tools" role="toolbar" aria-label="Medición">
+      <button class="btn ghost sm" data-tool="linea">Línea</button><button class="btn ghost sm" data-tool="calib">Calibrar</button><button class="btn ghost sm" data-tool="track">Trayectoria</button>
+      <button class="btn ghost sm" id="auto">Auto-seguir</button></div></details>
+    <div class="note" id="hint">Elige Flecha, Círculo o Ángulo y dibuja: el video se pausa solo. "Borrar y seguir" limpia lo que dibujaste y continúa; si sigues con ▶, los dibujos se ven 2 s y desaparecen.</div>
     <div class="kpi" id="meas"></div>
   </section>
-  <section class="card"><h3>Frecuencia de brazada</h3>
+  <section class="card coach-only"><h3>Frecuencia de brazada</h3>
     <div class="row"><button class="btn" id="tap">Ciclo</button><button class="btn ghost sm" id="tapr">Reiniciar</button><span class="small muted">Toca en cada entrada de la misma mano. Usa el tiempo del video, así funciona en cámara lenta.</span></div>
     <div class="kpi" id="sr"></div></section>
-  <section class="card"><div class="head"><h3>Marcas y notas</h3></div>
-    <div class="row"><input id="mk" class="grow" placeholder="Nota en el segundo actual: codo cae en el agarre…"><button class="btn sm" id="mkadd">Agregar</button></div>
+  <section class="card"><div class="head"><h3>${ro?"Correcciones":"Marcas y notas"}</h3></div>
+    <div class="row coach-only"><input id="mk" class="grow" placeholder="Nota en el segundo actual: codo cae en el agarre…"><button class="btn sm" id="mkadd">Agregar</button></div>
     <div class="list marks" id="marks"></div>
-    <label>Notas generales<textarea id="vn">${esc(v.notas||"")}</textarea></label>
-    <div class="row"><button class="btn" id="vsave">Guardar análisis</button><span id="vmsg" class="small"></span><span class="grow"></span><button class="btn ghost sm" id="vdel">Eliminar video</button></div></section>
+    ${ro?(v.notas?`<div class="bt">${esc(v.notas)}</div>`:""):""}<label class="coach-only">Notas generales<textarea id="vn">${esc(v.notas||"")}</textarea></label>
+    <div class="row coach-only"><button class="btn" id="vsave">Guardar análisis</button><span id="vmsg" class="small"></span><span class="grow"></span><button class="btn ghost sm" id="vdel">Eliminar video</button></div></section>
   ${S.sample||v.analisis?`<section class="card"><div class="head"><h3>Análisis técnico</h3>${S.sample?'<button class="btn ghost sm" id="ai">Analizar 4 cuadros</button>':""}</div>
     ${S.sample?`<div class="note">Toma 4 cuadros desde la posición actual (cada 0,25 s) y pide una revisión técnica. Es una ayuda, no reemplaza tu ojo.</div>`:""}
-    <div id="aiout">${v.analisis?`<div class="ai">${esc(v.analisis)}</div>`:""}</div></section>`:""}`;
+    <div id="aiout">${v.analisis?`<div class="ai">${esc(v.analisis)}</div>`:""}</div></section>`:""}</div>`;
 },bind(){
   const v=S.vid.find(x=>x.id===S.param);if(!v)return;
   initPlayer(v);
+  const b=$("#vshare");if(b)b.onclick=async()=>{const P=S.vp||{};const on=!v.compartido;
+    const d={compartido:on,notas:($("#vn")||{}).value||"",marcas:P.marks||v.marcas||[],trazos:P.shapes||v.trazos||[],track:P.track||v.track||[],calib:P.calib||null};
+    b.disabled=true;if(await dbWrite(db=>db.collection("videos").doc(v.id).update(d),$("#vmsg"))){Object.assign(v,d);P.dirty=false;
+      $("#vmsg").innerHTML=on?`<span class="up">Compartido: lo verá en su ficha, con tus dibujos y notas.</span>`:`<span class="muted">Ya no lo ve.</span>`;
+      b.textContent=on?"✓ Compartido":"Compartir";b.className="btn "+(on?"":"ghost ")+"sm"}b.disabled=false};
 }};
 function refreshMarks(){if(S.vp&&S.vp.drawMarks)S.vp.drawMarks()}
 function initPlayer(v){
@@ -1598,21 +2037,34 @@ function initPlayer(v){
   const dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
   const ang=(a,b,c)=>{const v1=[a[0]-b[0],a[1]-b[1]],v2=[c[0]-b[0],c[1]-b[1]];return Math.acos(Math.max(-1,Math.min(1,(v1[0]*v2[0]+v1[1]*v2[1])/(Math.hypot(...v1)*Math.hypot(...v2)||1))))*180/Math.PI};
   const meters=px=>P.calib?px/P.calib.pxPerM:null;
-  function draw(){
+  function draw(fast){
     ctx.clearRect(0,0,cv.width,cv.height);ctx.lineWidth=2.5*devicePixelRatio;ctx.lineCap="round";
     const yel="#FFD23F",cy="#3FE0FF",red="#FF5A4E";
-    P.shapes.forEach(s=>{
+    const big=()=>{ctx.lineWidth=3.5*devicePixelRatio};
+    const shp=(s,prev)=>{
+      if(s.t==="flecha"){big();const sv=ctx.globalAlpha;if(prev)ctx.globalAlpha=.7;const [x1,y1]=toCv(s.p[0]),[x2,y2]=toCv(s.p[1]),an=Math.atan2(y2-y1,x2-x1),h=16*devicePixelRatio;
+        ctx.strokeStyle=red;ctx.fillStyle=red;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2-h*.6*Math.cos(an),y2-h*.6*Math.sin(an));ctx.stroke();
+        ctx.beginPath();ctx.moveTo(x2,y2);ctx.lineTo(x2-h*Math.cos(an-.45),y2-h*Math.sin(an-.45));ctx.lineTo(x2-h*Math.cos(an+.45),y2-h*Math.sin(an+.45));ctx.closePath();ctx.fill();ctx.globalAlpha=sv}
+      if(s.t==="circulo"){big();const [cx,cy2]=toCv(s.p[0]),[ex,ey]=toCv(s.p[1]);ctx.strokeStyle=yel;if(prev)ctx.setLineDash([8,6]);ctx.beginPath();ctx.arc(cx,cy2,Math.max(6,Math.hypot(ex-cx,ey-cy2)),0,Math.PI*2);ctx.stroke();ctx.setLineDash([])}
+      ctx.lineWidth=2.5*devicePixelRatio};
+    const ct=vid.currentTime,VIS=P.shapes.filter(s=>s.at==null||(ct>=s.at-0.05&&ct<=s.at+2)),alpha=s=>s.at==null?1:Math.max(.15,Math.min(1,(s.at+2-ct)/0.5));
+    VIS.forEach(s=>{ctx.globalAlpha=alpha(s);shp(s)});ctx.globalAlpha=1;
+    if(P.prev)shp(P.prev,true);
+    VIS.forEach(s=>{ctx.globalAlpha=alpha(s);
       if(s.t==="linea"){ctx.strokeStyle=yel;const [a,b]=[toCv(s.p[0]),toCv(s.p[1])];ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.stroke();const m=meters(dist(s.p[0],s.p[1]));label(s.p[1],m!=null?m.toFixed(2)+" m":Math.round(dist(s.p[0],s.p[1]))+" px")}
-      if(s.t==="angulo"){ctx.strokeStyle=cy;const [a,b,c]=s.p.map(toCv);ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.lineTo(...c);ctx.stroke();label(s.p[1],ang(...s.p).toFixed(1)+"°")}
-    });
+      if(s.t==="angulo"){ctx.strokeStyle=cy;const [a,b,c]=s.p.map(toCv);ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.lineTo(...c);ctx.stroke();
+        const a1=Math.atan2(a[1]-b[1],a[0]-b[0]),a2=Math.atan2(c[1]-b[1],c[0]-b[0]);let d=a2-a1;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;
+        ctx.beginPath();ctx.arc(b[0],b[1],22*devicePixelRatio,a1,a1+d,d<0);ctx.stroke();label(s.p[1],ang(...s.p).toFixed(1)+"°")}
+    });ctx.globalAlpha=1;
     if(P.calib){ctx.strokeStyle="#7CFC9A";ctx.setLineDash([6,5]);const [a,b]=P.calib.p.map(toCv);ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.stroke();ctx.setLineDash([]);label(P.calib.p[1],P.calib.m+" m (ref)")}
     // trayectoria con vectores
     const tr=P.track.slice().sort((a,b)=>a.t-b.t);
     if(tr.length){ctx.strokeStyle="rgba(255,90,78,.55)";ctx.beginPath();tr.forEach((p,i)=>{const [x,y]=toCv([p.x,p.y]);i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke();
       for(let i=1;i<tr.length;i++)arrow([tr[i-1].x,tr[i-1].y],[tr[i].x,tr[i].y],red);
       tr.forEach(p=>{const [x,y]=toCv([p.x,p.y]);ctx.fillStyle=Math.abs(p.t-vid.currentTime)<dt/2?"#fff":red;ctx.beginPath();ctx.arc(x,y,3.5*devicePixelRatio,0,7);ctx.fill()})}
-    P.pts.forEach(p=>{const [x,y]=toCv(p);ctx.fillStyle=yel;ctx.beginPath();ctx.arc(x,y,4*devicePixelRatio,0,7);ctx.fill()});
-    measures();
+    P.pts.forEach(p=>{const [x,y]=toCv(p);ctx.fillStyle=yel;ctx.beginPath();ctx.arc(x,y,5*devicePixelRatio,0,7);ctx.fill()});
+    if(P.tool==="angulo"&&P.pts.length&&P.hover){ctx.strokeStyle="rgba(63,224,255,.6)";ctx.setLineDash([6,5]);const q=P.pts.map(toCv);ctx.beginPath();ctx.moveTo(...q[0]);q.slice(1).forEach(x=>ctx.lineTo(...x));ctx.lineTo(...toCv(P.hover));ctx.stroke();ctx.setLineDash([])}
+    if(!fast)measures();
   }
   function measures(){
     const tr=P.track.slice().sort((a,b)=>a.t-b.t),box=$("#meas");if(!box)return;
@@ -1626,20 +2078,31 @@ function initPlayer(v){
     box.innerHTML=h;
   }
   function setTool(t){P.tool=P.tool===t?null:t;P.pts=[];$$("[data-tool]").forEach(b=>b.classList.toggle("on",b.dataset.tool===P.tool));cv.classList.toggle("arm",!!P.tool);cv.style.pointerEvents=P.tool?"auto":"none";
-    const hints={linea:"Toca dos puntos para medir una distancia.",angulo:"Toca tres puntos: extremo, vértice y extremo (ej. hombro–codo–muñeca).",calib:"Toca los dos extremos de algo de largo conocido (ej. ancho de carril 2,5 m) para medir en metros.",track:"Toca el punto a seguir; el video avanza un cuadro solo. Repite para dibujar la trayectoria."};
+    const hints={flecha:"Arrastra desde el inicio hasta la punta (o toca dos puntos).",circulo:"Arrastra desde el centro hacia el borde (o toca centro y borde).",linea:"Toca dos puntos para medir una distancia.",angulo:"Toca tres puntos: extremo, vértice y extremo (ej. hombro–codo–muñeca).",calib:"Toca los dos extremos de algo de largo conocido (ej. ancho de carril 2,5 m) para medir en metros.",track:"Toca el punto a seguir; el video avanza un cuadro solo. Repite para dibujar la trayectoria."};
     $("#hint").textContent=P.tool?hints[P.tool]:"Elige una herramienta y toca sobre el video.";draw()}
   cv.style.pointerEvents="none";
+  const evP=ev=>{const r=cv.getBoundingClientRect();return [(ev.clientX-r.left)/r.width*W(),(ev.clientY-r.top)/r.height*H()]};
+  const DRAG=["flecha","circulo","linea"];
+  cv.addEventListener("pointermove",ev=>{if(!P.tool)return;const p=evP(ev);
+    if(P.drag&&DRAG.includes(P.tool)){P.prev={t:P.tool,p:[P.pts[0],p]};draw()}else if(P.tool==="angulo"&&P.pts.length){P.hover=p;draw()}});
+  cv.addEventListener("pointerup",ev=>{if(!P.drag)return;P.drag=false;const p=evP(ev),a=P.pts[0];P.prev=null;
+    if(a&&Math.hypot(p[0]-a[0],p[1]-a[1])>W()*0.015){addShape({t:P.tool,p:[a,p]});P.pts=[]}draw()});
   cv.addEventListener("pointerdown",ev=>{
-    if(!P.tool)return;ev.preventDefault();const r=cv.getBoundingClientRect();const p=[(ev.clientX-r.left)/r.width*W(),(ev.clientY-r.top)/r.height*H()];
+    if(!P.tool)return;ev.preventDefault();if(!vid.paused)vid.pause();const p=evP(ev);
+    if(DRAG.includes(P.tool)&&!P.pts.length){P.pts=[p];P.drag=true;try{cv.setPointerCapture(ev.pointerId)}catch(_){}draw();return}
     if(P.tool==="track"){P.track=P.track.filter(x=>Math.abs(x.t-vid.currentTime)>dt/2);P.track.push({t:+vid.currentTime.toFixed(3),x:p[0],y:p[1]});P.dirty=true;step(1);draw();return}
     P.pts.push(p);
     const need=P.tool==="angulo"?3:2;
     if(P.pts.length===need){
       if(P.tool==="calib"){const m=parseFloat(($("#calm")||{}).value||"2.5")||2.5;P.calib={p:P.pts.slice(),m,pxPerM:dist(...P.pts)/m}}
-      else P.shapes.push({t:P.tool,p:P.pts.slice()});
-      P.pts=[];P.dirty=true}
+      else addShape({t:P.tool,p:P.pts.slice()});
+      P.pts=[];P.hover=null;P.dirty=true}
     draw();
   });
+  P.batch=[];
+  function addShape(sh){sh.at=+vid.currentTime.toFixed(2);P.shapes.push(sh);P.batch.push(sh);P.dirty=true;$("#clrplay").hidden=false}
+  $("#undo").onclick=()=>{if(P.pts.length){P.pts=[];P.prev=null}else{const x=P.shapes.pop();P.batch=P.batch.filter(y=>y!==x)}$("#clrplay").hidden=!P.batch.length;P.dirty=true;draw()};
+  $("#clrplay").onclick=()=>{P.shapes=P.shapes.filter(x=>!P.batch.includes(x));P.batch=[];P.pts=[];P.prev=null;P.dirty=true;draw();vid.play()};
   // calibración: largo de referencia
   $("[data-tool=calib]").insertAdjacentHTML("afterend",`<input id="calm" type="number" step="0.1" min="0.1" value="${P.calib?P.calib.m:2.5}" style="width:74px;padding:4px 8px" aria-label="Metros de referencia" title="Metros de referencia">`);
   $$("[data-tool]").forEach(b=>b.onclick=()=>setTool(b.dataset.tool));
@@ -1648,7 +2111,8 @@ function initPlayer(v){
   const pp=$("#pp"),tc=$("#tc"),sc=$("#scrub");
   function step(n){vid.pause();vid.currentTime=Math.max(0,Math.min((vid.duration||0),vid.currentTime+n*dt))}
   pp.onclick=()=>{vid.paused?vid.play():vid.pause()};
-  vid.onplay=()=>pp.textContent="❚❚";vid.onpause=()=>pp.textContent="▶";
+  vid.onplay=()=>{pp.textContent="❚❚";P.batch=[];P.pts=[];P.prev=null;$("#clrplay").hidden=true;
+    const loop=()=>{draw(true);if(!vid.paused&&!vid.ended)(vid.requestVideoFrameCallback?vid.requestVideoFrameCallback(loop):requestAnimationFrame(loop))};loop()};vid.onpause=()=>pp.textContent="▶";
   $("#fb").onclick=()=>step(-1);$("#ff").onclick=()=>step(1);
   $("#rate").onchange=e=>vid.playbackRate=+e.target.value;
   vid.addEventListener("timeupdate",()=>{tc.textContent=vid.currentTime.toFixed(2)+" s";if(vid.duration)sc.value=Math.round(vid.currentTime/vid.duration*1000);draw()});
@@ -1746,7 +2210,7 @@ route();
   let coach=true;if(S.user){try{coach=await S.user.canEdit()}catch(_){}}
   if(!coach){
     S.mode="nadador";$("#tag").textContent="Nadador";
-    $("#tabs").innerHTML=`<a href="#mificha" data-v="mificha">Mi ficha</a><a href="#mensajes" data-v="mensajes">Mensajes<span id="nb"></span></a>`;$("#tabs").hidden=false;
+    $("#tabs").innerHTML=`<a href="#mificha" data-v="mificha">Mi ficha</a><a href="#misentrenos" data-v="misentrenos">Mis entrenos</a><a href="#torneos" data-v="torneos">Mis torneos</a><a href="#misvideos" data-v="misvideos">Mis videos</a><a href="#mensajes" data-v="mensajes">Mensajes<span id="nb"></span></a>`;$("#tabs").hidden=false;
     try{S.me=await S.user.id()}catch(_){}
     try{S.canWrite=await S.user.can("data.write")}catch(_){S.canWrite=null}
     if(S.me){db.doc("buzon/"+S.me).onSnapshot(s=>{S.myThread=s.exists?s.data()||{}:null;S.gotThread=true;render()},()=>{S.gotThread=true;render()});
@@ -1756,6 +2220,7 @@ route();
   S.mode="coach";$("#tabs").hidden=false;route();
   db.collection("buzon").onSnapshot(snap=>{const o={};snap.docs.forEach(d=>o[d.id]=d.data()||{});S.buz=o;render();autoLink()},()=>{});
   try{S.assets=await window.claude.use("assets")}catch(_){}
+  try{S.ia=await window.claude.use("ia")}catch(_){}
   try{S.sample=await window.claude.use("sample")}catch(_){}
   const sub=(col,key,map)=>db.collection(col).onSnapshot(snap=>{S[key]=snap.docs.map(d=>map(Object.assign({},d.data()||{},{id:d.id})));S.got[key]=1;render()},
     e=>{S.got[key]=1;$("#view").insertAdjacentHTML("afterbegin",`<div class="msg err">No se pudieron leer los datos (${esc(e.code)}). Recarga la página.</div>`)});
@@ -1772,6 +2237,7 @@ route();
   sub("sesiones","ses",x=>x);
   sub("videos","vid",x=>x);
   sub("parciales","par",x=>x);
+  sub("informes","inf",x=>x);
   db.doc("config/app").onSnapshot(s=>{const d=s.exists?s.data()||{}:{};S.cfg={miClub:d.miClub||"",zonas:Array.isArray(d.zonas)&&d.zonas.length?d.zonas:Z_DEF};render()},()=>{});
   render(true);
 })();
