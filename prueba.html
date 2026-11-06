@@ -259,6 +259,7 @@ code{font-family:var(--f-mono);font-size:12.5px;background:var(--soft);padding:1
 @media (max-width:420px){.inf-foda{grid-template-columns:1fr}}
 .vro #hint,.vro #meas,.vro .tools,.vro .tools-mas,.vro .coach-only,.vro #clrplay,.vro [data-mdel]{display:none!important}
 .inf-last{border:1px solid var(--accent);border-radius:14px;padding:12px;margin-top:10px}
+.inf-pdf{width:100%;height:75vh;border:1px solid var(--line);border-radius:12px;background:#fff;margin-top:10px}
 /* ---- Tema SplitCoach: pizarra + turquesa ---- */
 header.top{border-bottom:1px solid var(--line)}
 .brand{padding-block:14px 8px}
@@ -991,7 +992,7 @@ async function syncFichas(){
       res:resOf(n.nombre).filter(r=>r.seg!=null).map(r=>({prueba:r.prueba,piscina:String(r.piscina||""),seg:r.seg,tiempo:r.tiempo||"",fecha:r.fecha||"",torneo:r.torneo||"",lugar:r.lugar||null})),
       par:S.par.filter(p=>ks.has(norm(p.nadador))).map(p=>({prueba:p.prueba,piscina:String(p.piscina||""),tramo:p.tramo,tipo:p.tipo||"",fecha:p.fecha||"",torneo:p.torneo||"",splits:p.splits||[]})),
       vid:S.vid.filter(v=>v.nadadorId===n.id&&v.compartido).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).slice(0,30).map(v=>({id:v.id,assetId:v.assetId,prueba:v.prueba||"",fecha:v.fecha||"",notas:v.notas||"",marcas:v.marcas||[],trazos:v.trazos||[]})),
-      inf:(S.inf||[]).filter(i=>i.nadador===n.id).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).slice(0,20).map(i=>({id:i.id,fecha:i.fecha||"",titulo:i.titulo||"",data:i.data}))};
+      inf:(S.inf||[]).filter(i=>i.nadador===n.id).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).slice(0,20).map(i=>({id:i.id,fecha:i.fecha||"",titulo:i.titulo||"",data:i.data||null,pdf:i.pdf||null}))};
     const h=JSON.stringify(payload);
     if(fichaHash[n.uid]===undefined){try{const s=await S.db.doc("buzon/"+n.uid+"/ficha/datos").get();const d=s.exists?Object.assign({},s.data()):null;if(d)delete d.act;fichaHash[n.uid]=d?JSON.stringify(d):""}catch(_){fichaHash[n.uid]=""}}
     if(fichaHash[n.uid]===h)continue;
@@ -1681,7 +1682,9 @@ function infFichaHTML(n){
     <details ${iaOn?"":"open"}><summary class="small" style="cursor:pointer;color:var(--accent);font-weight:600">Sin IA: copiar y pegar en un chat de Claude</summary>
       <div class="row" style="margin-top:8px"><button class="btn ghost sm" id="if-cp">1 · Copiar para Claude</button><button class="btn ghost sm" id="if-pg">2 · Pegar informe</button></div>
       <div id="if-box" ${d.open?"":"hidden"} style="display:grid;gap:8px;margin-top:8px"><textarea id="if-r" rows="5" placeholder="Pega aquí la respuesta completa de Claude (el bloque json)"></textarea>
-        <div class="row"><button class="btn sm" id="if-load">Ver informe</button><span id="if-msg2" class="small"></span></div></div></details></section>`;
+        <div class="row"><button class="btn sm" id="if-load">Ver informe</button><span id="if-msg2" class="small"></span></div></div></details>
+    <div class="row" style="border-top:1px solid var(--line);padding-top:10px"><label class="btn ghost sm" style="cursor:pointer">📄 Subir informe en PDF<input id="if-pdf" type="file" accept="application/pdf,.pdf" hidden></label>
+      <span class="small muted">Se publica tal cual para el nadador, con la fecha de arriba.</span><span id="if-pmsg" class="small"></span></div></section>`;
 }
 function bindInfFicha(n){
   const d=S.infDraft[n.id];if(!d||!$("#if-f"))return;
@@ -1705,6 +1708,16 @@ function bindInfFicha(n){
     copyText(infPrompt(infSesDia(n,d.fecha,d.pisc),n,d.txt),ev.target)};
   $("#if-pg").onclick=()=>{d.open=true;$("#if-box").hidden=false;$("#if-r").focus()};
   $("#if-load").onclick=()=>{try{d.rep=infParse($("#if-r").value);d.sent=d.txt;render(true)}catch(e){$("#if-msg2").innerHTML=`<span class="down">${esc(e.message)}</span>`}};
+  $("#if-pdf").onchange=async e=>{const f=e.target.files[0],m=$("#if-pmsg");if(!f)return;
+    if(!/pdf$/i.test(f.type)&&!/\.pdf$/i.test(f.name)){m.innerHTML=`<span class="down">Elige un archivo PDF.</span>`;return}
+    if(!S.assets){m.innerHTML=`<span class="down">No se pudo conectar el almacenamiento.</span>`;return}
+    m.textContent="Subiendo…";
+    try{const up=await S.assets.upload(f,{type:"application/pdf"}),s=infSesDia(n,d.fecha,d.pisc),id=infId(s.id,n.id);
+      const tit=f.name.replace(/\.pdf$/i,"").replace(/[_-]+/g," ").trim();
+      const doc={sesion:s.id,nadador:n.id,nombre:n.nombre,fecha:d.fecha,titulo:s.titulo||tit,pdf:up.id,data:null,act:Date.now()};
+      if(await dbWrite(db=>db.collection("informes").doc(id).set(doc),m)){location.hash="#inf-"+encodeURIComponent(id)}}
+    catch(err){m.innerHTML=`<span class="down">${err.code==="too_large"?"El PDF pesa más de 50 MB.":/mime|type/i.test(err.message||"")?"Supabase no acepta PDF en el almacenamiento: en Storage → media → Edit bucket, agrega application/pdf a los tipos permitidos.":"No se pudo subir: "+esc(err.message||err.code||err)}</span>`}
+    e.target.value=""};
   if($("#if-pub"))$("#if-pub").onclick=async()=>{const m=$("#if-msg"),s=infSesDia(n,d.fecha,d.pisc),id=infId(s.id,n.id);
     const doc={sesion:s.id,nadador:n.id,nombre:n.nombre,fecha:d.fecha,titulo:s.titulo||"",texto:d.sent||d.txt,data:d.rep,act:Date.now()};
     if(await dbWrite(db=>db.collection("informes").doc(id).set(doc),m)){S.infDraft[n.id]=null;location.hash="#inf-"+encodeURIComponent(id)}};
@@ -1712,11 +1725,14 @@ function bindInfFicha(n){
 
 function infListHTML(list,titulo){
   if(!list.length)return "";
-  return `<section class="card"><h3>${titulo}</h3><div class="list">${list.slice().sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).map(i=>`<a class="item" href="#inf-${encodeURIComponent(i.id)}"><div class="main"><div class="nm">${esc((i.data&&i.data.titulo)||i.titulo||"Sesión")}</div><div class="small muted">${esc((i.data&&i.data.instruccion)||"")}</div></div><span class="date">${fmtD(i.fecha)}</span></a>`).join("")}</div></section>`;
+  return `<section class="card"><h3>${titulo}</h3><div class="list">${list.slice().sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).map(i=>`<a class="item" href="#inf-${encodeURIComponent(i.id)}"><div class="main"><div class="nm">${i.pdf?"📄 ":""}${esc((i.data&&i.data.titulo)||i.titulo||"Sesión")}</div><div class="small muted">${esc((i.data&&i.data.instruccion)||(i.pdf?"Informe en PDF":""))}</div></div><span class="date">${fmtD(i.fecha)}</span></a>`).join("")}</div></section>`;
 }
 R.informe={html(){
   const i=(S.mode==="nadador"?S.miInf||[]:S.inf||[]).find(x=>x.id===S.param);
   const back=S.mode==="nadador"?`<a class="back" href="#misentrenos">← Mis entrenos</a>`:`<a class="back" href="#evolucion">← Evolución</a>`;
+  if(i&&i.pdf){const url=SC_BLOB+i.pdf;
+    return `${back}<section class="card"><div class="head"><div><h2>${esc(i.titulo||"Informe de entrenamiento")}</h2><div class="small muted">${fmtD(i.fecha)}</div></div><a class="btn sm" href="${esc(url)}" target="_blank" rel="noopener">Abrir PDF</a></div>
+      <object data="${esc(url)}#view=FitH" type="application/pdf" class="inf-pdf"><div class="note">Tu navegador no muestra el PDF aquí. Usa "Abrir PDF".</div></object></section>${S.mode==="nadador"?"":`<div class="row" style="margin-top:12px"><span class="grow"></span><button class="btn ghost sm" id="inf-del">Eliminar informe</button><span id="inf-msg" class="small"></span></div>`}`}
   if(!i||!i.data)return back+emptyBox(loading()?"Cargando…":"Informe no encontrado","");
   const n=S.mode==="nadador"?S.nad[0]:nadById(i.nadador);
   const meta={nombre:(n&&n.nombre)||i.nombre||"",edad:n?edadMaster(n.nacimiento):null,fecha:i.fecha,titulo:i.titulo};
@@ -1755,7 +1771,7 @@ R.misinformes={html(){
   if(!l.length)return `<section class="card"><h2>Mis entrenos</h2><div class="muted small">Cuando tu entrenador publique el informe de una sesión, aparecerá aquí con tus tiempos, % de tu PB, gráficos y su feedback.</div></section>`;
   const u=l[0];
   return `<section class="card"><h2>Mis entrenos</h2><div class="note">Informes de tus sesiones: tiempos, % de tu PB, zonas, gráficos y el feedback de tu entrenador.</div>
-    <a class="item inf-last" href="#inf-${encodeURIComponent(u.id)}"><div class="main"><div class="small muted">Último informe · ${fmtD(u.fecha)}</div><div class="nm">${esc((u.data&&u.data.titulo)||u.titulo||"Sesión")}</div>${u.data&&u.data.instruccion?`<div class="small">Instrucción: <b>${esc(u.data.instruccion)}</b></div>`:""}</div><span class="btn sm">Ver</span></a></section>
+    <a class="item inf-last" href="#inf-${encodeURIComponent(u.id)}"><div class="main"><div class="small muted">Último informe · ${fmtD(u.fecha)}</div><div class="nm">${u.pdf?"📄 ":""}${esc((u.data&&u.data.titulo)||u.titulo||"Sesión")}</div>${u.data&&u.data.instruccion?`<div class="small">Instrucción: <b>${esc(u.data.instruccion)}</b></div>`:""}</div><span class="btn sm">Ver</span></a></section>
     ${infListHTML(l.slice(1),"Anteriores")}`;
 },bind(){}};
 R.misvideos={html(){
