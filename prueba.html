@@ -2104,10 +2104,10 @@ R.video={html(){
     <div class="head"><div><h2>${esc(ro?(v.prueba||"Video"):n?n.nombre:"Video")}</h2><div class="small muted">${ro?"":esc(v.prueba||"")+" · "}${fmtD(v.fecha)}</div></div>
       ${ro?"":n?`<button class="btn ${v.compartido?"":"ghost "}sm" id="vshare">${v.compartido?"✓ Compartido con "+esc(n.nombre.split(" ")[0]):"Compartir con "+esc(n.nombre.split(" ")[0])}</button>`:`<span class="small muted">Asigna un nadador para compartir</span>`}</div>
     ${ro?`<div class="note">Dale ▶: las correcciones de tu entrenador aparecen sobre el video en el momento justo. Usa 0,25× para verlas con calma.</div>`:""}
-    <div class="stage" id="stage"><div class="vbox"><video id="vid" src="${SC_BLOB}${esc(v.assetId)}" crossorigin="anonymous" playsinline preload="auto" muted></video><canvas id="ov"></canvas></div></div>
+    <div class="stage" id="stage"><div class="vbox"><video id="vid" src="${SC_BLOB}${esc(v.assetId)}" crossorigin="anonymous" playsinline preload="auto"></video><canvas id="ov"></canvas></div></div>
     <div class="ctrl"><button class="btn sm" id="pp">▶</button><button class="btn ghost sm" id="fb" aria-label="Cuadro anterior">◀︎ 1</button><button class="btn ghost sm" id="ff" aria-label="Cuadro siguiente">1 ▶︎</button>
       <select id="rate" style="width:auto;padding:4px 8px" aria-label="Velocidad"><option value="0.1">0,1×</option><option value="0.25">0,25×</option><option value="0.5">0,5×</option><option value="1" selected>1×</option></select>
-      <span class="time" id="tc">0.00</span><button class="btn danger sm" id="clrplay" hidden>✕ Borrar y seguir</button></div>
+      <button class="btn ghost sm" id="snd" aria-label="Sonido">🔊</button><span class="time" id="tc">0.00</span><button class="btn danger sm" id="clrplay" hidden>✕ Borrar y seguir</button></div>
     <input type="range" id="scrub" min="0" max="1000" value="0" aria-label="Posición">
     <div class="tools" role="toolbar" aria-label="Dibujo">
       <button class="btn ghost sm" data-tool="flecha">➜ Flecha</button><button class="btn ghost sm" data-tool="circulo">◯ Círculo</button><button class="btn ghost sm" data-tool="angulo">∠ Ángulo</button>
@@ -2278,6 +2278,7 @@ function initPlayer(v){
     const loop=()=>{draw(true);if(!vid.paused&&!vid.ended)(vid.requestVideoFrameCallback?vid.requestVideoFrameCallback(loop):requestAnimationFrame(loop))};loop()};vid.onpause=()=>pp.textContent="▶";
   $("#fb").onclick=()=>step(-1);$("#ff").onclick=()=>step(1);
   $("#rate").onchange=e=>vid.playbackRate=+e.target.value;
+  vid.muted=false;$("#snd").onclick=()=>{vid.muted=!vid.muted;$("#snd").textContent=vid.muted?"🔇":"🔊"};
   vid.addEventListener("timeupdate",()=>{tc.textContent=vid.currentTime.toFixed(2)+" s";if(vid.duration)sc.value=Math.round(vid.currentTime/vid.duration*1000);draw()});
   vid.addEventListener("seeked",()=>{tc.textContent=vid.currentTime.toFixed(2)+" s";draw()});
   sc.oninput=()=>{if(vid.duration){vid.pause();vid.currentTime=sc.value/1000*vid.duration}};
