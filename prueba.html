@@ -273,6 +273,21 @@ code{font-family:var(--f-mono);font-size:12.5px;background:var(--soft);padding:1
 .mk[open] summary{border-bottom:1px solid var(--line)}.mk-h{padding:8px 12px 12px;display:grid;gap:4px}.mk-r{display:flex;gap:10px;align-items:center;font-size:13px}
 .aviso{padding:10px 14px}
 @media (max-width:420px){.mk summary{grid-template-columns:1.2fr repeat(4,1fr);gap:4px;padding:9px 8px}.mk-c{font-size:12px}.mk-c .time{font-size:12.5px}}
+.inf-estado{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center;border-radius:14px;padding:12px 14px;font-size:14px;line-height:1.45}
+.inf-estado span{font-size:22px}.e-verde{background:color-mix(in srgb,var(--good) 20%,transparent)}.e-amarillo{background:color-mix(in srgb,var(--gold) 24%,transparent)}.e-pendiente{background:var(--soft)}
+.inf-fl{margin:0;padding-left:18px;display:grid;gap:4px;font-size:13.5px}
+@media print{
+  @page{size:A4;margin:14mm;background:#fff}
+  html,:root,:root[data-theme]{color-scheme:light!important}
+  html,body{background:#fff!important;color:#111!important}
+  :root,:root[data-theme],html:root{--bg:#fff!important;--bgfx:none!important;--surface:#fff!important;--soft:#f2f4f6!important;--line:#d6dbe0!important;--ink:#111!important;--muted:#555!important}
+  header.top,nav.tabs,#splash,.back,.aviso,.no-print,.btn,#inf-del,#inf-msg{display:none!important}
+  .wrap{max-width:none!important;padding:0!important}
+  .inf{gap:8px}.inf-card,.inf-tab,.inf-graf,.inf-foda div,.inf-estado,.inf-nota,.inf-ins,.inf-reps div{break-inside:avoid}
+  .inf-sec{break-after:avoid}
+  .inf-graf svg{max-height:62mm;width:auto;max-width:100%;margin:0 auto}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
 /* ---- Tema SplitCoach: pizarra + turquesa ---- */
 header.top{border-bottom:1px solid var(--line)}
 .brand{padding-block:14px 8px}
@@ -1530,46 +1545,52 @@ function infDatos(s,n){
     series:(s.series||[]).map(se=>serie(se,s)),
     zonas:zonas().map(z=>`${z.z} ${z.n}: ${z.min}–${z.max}% vel. PB`).concat(["RP ritmo de carrera: 100%"]),
     mejores_tiempos:pbs,sesiones_anteriores:prev,
-    companeros_misma_sesion:comp,
     informe_anterior:ant&&ant.data?{fecha:ant.fecha,instruccion:ant.data.instruccion||"",proyecciones:ant.data.proyecciones||null}:null};
 }
 function infPrompt(s,n,texto){
-  return `Eres el analista de rendimiento de SplitCoach, la app de un entrenador de natación Master en Chile. Escribe el informe de la sesión de entrenamiento de ${n.nombre} con los datos de abajo.
+  return `Eres el analista de rendimiento de natación de SplitCoach (club ${S.cfg&&S.cfg.miClub||"FULLMAR"}, masters, Viña del Mar, Chile; entrenan en piscina de 25 m y compiten en corta y larga). Escribe el informe de la sesión de entrenamiento de ${n.nombre} con los datos de abajo. Este informe SE COMPARTE CON EL NADADOR.
 
-QUÉ DEBE TENER EL INFORME
-- Cada serie puede ser de un estilo distinto: usa el estilo escrito en esa línea (acepta abreviaturas en español e inglés: lib/free/fr, esp/back/bk, pe/pecho/breast/br, mar/mari/fly, CI/comb/IM; FRIM o "IM frim" = combinado SIN mariposa: libre en lugar de mariposa (libre–espalda–pecho–libre). El FRIM no tiene PB oficial: compáralo con su mejor FRIM anterior si existe, o con una referencia estimada (PB de IM sin el costo de la mariposa, o suma de sus PB por estilo) marcada "(est.)"; y tipos de trabajo: kick = patada, pull = pull/tracción, drill = técnica, swim = nado completo, scull = remadas. Patada, pull y drill NO se comparan con el PB de nado completo: analízalos por consistencia y progresión) y compárala con el PB de ESE estilo. Si una línea no dice estilo, asume el de la línea anterior; si es la primera y el nadador no tiene un solo estilo en "pruebas_principales" o "notas_tecnicas", pregunta.
-- Todo medido contra SU referencia: % del PB de cada serie/rep (PB de la misma prueba y piscina; si es otra distancia, ajústalo y dilo), la ZONA en que cayó cada serie según "zonas", y la distancia a sus METAS ("objetivos_temporada" y "metas_de_tiempo"): cuánto le falta y si la sesión acerca o no a la meta.
-- FODA muy breve: una frase corta por cuadrante (máx. 15 palabras cada una).
-- 1 o 2 gráficos con números reales de la sesión: barras (ej. % PB promedio por serie, con referencia 100) o línea (ej. tiempos rep a rep de un set para ver la curva/caída, con referencia en la meta por rep).
+MÉTODO
+- Fórmulas: % del PB = (PB ÷ tiempo de la rep) × 100 (nunca PB × %). Pace /100 = tiempo × (100 ÷ distancia). DPS = distancia ÷ brazadas. Ritmo de ciclo = tiempo ÷ brazadas. SWOLF = tiempo del largo + brazadas. Variación intra-set = peor − mejor rep. Split negativo = 2ª mitad (o última rep) más rápida que la 1ª.
+- Zonas: usa las de "zonas" (las fija el entrenador). Un 25 m de velocidad no se compara con un 150 continuo; un 25 extrapolado a 100 es un techo, no un ritmo sostenible.
+- Estilos: cada serie puede ser de un estilo distinto; usa el estilo escrito en esa línea y compárala con el PB de ESE estilo, misma piscina (si es otra distancia, ajústalo y dilo). Abreviaturas: lib/free/fr, esp/back/bk, pe/pecho/breast/br, mar/mari/fly, CI/comb/IM. FRIM o "IM frim" = combinado SIN mariposa (libre–espalda–pecho–libre): sin PB oficial, compáralo con su mejor FRIM anterior o con una referencia estimada marcada "(est.)". kick = patada, pull, drill = técnica, swim, scull: patada/pull/drill NO se comparan con el PB de nado completo, solo consistencia y progresión. Si una línea no dice estilo, es el de la línea anterior.
+- Notación del entrenador: "19 alto"/"19 bajo" ≈ .7–.9 / .0–.3 de ese segundo (ej. "18 alto" ~18.8): úsalo y DECLARA la interpretación. "@" puede ser ciclo de salida o descanso: si cambia el cálculo y no está claro, pregunta.
+- Compara solo lo comparable (mismo tipo de set, descanso y fatiga previa) y mantén la MISMA referencia de PB en todo el informe. Usa "sesiones_anteriores" para la comparativa con el mismo tipo de set; si no hay, dilo.
+- Con solo el promedio de un set NO afirmes split negativo ni degradación: pide R1 y la última rep (o dilo como dato faltante).
+- Metas: trata la meta del entrenador ("metas_de_tiempo", "objetivos_temporada") como válida; no la llames "conservadora" porque tu proyección la supere.
+- Proyecciones: siempre 3 escenarios (conservador, real, óptimo), con la base de cálculo y las condiciones de cada uno; nunca como garantía. Si no hubo entrenamiento en la condición de la competencia (ej. piscina larga), amplía el rango y dilo.
+- Si un dato parece typo (ej. "501" en un split) o falta algo clave (estilo, un parcial que no cuadra), responde SOLO con hasta 3 preguntas breves y numeradas, sin JSON.
 
-ESTILO
-- Español de Chile, voz de entrenador experto, directo y concreto. Analiza como un coach: patrones intra-set (split negativo, caída, rep más lenta y por qué), consistencia, % del PB y zona, transferencia a sus pruebas de competencia, proyecciones razonadas.
-- Si viene "resumen_escrito_por_coach", es la descripción del entreno de hoy (series, tiempos y sensaciones) escrita por el entrenador: úsala como fuente principal y calcula tú los % del PB con "mejores_tiempos" y "zonas".
-- Si falta un dato clave para interpretar la sesión (por ejemplo el estilo, o un parcial que no cuadra con el total), responde SOLO con hasta 3 preguntas breves y numeradas, sin JSON. Cuando tengas lo necesario, responde SOLO con el bloque json. Si el entrenador pide cambios al informe, devuelve el json completo corregido.
-- Usa SOLO los tiempos de los datos. Si estimas algo (un PB que falta, un parcial), márcalo con "~" o "(est.)". No inventes tiempos.
-- Estrellas: 3 = excelente/hallazgo principal, 2 = bueno, 1 = aceptable.
-- Si hay compañeros en la misma sesión, puedes compararlo en una nota breve. Si hay informe anterior, da continuidad a sus proyecciones e instrucción.
+LENGUAJE (informe compartible)
+- Español de Chile, directo, neutro y concreto: datos y la próxima acción. Sin comparar con otros nadadores, sin críticas internas, sin superlativos. Estrellas solo en lo realmente destacado (máx. 2 elementos con 3 estrellas).
+- Usa SOLO los tiempos de los datos; lo estimado va con "~" o "(est.)". No inventes tiempos ni brazadas.
+- Si viene "resumen_escrito_por_coach", es la sesión de hoy escrita por el entrenador: es la fuente principal.
 
-RESPUESTA: devuelve SOLO un bloque \`\`\`json con este esquema (sin texto fuera del bloque):
+ESTRUCTURA (orden fijo): cabecera y 3 tarjetas (mejor rep, promedio o % del PB, volumen u otro dato clave) → un bloque por set (tiempos por rep, % del PB y pace /100, patrón intra-set, brazadas y DPS si existen, lectura en 2–3 frases) → 1–2 gráficos con línea de meta/PB → comparativa con sesiones previas → estado de forma (semáforo) → metas → FODA breve (una frase medible por cuadrante) → proyecciones si aplica → instrucción → feedback (3 a 5 puntos con etiqueta corta) → datos faltantes/aclaraciones.
+
+RESPUESTA: cuando tengas lo necesario, devuelve SOLO un bloque \`\`\`json con este esquema (sin texto fuera del bloque). Si el entrenador pide cambios, devuelve el json completo corregido.
 {
  "titulo": "estructura de la sesión en una línea, ej: 4×(2×25 esp+pecho) · 4×50 espalda · All out aletas",
- "kpis": [ {"label":"50m espalda mejor","valor":"47s","estrellas":3,"sub":"R3 y R4 · split neg."} ],   // exactamente 3
+ "kpis": [ {"label":"50 esp mejor","valor":"47.0","estrellas":0,"sub":"R3 · 82.6% PB"} ],   // exactamente 3
  "bloques": [ {
-   "titulo": "4×50 espalda @1:10 — split negativo",
-   "estrellas": 3,                      // 0-3
-   "destacado": false,                  // true solo para un bloque especial (test, all out)
-   "grupos": [ {"subtitulo":"opcional","reps":[ {"lbl":"R1","valor":"48s","sub":"arranque","tono":"base"} ]} ],
-   "tablas": [ {"titulo":"4×50 espalda — análisis","filas":[ {"k":"Mejor (R3–R4)","v":"47s ★★★","tono":"top"} ]} ],
-   "barras": [ {"lbl":"R3–R4 hoy (47s)","pct":82.6,"txt":"82.6% PB · Z4 ★★★","tono":"top"} ],   // opcional
-   "notas": [ {"tipo":"3","titulo":"R3=R4=47s — patrón de activación.","texto":"explicación de 2-4 frases"} ]
+   "titulo": "4×50 espalda @1:10",
+   "estrellas": 0,                      // 0-3
+   "destacado": false,                  // true solo para un test o all out
+   "grupos": [ {"subtitulo":"opcional","reps":[ {"lbl":"R1","valor":"48.0","sub":"80.9% · 1:36/100","tono":"base"} ]} ],
+   "tablas": [ {"titulo":"Análisis","filas":[ {"k":"Rango (variación)","v":"47.0–50.0 (3.0 s)"},{"k":"% PB mejor","v":"82.6% · Z4","tono":"top"},{"k":"DPS","v":"1.9 m/br"} ]} ],
+   "barras": [ {"lbl":"R3 (47.0)","pct":82.6,"txt":"82.6% PB · Z4","tono":"top"} ],   // opcional
+   "notas": [ {"tipo":"idea","titulo":"Mejora en la última rep.","texto":"lectura de 2-3 frases con datos"} ]
  } ],
- "proyecciones": {"titulo":"Proyecciones actualizadas","filas":[ {"k":"100m espalda","v":"1:23–1:24","sub":"vs PB 1:30.50"} ]},   // o null
- "graficos": [ {"tipo":"barras","titulo":"% del PB por serie","etiquetas":["4×25","4×50","4×75"],"series":[{"nombre":"% PB prom.","valores":[88.5,84.2,82.0]}],"unidad":"%","referencia":100,"referencia_lbl":"PB"},
-               {"tipo":"linea","titulo":"4×50 rep a rep","etiquetas":["R1","R2","R3","R4"],"series":[{"nombre":"Tiempo","valores":[54.5,55.5,55.6,56.1]}],"unidad":"s","referencia":55.0,"referencia_lbl":"meta Z4"} ],   // 1 o 2; valores numéricos (segundos o %)
- "foda": {"fortalezas":"...","oportunidades":"...","debilidades":"...","amenazas":"..."},
- "metas": [ {"meta":"100 pecho 1:45.00 (Temuco)","hoy":"1:50.92","falta":"−5.92 s","lectura":"frase corta"} ],   // [] si no tiene metas
- "instruccion": "una instrucción concreta para la próxima competencia o sesión, ej: L1 en 43s — no en 38s",
- "feedback": [ {"tipo":"3","titulo":"33.71s aletas","texto":"mensaje directo al nadador, 2-4 frases"} ]   // 2 a 4 puntos
+ "graficos": [ {"tipo":"linea","titulo":"4×50 rep a rep","etiquetas":["R1","R2","R3","R4"],"series":[{"nombre":"Tiempo","valores":[48,50,47,47]}],"unidad":"s","referencia":47.5,"referencia_lbl":"meta"},
+               {"tipo":"barras","titulo":"% del PB por set","etiquetas":["4×25","4×50"],"series":[{"nombre":"% PB","valores":[88.5,82.0]}],"unidad":"%","referencia":100,"referencia_lbl":"PB"} ],   // 1 o 2, valores numéricos
+ "comparativa": {"titulo":"vs sesiones previas (mismo set)","filas":[ {"k":"4×50 esp · 28-oct","v":"49.5 prom.","sub":"hoy 48.0 prom. (−1.5 s)"} ]},   // o null si no hay comparable
+ "estado": {"color":"verde","titulo":"En camino a la meta","texto":"qué condición falta para pasar a verde"},   // color: verde | amarillo | pendiente
+ "metas": [ {"meta":"100 esp 1:28.00 (Temuco)","hoy":"PB 1:30.50","falta":"−2.50 s","lectura":"frase corta"} ],   // [] si no tiene metas
+ "foda": {"fortalezas":"...","oportunidades":"...","debilidades":"...","amenazas":"..."},   // una frase con dato por cuadrante
+ "proyecciones": {"titulo":"Proyección 100 espalda","filas":[ {"k":"Conservador","v":"1:31.0","sub":"base: ..."},{"k":"Real","v":"1:29.5","sub":"si ..."},{"k":"Óptimo","v":"1:28.5","sub":"si ..."} ]},   // o null
+ "instruccion": "una instrucción concreta para la próxima competencia o sesión, ej: L1 en 43 s, no en 38",
+ "feedback": [ {"tipo":"2","titulo":"Próxima sesión","texto":"mensaje directo al nadador, 2-3 frases"} ],   // 3 a 5 puntos
+ "faltantes": [ "Brazadas del 4×50 para calcular DPS", "Interpreté '19 alto' como ~19.8" ]   // [] si no hay
 }
 Valores de "tono": "top" (lo mejor), "good" (bueno), "base" (normal), "warn" (alerta), "bad" (referencia PB o malo).
 Valores de "tipo" en notas y feedback: "3", "2", "1" (estrellas), "idea" (💡 interpretación) o "warn" (⚠ alerta).
@@ -1625,10 +1646,13 @@ function infHTML(d,meta){
   const grH=gr?`<div class="inf-sec">Gráficos de la sesión</div><div class="inf-card">${gr}</div>`:"";
   const mt=Array.isArray(d.metas)&&d.metas.length?`<div class="inf-sec">Metas</div><div class="inf-card"><div class="inf-tab">${d.metas.map(m=>`<div class="inf-fr"><span>${esc(m.meta||"")}${m.lectura?`<small>${esc(m.lectura)}</small>`:""}</span><b>${esc(m.hoy||"")}${m.falta?` <span class="t-warn">${esc(m.falta)}</span>`:""}</b></div>`).join("")}</div></div>`:"";
   const fo=infFoda(d.foda);const foH=fo?`<div class="inf-sec">FODA</div>${fo}`:"";
+  const cp=d.comparativa&&(d.comparativa.filas||[]).length?`<div class="inf-sec">${esc(d.comparativa.titulo||"Comparativa con sesiones previas")}</div><div class="inf-card">${infTabla({filas:d.comparativa.filas})}</div>`:"";
+  const ec={verde:"🟢",amarillo:"🟡",pendiente:"⚪"},es=d.estado&&d.estado.color?`<div class="inf-estado e-${esc(String(d.estado.color).toLowerCase())}"><span>${ec[String(d.estado.color).toLowerCase()]||"⚪"}</span><div><b>${esc(d.estado.titulo||"Estado de forma")}</b><div>${esc(d.estado.texto||"")}</div></div></div>`:"";
+  const fl=Array.isArray(d.faltantes)&&d.faltantes.length?`<div class="inf-sec">Datos faltantes y supuestos</div><div class="inf-card"><ul class="inf-fl">${d.faltantes.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`:"";
   const pr=d.proyecciones&&(d.proyecciones.filas||[]).length?`<div class="inf-sec">${esc(d.proyecciones.titulo||"Proyecciones")}</div><div class="inf-card">${infTabla({filas:d.proyecciones.filas})}</div>`:"";
   const ins=d.instruccion?`<div class="inf-ins">Instrucción: <b>${esc(d.instruccion)}</b></div>`:"";
   const fb=d.feedback.length?`<div class="inf-sec">Feedback · ${esc(meta.nombre.split(" ")[0])}</div><div class="inf-card">${d.feedback.map(infNota).join("")}</div>`:"";
-  return `<div class="inf">${hero}${grH}${bl}${mt}${pr}${foH}${ins}${fb}</div>`;
+  return `<div class="inf">${hero}${bl}${grH}${cp}${es}${mt}${foH}${pr}${ins}${fb}${fl}</div>`;
 }
 function infSesHTML(s){
   const nads=(s.nads||[]).map(nadById).filter(Boolean);if(!nads.length)return "";
@@ -1735,8 +1759,10 @@ R.informe={html(){
   if(!i||!i.data)return back+emptyBox(loading()?"Cargando…":"Informe no encontrado","");
   const n=S.mode==="nadador"?S.nad[0]:nadById(i.nadador);
   const meta={nombre:(n&&n.nombre)||i.nombre||"",edad:n?edadMaster(n.nacimiento):null,fecha:i.fecha,titulo:i.titulo};
-  return `${back}${S.mode==="nadador"?"":avisoHTML(n,"#inf-"+i.id,"informe de entrenamiento del "+fmtD(i.fecha))}${infHTML(i.data,meta)}${S.mode==="nadador"?"":`<div class="row" style="margin-top:12px"><span class="grow"></span><button class="btn ghost sm" id="inf-del">Eliminar informe</button><span id="inf-msg" class="small"></span></div>`}`;
+  return `${back}${S.mode==="nadador"?"":avisoHTML(n,"#inf-"+i.id,"informe de entrenamiento del "+fmtD(i.fecha))}<div class="row no-print" style="justify-content:flex-end;margin:6px 0"><button class="btn ghost sm" id="inf-print">⬇ Descargar PDF</button></div>${infHTML(i.data,meta)}${S.mode==="nadador"?"":`<div class="row" style="margin-top:12px"><span class="grow"></span><button class="btn ghost sm" id="inf-del">Eliminar informe</button><span id="inf-msg" class="small"></span></div>`}`;
 },bind(){
+  const pb=$("#inf-print");if(pb)pb.onclick=()=>{const t=document.title;const i=(S.mode==="nadador"?S.miInf||[]:S.inf||[]).find(x=>x.id===S.param);
+    const nn=i&&(S.mode==="nadador"?(S.nad[0]||{}).nombre:(nadById(i.nadador)||{}).nombre)||"";document.title=("Informe "+nn+" "+(i?fmtD(i.fecha):"")).trim();window.print();setTimeout(()=>document.title=t,500)};
   if(S.mode==="coach"){const st=$("#pub-st");if(st)publicarYa().then(ok=>{st.innerHTML=ok?`<span class="up">✓ Publicado en su app</span>`:`<span class="muted">Publicando…</span>`})}
   const b=$("#inf-del");if(!b)return;
   b.onclick=async()=>{if(b.dataset.c!=="1"){b.dataset.c="1";b.textContent="¿Eliminar? El nadador deja de verlo";b.className="btn danger sm";return}
