@@ -2073,7 +2073,7 @@ R.videos={html(){
 // convierte a MP4/WebM (H.264 o VP8/9), recorta a "max" s y baja a 1280 px: dibuja el video en un canvas y lo graba
 async function recodeVideo(file,start,max,onProg){
   if(!window.MediaRecorder||!HTMLCanvasElement.prototype.captureStream)throw {code:"no_recode"};
-  const mime=["video/mp4;codecs=avc1","video/mp4","video/webm;codecs=vp9","video/webm;codecs=vp8","video/webm"].find(t=>MediaRecorder.isTypeSupported(t));if(!mime)throw {code:"no_recode"};
+  const mime=["video/mp4;codecs=avc1,mp4a.40.2","video/mp4;codecs=avc1","video/mp4","video/webm;codecs=vp9,opus","video/webm;codecs=vp8,opus","video/webm"].find(t=>MediaRecorder.isTypeSupported(t));if(!mime)throw {code:"no_recode"};
   const v=document.createElement("video");v.muted=true;v.playsInline=true;v.setAttribute("playsinline","");v.src=URL.createObjectURL(file);
   v.style.cssText="position:fixed;left:0;top:0;width:2px;height:2px;opacity:0;pointer-events:none";document.body.appendChild(v);
   try{
@@ -2082,13 +2082,16 @@ async function recodeVideo(file,start,max,onProg){
     const c=document.createElement("canvas");c.width=cw;c.height=ch;const x=c.getContext("2d");
     const end=Math.min(v.duration,start+max);
     await new Promise(res=>{v.onseeked=res;v.currentTime=start});
-    const st=c.captureStream(30),rec=new MediaRecorder(st,{mimeType:mime,videoBitsPerSecond:4000000}),parts=[];
+    // audio: el video pasa por Web Audio (no suena en los parlantes) y su pista se graba junto con la imagen
+    let ac=null,aTr=[];
+    try{const AC=window.AudioContext||window.webkitAudioContext;if(AC){ac=new AC();await ac.resume().catch(()=>{});const src=ac.createMediaElementSource(v),dst=ac.createMediaStreamDestination();src.connect(dst);aTr=dst.stream.getAudioTracks();v.muted=false}}catch(_){aTr=[]}
+    const st=new MediaStream([...c.captureStream(30).getVideoTracks(),...aTr]),rec=new MediaRecorder(st,{mimeType:mime,videoBitsPerSecond:4000000,audioBitsPerSecond:96000}),parts=[];
     rec.ondataavailable=e=>{if(e.data&&e.data.size)parts.push(e.data)};
     const done=new Promise(res=>rec.onstop=res);
     x.drawImage(v,0,0,cw,ch);rec.start(250);await v.play();
     await new Promise(res=>{const tick=()=>{x.drawImage(v,0,0,cw,ch);onProg&&onProg(v.currentTime-start);if(v.currentTime>=end-0.03||v.ended){res();return}
       (v.requestVideoFrameCallback?v.requestVideoFrameCallback(tick):requestAnimationFrame(tick))};tick()});
-    v.pause();rec.stop();await done;
+    v.pause();rec.stop();await done;if(ac)ac.close().catch(()=>{});
     const type=mime.split(";")[0],blob=new Blob(parts,{type});
     return new File([blob],"clip."+(type==="video/mp4"?"mp4":"webm"),{type});
   }finally{v.remove();URL.revokeObjectURL(v.src)}
