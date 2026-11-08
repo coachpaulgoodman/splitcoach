@@ -1023,7 +1023,7 @@ async function syncFichas(){
     const payload={nombre:n.nombre||"",sexo:n.sexo||"",nacimiento:n.nacimiento||"",club:n.club||"",objetivos:n.objetivos||"",pruebasFav:n.pruebasFav||"",metas:n.metas||{},
       res:resOf(n.nombre).filter(r=>r.seg!=null).map(r=>({prueba:r.prueba,piscina:String(r.piscina||""),seg:r.seg,tiempo:r.tiempo||"",fecha:r.fecha||"",torneo:r.torneo||"",lugar:r.lugar||null})),
       par:S.par.filter(p=>ks.has(norm(p.nadador))).map(p=>({prueba:p.prueba,piscina:String(p.piscina||""),tramo:p.tramo,tipo:p.tipo||"",fecha:p.fecha||"",torneo:p.torneo||"",splits:p.splits||[]})),
-      vid:S.vid.filter(v=>v.nadadorId===n.id&&v.compartido).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).slice(0,30).map(v=>({id:v.id,assetId:v.assetId,prueba:v.prueba||"",fecha:v.fecha||"",notas:v.notas||"",marcas:v.marcas||[],trazos:v.trazos||[]})),
+      vid:S.vid.filter(v=>v.nadadorId===n.id&&v.compartido).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).slice(0,30).map(v=>({id:v.id,assetId:v.assetId,prueba:v.prueba||"",fecha:v.fecha||"",notas:v.notas||"",marcas:v.marcas||[],trazos:v.trazos||[],carrera:v.carrera||null})),
       inf:(S.inf||[]).filter(i=>i.nadador===n.id).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).slice(0,20).map(i=>({id:i.id,fecha:i.fecha||"",titulo:i.titulo||"",data:i.data||null,pdf:i.pdf||null}))};
     if(fichaHash[n.uid]===undefined){try{const s=await S.db.doc("buzon/"+n.uid+"/ficha/datos").get();const d=s.exists?Object.assign({},s.data()):null;if(d)delete d.act;prevRk[n.uid]=d&&d.rk||null;fichaHash[n.uid]=d?JSON.stringify(d):""}catch(_){fichaHash[n.uid]=""}}
     const rk=rankFor(n);if(rk)prevRk[n.uid]=rk;else loadFullTor();
@@ -2118,6 +2118,14 @@ R.video={html(){
     <div class="note" id="hint">Elige Flecha, Círculo o Ángulo y dibuja: el video se pausa solo. "Borrar y seguir" limpia lo que dibujaste y continúa; si sigues con ▶, los dibujos se ven 2 s y desaparecen.</div>
     <div class="kpi" id="meas"></div>
   </section>
+  <section class="card"><div class="head"><h3>Carrera: cronómetro, breakout y DPS</h3></div>
+    <div class="coach-only" style="display:grid;gap:8px">
+      <div class="note">1) Detén el video en la señal de salida y pulsa <b>Partida aquí</b>. 2) Marca 2 o más referencias en el carril: elige los metros y toca ese punto (pared = 0, banderines = 5 m, marca de 15 m…). 3) <b>Breakout</b>: avanza hasta que la cabeza rompe la superficie y tócala. 4) <b>Ciclos</b>: toca la cabeza al inicio de cada ciclo de brazada, siempre en el mismo momento del ciclo.</div>
+      <div class="row"><button class="btn sm" id="rc-t0">⏱ Partida aquí</button><button class="btn ghost sm" id="rc-t0x">Quitar partida</button></div>
+      <div class="row rc-refs"><span class="small muted">Referencia:</span>${[0,5,10,15,25].map(m=>`<button class="btn ghost sm" data-rref="${m}">${m===0?"Pared 0 m":m+" m"}</button>`).join("")}<input id="rc-m" type="number" step="0.5" min="0" placeholder="otro" style="width:70px;padding:4px 8px" aria-label="Metros de otra referencia"><button class="btn ghost sm" data-rref="x">OK</button></div>
+      <div class="row"><button class="btn ghost sm" data-tool="bo">🌊 Breakout</button><button class="btn ghost sm" data-tool="cy">🔁 Ciclos (DPS)</button><button class="btn ghost sm" id="rc-und">↶ Último punto</button><button class="btn ghost sm" id="rc-clr">Borrar carrera</button></div>
+    </div>
+    <div class="kpi" id="rc-k"></div><div id="rc-cy" class="small"></div></section>
   <section class="card coach-only"><h3>Frecuencia de brazada</h3>
     <div class="row"><button class="btn" id="tap">Ciclo</button><button class="btn ghost sm" id="tapr">Reiniciar</button><span class="small muted">Toca en cada entrada de la misma mano. Usa el tiempo del video, así funciona en cámara lenta.</span></div>
     <div class="kpi" id="sr"></div></section>
@@ -2134,7 +2142,7 @@ R.video={html(){
   if(S.mode==="nadador")markSeen("vid",v.id);
   initPlayer(v);
   const b=$("#vshare");if(b)b.onclick=async()=>{const P=S.vp||{};const on=!v.compartido,n=nadById(v.nadadorId);
-    const d={compartido:on,notas:($("#vn")||{}).value||"",marcas:P.marks||v.marcas||[],trazos:P.shapes||v.trazos||[],track:P.track||v.track||[],calib:P.calib||null};
+    const d={compartido:on,notas:($("#vn")||{}).value||"",marcas:P.marks||v.marcas||[],trazos:P.shapes||v.trazos||[],track:P.track||v.track||[],calib:P.calib||null,carrera:P.race||v.carrera||null};
     b.disabled=true;if(await dbWrite(db=>db.collection("videos").doc(v.id).update(d),$("#vmsg"))){Object.assign(v,d);P.dirty=false;
       if(on)await publicarYa();
       $("#vmsg").innerHTML=on?`<span class="up">✓ Compartido y publicado.</span> <a class="btn sm" target="_blank" rel="noopener" href="${esc(waLink(n,"Hola "+n.nombre.split(" ")[0]+", te compartí un video con correcciones en SplitCoach 🎥 "+appUrl("#video-"+v.id)))}">Avisar por WhatsApp</a>`:`<span class="muted">Ya no lo ve.</span>`;
@@ -2143,7 +2151,7 @@ R.video={html(){
 function refreshMarks(){if(S.vp&&S.vp.drawMarks)S.vp.drawMarks()}
 function initPlayer(v){
   const vid=$("#vid"),cv=$("#ov"),ctx=cv.getContext("2d");
-  const P={tool:null,pts:[],shapes:JSON.parse(JSON.stringify(v.trazos||[])),calib:v.calib||null,track:(v.track||[]).slice(),marks:(v.marcas||[]).slice(),taps:[],dirty:false,auto:null};
+  const P={race:JSON.parse(JSON.stringify(v.carrera||{t0:null,refs:[],bo:null,cy:[]})),tool:null,pts:[],shapes:JSON.parse(JSON.stringify(v.trazos||[])),calib:v.calib||null,track:(v.track||[]).slice(),marks:(v.marcas||[]).slice(),taps:[],dirty:false,auto:null};
   S.vp=P;const FPS=30,dt=1/FPS;
   const W=()=>vid.videoWidth||1280,H=()=>vid.videoHeight||720;
   function fit(){const r=vid.getBoundingClientRect();cv.width=Math.round(r.width*devicePixelRatio);cv.height=Math.round(r.height*devicePixelRatio);draw()}
@@ -2182,7 +2190,34 @@ function initPlayer(v){
       tr.forEach(p=>{const [x,y]=toCv([p.x,p.y]);ctx.fillStyle=Math.abs(p.t-vid.currentTime)<dt/2?"#fff":red;ctx.beginPath();ctx.arc(x,y,3.5*devicePixelRatio,0,7);ctx.fill()})}
     P.pts.forEach(p=>{const [x,y]=toCv(p);ctx.fillStyle=yel;ctx.beginPath();ctx.arc(x,y,5*devicePixelRatio,0,7);ctx.fill()});
     if(P.tool==="angulo"&&P.pts.length&&P.hover){ctx.strokeStyle="rgba(63,224,255,.6)";ctx.setLineDash([6,5]);const q=P.pts.map(toCv);ctx.beginPath();ctx.moveTo(...q[0]);q.slice(1).forEach(x=>ctx.lineTo(...x));ctx.lineTo(...toCv(P.hover));ctx.stroke();ctx.setLineDash([])}
+    raceDraw();
     if(!fast)measures();
+  }
+  /* ---- carrera: distancia por referencias (interpolación por tramos sobre el carril) ---- */
+  function rDist(q){const R=P.race.refs.slice().sort((a,b)=>a.m-b.m);if(R.length<2)return null;
+    const seg=i=>{const a=R[i].p,b=R[i+1].p,vx=b[0]-a[0],vy=b[1]-a[1],L=vx*vx+vy*vy||1,t=((q[0]-a[0])*vx+(q[1]-a[1])*vy)/L;return {t,d:R[i].m+t*(R[i+1].m-R[i].m)}};
+    for(let i=0;i<R.length-1;i++){const r=seg(i);if(r.t>=0&&r.t<=1)return r.d}
+    const f=seg(0);if(f.t<0)return f.d;return seg(R.length-2).d}
+  const rT=t=>P.race.t0==null?null:t-P.race.t0;
+  function fmtRc(x){if(x==null)return "—";const neg=x<0;x=Math.abs(x);const m=Math.floor(x/60),ss=(x-m*60).toFixed(2);return (neg?"−":"")+(m?m+":"+ss.padStart(5,"0"):ss)}
+  function raceDraw(){const R=P.race,ct=vid.currentTime,dp=devicePixelRatio;
+    R.refs.forEach(r=>{const [x,y]=toCv(r.p);ctx.strokeStyle="#7CFC9A";ctx.lineWidth=2*dp;ctx.beginPath();ctx.moveTo(x,y-10*dp);ctx.lineTo(x,y+10*dp);ctx.stroke();label(r.p,r.m+" m")});
+    if(R.bo&&Math.abs(ct-R.bo.t)<1.5){const [x,y]=toCv(R.bo.p);ctx.strokeStyle="#3FE0FF";ctx.lineWidth=3*dp;ctx.beginPath();ctx.arc(x,y,12*dp,0,7);ctx.stroke();const d=rDist(R.bo.p);label(R.bo.p,"Breakout"+(d!=null?" "+d.toFixed(1)+" m":""))}
+    R.cy.forEach((c,i)=>{if(Math.abs(ct-c.t)>1.2)return;const [x,y]=toCv(c.p);ctx.fillStyle="#FFD23F";ctx.beginPath();ctx.arc(x,y,6*dp,0,7);ctx.fill();label(c.p,"C"+(i+1))});
+    if(R.t0!=null&&ct>=R.t0-0.001){const txt=fmtRc(ct-R.t0);ctx.font=`700 ${26*dp}px "JetBrains Mono",monospace`;const w=ctx.measureText(txt).width;
+      ctx.fillStyle="rgba(0,0,0,.6)";ctx.fillRect(10*dp,10*dp,w+20*dp,40*dp);ctx.fillStyle="#fff";ctx.fillText(txt,20*dp,40*dp)}
+  }
+  function raceShow(){const R=P.race,k=$("#rc-k"),c=$("#rc-cy");if(!k)return;const out=[];
+    out.push(`<div><b>${R.t0!=null?R.t0.toFixed(2)+" s":"—"}</b><span>Partida (video)</span></div>`);
+    if(R.bo){const t=rT(R.bo.t),d=rDist(R.bo.p);out.push(`<div><b>${d!=null?d.toFixed(1)+" m":"—"}</b><span>Breakout distancia</span></div><div><b>${fmtRc(t)}</b><span>Breakout tiempo</span></div>`);
+      if(d!=null&&t>0)out.push(`<div><b>${(d/t).toFixed(2)}</b><span>m/s hasta breakout</span></div>`)}
+    const cy=R.cy.slice().sort((a,b)=>a.t-b.t);let rows="";
+    if(cy.length>1){const n=cy.length-1,T=cy[n].t-cy[0].t,d0=rDist(cy[0].p),d1=rDist(cy[n].p);
+      out.push(`<div><b>${(n/T*60).toFixed(1)}</b><span>Ciclos/min (${n})</span></div>`);
+      if(d0!=null&&d1!=null){const D=d1-d0;out.push(`<div><b>${(D/n).toFixed(2)} m</b><span>DPS promedio</span></div><div><b>${(D/T).toFixed(2)}</b><span>m/s nado</span></div>`);
+        rows=cy.slice(1).map((x,i)=>{const dd=rDist(x.p)-rDist(cy[i].p),tt=x.t-cy[i].t;return `<span class="chip">C${i+1}: ${dd.toFixed(2)} m · ${tt.toFixed(2)} s</span>`}).join(" ")}}
+    if(R.refs.length<2&&(R.bo||R.cy.length))out.push(`<div><b>—</b><span>Faltan 2 referencias de distancia</span></div>`);
+    k.innerHTML=out.join("");if(c)c.innerHTML=rows?`<div class="row" style="flex-wrap:wrap;gap:6px;margin-top:6px">${rows}</div>`:"";
   }
   function measures(){
     const tr=P.track.slice().sort((a,b)=>a.t-b.t),box=$("#meas");if(!box)return;
@@ -2196,8 +2231,9 @@ function initPlayer(v){
     box.innerHTML=h;
   }
   function setTool(t){P.tool=P.tool===t?null:t;P.pts=[];$$("[data-tool]").forEach(b=>b.classList.toggle("on",b.dataset.tool===P.tool));cv.classList.toggle("arm",!!P.tool);cv.style.pointerEvents=P.tool?"auto":"none";
-    const hints={flecha:"Arrastra desde el inicio hasta la punta (o toca dos puntos).",circulo:"Arrastra desde el centro hacia el borde (o toca centro y borde).",linea:"Toca dos puntos para medir una distancia.",angulo:"Toca tres puntos: extremo, vértice y extremo (ej. hombro–codo–muñeca).",calib:"Toca los dos extremos de algo de largo conocido (ej. ancho de carril 2,5 m) para medir en metros.",track:"Toca el punto a seguir; el video avanza un cuadro solo. Repite para dibujar la trayectoria."};
-    $("#hint").textContent=P.tool?hints[P.tool]:"Elige una herramienta y toca sobre el video.";draw()}
+    const hints={ref:"Toca el punto del carril que está a esa distancia.",bo:"Avanza al cuadro donde la cabeza rompe la superficie y tócala.",cy:"Toca la cabeza al inicio de cada ciclo (avanza con ▸ entre toques). Vuelve a pulsar Ciclos para terminar.",flecha:"Arrastra desde el inicio hasta la punta (o toca dos puntos).",circulo:"Arrastra desde el centro hacia el borde (o toca centro y borde).",linea:"Toca dos puntos para medir una distancia.",angulo:"Toca tres puntos: extremo, vértice y extremo (ej. hombro–codo–muñeca).",calib:"Toca los dos extremos de algo de largo conocido (ej. ancho de carril 2,5 m) para medir en metros.",track:"Toca el punto a seguir; el video avanza un cuadro solo. Repite para dibujar la trayectoria."};
+    $("#hint").textContent=P.tool?hints[P.tool]:"Elige una herramienta y toca sobre el video.";draw();
+    if(["ref","bo","cy"].includes(P.tool)){const st=$("#stage"),r=st.getBoundingClientRect();const hh=Math.max(0,...["header.top","#tabs"].map(q=>{const e=document.querySelector(q);return e?e.getBoundingClientRect().bottom:0}));if(r.top<hh+4||r.bottom>innerHeight)scrollTo({top:scrollY+r.top-hh-8,behavior:"smooth"})}}
   cv.style.pointerEvents="none";
   const evP=ev=>{const r=cv.getBoundingClientRect();return [(ev.clientX-r.left)/r.width*W(),(ev.clientY-r.top)/r.height*H()]};
   const DRAG=["flecha","circulo","linea"];
@@ -2207,6 +2243,9 @@ function initPlayer(v){
     if(a&&Math.hypot(p[0]-a[0],p[1]-a[1])>W()*0.015){addShape({t:P.tool,p:[a,p]});P.pts=[]}draw()});
   cv.addEventListener("pointerdown",ev=>{
     if(!P.tool)return;ev.preventDefault();if(!vid.paused)vid.pause();const p=evP(ev);
+    if(P.tool==="ref"){P.race.refs=P.race.refs.filter(r=>r.m!==P.refM);P.race.refs.push({m:P.refM,p});P.dirty=true;setTool("ref");raceShow();return}
+    if(P.tool==="bo"){P.race.bo={t:+vid.currentTime.toFixed(3),p};P.dirty=true;setTool("bo");raceShow();draw();return}
+    if(P.tool==="cy"){const t=+vid.currentTime.toFixed(3);P.race.cy=P.race.cy.filter(c=>Math.abs(c.t-t)>0.001);P.race.cy.push({t,p});P.race.cy.sort((a,b)=>a.t-b.t);P.dirty=true;raceShow();draw();return}
     if(DRAG.includes(P.tool)&&!P.pts.length){P.pts=[p];P.drag=true;try{cv.setPointerCapture(ev.pointerId)}catch(_){}draw();return}
     if(P.tool==="track"){P.track=P.track.filter(x=>Math.abs(x.t-vid.currentTime)>dt/2);P.track.push({t:+vid.currentTime.toFixed(3),x:p[0],y:p[1]});P.dirty=true;step(1);draw();return}
     P.pts.push(p);
@@ -2224,6 +2263,12 @@ function initPlayer(v){
   // calibración: largo de referencia
   $("[data-tool=calib]").insertAdjacentHTML("afterend",`<input id="calm" type="number" step="0.1" min="0.1" value="${P.calib?P.calib.m:2.5}" style="width:74px;padding:4px 8px" aria-label="Metros de referencia" title="Metros de referencia">`);
   $$("[data-tool]").forEach(b=>b.onclick=()=>setTool(b.dataset.tool));
+  $$("[data-rref]").forEach(b=>b.onclick=()=>{const m=b.dataset.rref==="x"?parseFloat($("#rc-m").value):+b.dataset.rref;if(!isFinite(m))return;P.refM=m;if(P.tool!=="ref")setTool("ref");$("#hint").textContent=`Toca el punto del carril que está a ${m} m.`});
+  $("#rc-t0").onclick=()=>{P.race.t0=+vid.currentTime.toFixed(3);P.dirty=true;raceShow();draw()};
+  $("#rc-t0x").onclick=()=>{P.race.t0=null;P.dirty=true;raceShow();draw()};
+  $("#rc-und").onclick=()=>{const R=P.race;if(R.cy.length)R.cy.pop();else if(R.bo)R.bo=null;else R.refs.pop();P.dirty=true;raceShow();draw()};
+  $("#rc-clr").onclick=()=>{P.race={t0:null,refs:[],bo:null,cy:[]};P.dirty=true;raceShow();draw()};
+  raceShow();
   $("#clr").onclick=()=>{P.shapes=[];P.track=[];P.pts=[];P.calib=null;P.dirty=true;draw()};
   // reproducción
   const pp=$("#pp"),tc=$("#tc"),sc=$("#scrub");
@@ -2252,7 +2297,7 @@ function initPlayer(v){
     $$("[data-mdel]").forEach(b=>b.onclick=()=>{const s=P.marks.slice().sort((a,b)=>a.t-b.t);const k=s[+b.dataset.mdel];P.marks=P.marks.filter(x=>x!==k);P.dirty=true;P.drawMarks()})};
   P.drawMarks();
   $("#mkadd").onclick=()=>{const t=$("#mk").value.trim();if(!t)return;P.marks.push({t:+vid.currentTime.toFixed(2),txt:t});$("#mk").value="";P.dirty=true;P.drawMarks()};
-  $("#vsave").onclick=async()=>{const d={notas:$("#vn").value,marcas:P.marks,trazos:P.shapes,track:P.track,calib:P.calib||null};
+  $("#vsave").onclick=async()=>{const d={notas:$("#vn").value,marcas:P.marks,trazos:P.shapes,track:P.track,calib:P.calib||null,carrera:P.race};
     if(await dbWrite(db=>db.collection("videos").doc(v.id).update(d),$("#vmsg"))){P.dirty=false;$("#vmsg").innerHTML=`<span class="up">Análisis guardado</span>`}};
   $("#vdel").onclick=async e=>{const b=e.target;if(b.dataset.c!=="1"){b.dataset.c="1";b.textContent="¿Eliminar video?";b.className="btn danger sm";return}
     const ok=await dbWrite(db=>db.collection("videos").doc(v.id).delete(),$("#vmsg"));if(ok){try{if(S.assets)await S.assets.delete(v.assetId)}catch(_){}location.hash="#videos"}};
