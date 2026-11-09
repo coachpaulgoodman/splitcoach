@@ -288,6 +288,10 @@ code{font-family:var(--f-mono);font-size:12.5px;background:var(--soft);padding:1
   .inf-graf svg{max-height:62mm;width:auto;max-width:100%;margin:0 auto}
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
+.tc-grid{display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.tc-ch h4{margin:8px 0 0;font-size:17px;font-family:var(--f-display)}.tc-ch h4 small{font-size:11px;color:var(--muted);font-weight:400}.tc-ch svg{width:100%;height:auto;display:block}
+.tc-t{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:8px}.tc-t th{background:#14708A;color:#fff;padding:7px 8px;text-align:center}.tc-t th:first-child{text-align:center}
+.tc-t td{padding:6px 8px;text-align:center;border-bottom:1px solid var(--line)}.tc-t tr.hl td{background:color-mix(in srgb,var(--accent) 12%,transparent);font-weight:600}
 /* ---- Tema SplitCoach: pizarra + turquesa ---- */
 header.top{border-bottom:1px solid var(--line)}
 .brand{padding-block:14px 8px}
@@ -609,7 +613,7 @@ R.ficha={html(){
       <a class="btn ghost sm" href="#chat-${encodeURIComponent(n.id)}">Mensajes${unread(S.buz[tk(n)],"coach")?" · nuevo":""}</a></div>
   </section>
   ${infFichaHTML(n)}
-  ${marcasHTML(n,true)}<section class="card" hidden><h3>Mejores tiempos</h3>${pbTable}
+  ${marcasHTML(n,true)}${torChartsHTML(n,false)}<section class="card" hidden><h3>Mejores tiempos</h3>${pbTable}
     <details><summary class="small" style="cursor:pointer;color:var(--accent);font-weight:600">Agregar marca (control o test)</summary>
       <div class="form three" style="margin-top:10px">
         <label>Prueba<select id="m-p">${PRUEBAS.map(p=>`<option>${p}</option>`).join("")}</select></label>
@@ -1770,6 +1774,47 @@ R.informe={html(){
 }};
 
 /* ================= vistas del nadador: Mis torneos y Mis videos ================= */
+/* ---------- Mis tiempos en torneos: una curva por prueba, meta y tabla de mejora ---------- */
+const MESES=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+const fDia=f=>{const m=String(f||"").match(/^(\d{4})-(\d{2})-(\d{2})/);return m?`${+m[3]} ${MESES[+m[2]-1]}`:""};
+const sComa=v=>v>=60?fmtT(v).replace(".",","):v.toFixed(2).replace(".",",");
+const ESTCOLS={Libre:"#14708A",Espalda:"#D04545",Pecho:"#2E8B57",Mariposa:"#7B4FA0",Combinado:"#C98A2B"};
+function torSeries(n){
+  const rs=resOf(n.nombre).filter(r=>r.seg!=null&&r.torneo&&r.fecha);if(!rs.length)return [];
+  const lim=new Date(Date.now()-365*864e5).toISOString().slice(0,10),by={};
+  rs.filter(r=>r.fecha>=lim).forEach(r=>{const k=r.prueba+"|"+r.piscina;(by[k]=by[k]||[]).push(r)});
+  return Object.keys(by).map(k=>{const [prueba,pis]=k.split("|");
+      const pts=by[k].reduce((m,r)=>{const kk=r.fecha+"|"+r.torneo;if(!m[kk]||r.seg<m[kk].seg)m[kk]=r;return m},{});
+      const l=Object.values(pts).sort((a,b)=>a.fecha.localeCompare(b.fecha)).slice(-6);return {prueba,pis,l,meta:metaOf(n,prueba,pis)}})
+    .filter(x=>x.l.length>=2).sort((a,b)=>b.l[b.l.length-1].fecha.localeCompare(a.l[a.l.length-1].fecha)||ordPrueba(a.prueba)-ordPrueba(b.prueba)).slice(0,4);
+}
+function torLine(x){
+  const W=360,H=230,P={l:38,r:14,t:30,b:46},iw=W-P.l-P.r,ih=H-P.t-P.b,est=estiloOf(x.prueba),col=ESTCOLS[est]||"#14708A";
+  const vals=x.l.map(r=>r.seg).concat(x.meta!=null?[x.meta]:[]);let lo=Math.min(...vals),hi=Math.max(...vals);const pad=Math.max((hi-lo)*.18,hi*.01,.3);lo-=pad*1.8;hi+=pad;
+  const step=[.5,1,2,5,10,20].find(s=>(hi-lo)/s<=6)||30,t0=Math.ceil(lo/step)*step,ticks=[];for(let v=t0;v<=hi;v+=step)ticks.push(+v.toFixed(2));
+  const n=x.l.length,X=i=>P.l+(n===1?iw/2:iw*(i+.5)/n),Y=v=>P.t+(hi-v)/(hi-lo)*ih;
+  let g=ticks.map(v=>`<line x1="${P.l}" x2="${W-P.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)" stroke-width=".7"/><text x="${P.l-6}" y="${Y(v)+3.5}" text-anchor="end" font-size="10" fill="var(--muted)">${v>=60?fmtT(v):v}</text>`).join("");
+  if(x.meta!=null)g+=`<line x1="${P.l}" x2="${W-P.r}" y1="${Y(x.meta)}" y2="${Y(x.meta)}" stroke="var(--muted)" stroke-dasharray="5 4"/><text x="${P.l+4}" y="${Y(x.meta)+13}" font-size="9.5" fill="var(--muted)">meta: bajo ${sComa(x.meta)}</text>`;
+  g+=`<path d="${x.l.map((r,i)=>(i?"L":"M")+X(i).toFixed(1)+" "+Y(r.seg).toFixed(1)).join(" ")}" fill="none" stroke="${col}" stroke-width="2.6" stroke-linejoin="round"/>`;
+  g+=x.l.map((r,i)=>{const last=i===n-1,up=last&&x.l.length>1&&r.seg<x.l[i-1].seg;return `<circle cx="${X(i)}" cy="${Y(r.seg)}" r="5.5" fill="${col}"/><text x="${X(i)}" y="${up?Y(r.seg)+20:Y(r.seg)-11}" text-anchor="middle" font-size="${last?12.5:11.5}" font-weight="${last?700:400}" fill="var(--ink)">${sComa(r.seg)} s</text>
+    <text x="${X(i)}" y="${H-P.b+16}" text-anchor="middle" font-size="10" fill="var(--ink)">${esc(String(r.torneo).replace(/^(copa|torneo)\s+/i,"").slice(0,16))}</text><text x="${X(i)}" y="${H-P.b+29}" text-anchor="middle" font-size="10" fill="var(--muted)">${fDia(r.fecha)}</text>`}).join("");
+  g+=`<line x1="${P.l}" x2="${P.l}" y1="${P.t-6}" y2="${H-P.b}" stroke="var(--muted)"/><line x1="${P.l}" x2="${W-P.r}" y1="${H-P.b}" y2="${H-P.b}" stroke="var(--muted)"/>`;
+  return `<div class="tc-ch"><h4 style="color:${col}">${esc(x.prueba)}${x.pis!=="25"?` <small>(piscina ${esc(x.pis)} m)</small>`:""}</h4><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(x.prueba)}: tiempos por torneo">${g}</svg></div>`;
+}
+function torChartsHTML(n,yo){
+  const L=torSeries(n);if(!L.length)return "";
+  const T=L.slice(0,3),tors=[...new Map(T.flatMap(x=>x.l).map(r=>[r.fecha+"|"+r.torneo,r])).values()].sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  const cell=(x,t)=>{const r=x.l.find(r=>r.fecha===t.fecha&&r.torneo===t.torneo);return r?sComa(r.seg):"—"};
+  const lastT=tors[tors.length-1],f0=tors[0].fecha,f1=lastT.fecha,dists=[...new Set(L.map(x=>x.prueba.split(" ")[0]))].join(" y ");
+  const mej=x=>{const d=x.l[x.l.length-1].seg-x.l[0].seg;return `<b class="${d<0?"up":d>0?"down":""}">${d<0?"−":"+"}${Math.abs(d).toFixed(2).replace(".",",")} s</b>`};
+  return `<section class="card tc"><h3 style="text-align:center;margin:0">${yo?"Mis tiempos en torneos":"Tiempos en torneos"} · ${esc(String(n.nombre||"").split(" ")[0])}</h3>
+    <div class="small muted" style="text-align:center">${esc(dists)} m · ${fDia(f0)} – ${fDia(f1)} ${f1.slice(0,4)}</div>
+    <div class="tc-grid">${L.map(torLine).join("")}</div>
+    <div class="tablewrap"><table class="tc-t"><thead><tr><th>Torneo</th>${T.map(x=>`<th class="num">${esc(x.prueba)}</th>`).join("")}</tr></thead><tbody>
+      ${tors.map((t,i)=>`<tr class="${i===tors.length-1?"hl":""}"><td>${esc(t.torneo)} · ${fDia(t.fecha)}</td>${T.map(x=>`<td class="num">${cell(x,t)}</td>`).join("")}</tr>`).join("")}
+      <tr class="hl"><td><b>Mejora (${esc(String(tors[0].torneo).slice(0,14))} → ${esc(String(lastT.torneo).slice(0,14))})</b></td>${T.map(x=>`<td class="num">${mej(x)}</td>`).join("")}</tr></tbody></table></div>
+    ${L.some(x=>x.meta==null)?`<div class="note">${yo?"":"Fija la meta de cada prueba en Mejores marcas para ver la línea de meta."}</div>`:""}</section>`;
+}
 R.mistorneos={html(){
   const n=S.nad[0];if(!n)return emptyBox(loading()?"Cargando…":"Tu ficha aún no está publicada","");
   const rs=resOf(n.nombre).filter(r=>r.seg!=null&&r.torneo);
@@ -1788,7 +1833,7 @@ R.mistorneos={html(){
     return `<section class="card"><div class="head"><div><h3>${esc(t)}</h3><div class="small muted">${fmtD(f)} · ${g.length} prueba${g.length>1?"s":""}</div></div>
       <div class="row" style="gap:6px">${gpb?`<span class="chip pas-pb">${gpb} PB</span>`:""}${gm.map((c,i)=>c?`<span class="medal m${i+1}" title="${["Oro","Plata","Bronce"][i]}">${c}</span>`:"").join("")}</div></div>
       <div class="tablewrap"><table class="pas-t prog-t"><thead><tr><th>Prueba</th><th class="num">Tiempo</th><th class="num">Lugar</th><th class="num">vs PB previo</th></tr></thead><tbody>${filas}</tbody></table></div></section>`}).join("");
-  return `<section class="card"><h2>Mis torneos</h2>
+  return `${torChartsHTML(n,true)}<section class="card"><h2>Mis torneos</h2>
     <div class="kpi"><div><b>${keys.length}</b><span>Torneos</span></div><div><b>${rs.length}</b><span>Pruebas nadadas</span></div><div><b class="up">${pbs}</b><span>PB logrados</span></div><div><b>${med[0]} · ${med[1]} · ${med[2]}</b><span>Oro · Plata · Bronce</span></div></div>
     <div class="note">vs PB previo: tu tiempo comparado con tu mejor marca anterior a ese torneo (misma prueba y piscina). Verde = mejoraste.</div></section>${cards}`;
 },bind(){}};
