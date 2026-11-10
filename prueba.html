@@ -292,6 +292,7 @@ code{font-family:var(--f-mono);font-size:12.5px;background:var(--soft);padding:1
 .tc-ch h4{margin:8px 0 0;font-size:17px;font-family:var(--f-display)}.tc-ch h4 small{font-size:11px;color:var(--muted);font-weight:400}.tc-ch svg{width:100%;height:auto;display:block}
 .tc-t{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:8px}.tc-t th{background:#14708A;color:#fff;padding:7px 8px;text-align:center}.tc-t th:first-child{text-align:center}
 .tc-t td{padding:6px 8px;text-align:center;border-bottom:1px solid var(--line)}.tc-t tr.hl td{background:color-mix(in srgb,var(--accent) 12%,transparent);font-weight:600}
+.vloc #vsave,.vloc #vdel,.vloc #vmsg,.vloc label.coach-only{display:none!important}
 /* ---- Tema SplitCoach: pizarra + turquesa ---- */
 header.top{border-bottom:1px solid var(--line)}
 .brand{padding-block:14px 8px}
@@ -2081,7 +2082,7 @@ R.videos={html(){
         <label class="btn ghost" style="cursor:pointer">Elegir de la galería<input id="v-file" type="file" accept="video/*" hidden></label><span id="v-fn" class="small muted"></span></div>
       <div id="v-prep" class="full" hidden><video id="v-pv" playsinline muted controls style="width:100%;max-height:260px;background:#000;border-radius:10px"></video>
         <label id="v-cut" hidden>Inicio del recorte (se suben 30 s) <input id="v-ini" type="range" min="0" max="0" step="0.1" value="0"><span class="small" id="v-ini-t"></span></label></div>
-      <div class="row full"><button class="btn" id="v-up">Subir y analizar</button><span id="v-msg" class="small"></span></div></div>
+      <div class="row full"><button class="btn" id="v-up">Subir y analizar</button><button class="btn ghost" id="v-loc">👁 Solo mostrar (sin subir)</button><span id="v-msg" class="small"></span></div></div>
       <datalist id="dl-pr">${PRUEBAS.map(p=>`<option value="${p}">`).join("")}</datalist>
       <div class="note">Máximo 30 segundos. Si el video es más largo, eliges desde dónde recortar. Los videos de iPhone (.MOV) se convierten solos antes de subir (tarda lo que dura el clip).</div>`
     :`<div class="msg">Solo el entrenador puede subir videos.</div>`}</section>
@@ -2098,6 +2099,10 @@ R.videos={html(){
     pv.onerror=()=>{dur=0;$("#v-msg").innerHTML=`<span class="small muted">Este navegador no muestra la vista previa de este formato; se intentará convertir al subir.</span>`}};
   $("#v-cam").onchange=e=>pick(e.target);$("#v-file").onchange=e=>pick(e.target);
   $("#v-ini").oninput=e=>{const t=+e.target.value;$("#v-ini-t").textContent=` ${t.toFixed(1)}–${(t+30).toFixed(1)} s de ${dur.toFixed(1)} s`;$("#v-pv").currentTime=t};
+  $("#v-loc").onclick=()=>{const m=$("#v-msg");if(!file){m.innerHTML=`<span class="down">Graba o elige un video.</span>`;return}
+    if(S.localVid&&S.localVid.src)URL.revokeObjectURL(S.localVid.src);
+    S.localVid={id:"local",local:true,src:URL.createObjectURL(file),nadadorId:$("#v-nad").value,prueba:$("#v-pr").value.trim()||"Solo mostrar",fecha:today(),marcas:[],trazos:[],notas:""};
+    location.hash="#video-local"};
   $("#v-up").onclick=async()=>{
     const f=file,m=$("#v-msg");
     if(!f){m.innerHTML=`<span class="down">Graba o elige un video.</span>`;return}
@@ -2144,15 +2149,16 @@ async function recodeVideo(file,start,max,onProg){
 
 /* ----- reproductor tipo Kinovea ----- */
 function stopVideo(){if(S.vp&&S.vp.stop)S.vp.stop();S.vp=null}
+const vidOf=id=>id==="local"?S.localVid:S.vid.find(x=>x.id===id);
 R.video={html(){
-  const v=S.vid.find(x=>x.id===S.param);
+  const v=vidOf(S.param);
   if(!v)return `<section class="card"><a class="back" href="#videos">← Videos</a><div class="muted">${loading()||!S.got.vid?"Cargando…":"Video no encontrado."}</div></section>`;
-  const n=nadById(v.nadadorId),ro=S.mode==="nadador";
-  return `<div class="${ro?"vro":""}"><section class="card"><a class="back" href="${ro?"#misvideos":"#videos"}">← ${ro?"Mis videos":"Videos"}</a>
+  const n=nadById(v.nadadorId),ro=S.mode==="nadador",loc=!!v.local;
+  return `<div class="${ro?"vro":""}${loc?" vloc":""}">${loc?`<div class="msg" style="margin-bottom:10px">👁 <b>Modo solo mostrar:</b> el video está solo en este celular, no se sube ni se guarda. Al salir o recargar desaparece.</div>`:""}<section class="card"><a class="back" href="${ro?"#misvideos":"#videos"}">← ${ro?"Mis videos":"Videos"}</a>
     <div class="head"><div><h2>${esc(ro?(v.prueba||"Video"):n?n.nombre:"Video")}</h2><div class="small muted">${ro?"":esc(v.prueba||"")+" · "}${fmtD(v.fecha)}</div></div>
-      ${ro?"":n?`<button class="btn ${v.compartido?"":"ghost "}sm" id="vshare">${v.compartido?"✓ Compartido con "+esc(n.nombre.split(" ")[0]):"Compartir con "+esc(n.nombre.split(" ")[0])}</button>`:`<span class="small muted">Asigna un nadador para compartir</span>`}</div>
+      ${ro||loc?"":n?`<button class="btn ${v.compartido?"":"ghost "}sm" id="vshare">${v.compartido?"✓ Compartido con "+esc(n.nombre.split(" ")[0]):"Compartir con "+esc(n.nombre.split(" ")[0])}</button>`:`<span class="small muted">Asigna un nadador para compartir</span>`}</div>
     ${ro?`<div class="note">Dale ▶: las correcciones de tu entrenador aparecen sobre el video en el momento justo. Usa 0,25× para verlas con calma.</div>`:""}
-    <div class="stage" id="stage"><div class="vbox"><video id="vid" src="${SC_BLOB}${esc(v.assetId)}" crossorigin="anonymous" playsinline preload="auto"></video><canvas id="ov"></canvas></div></div>
+    <div class="stage" id="stage"><div class="vbox"><video id="vid" src="${v.local?v.src:SC_BLOB+esc(v.assetId)}" ${v.local?"":`crossorigin="anonymous"`} playsinline preload="auto"></video><canvas id="ov"></canvas></div></div>
     <div class="ctrl"><button class="btn sm" id="pp">▶</button><button class="btn ghost sm" id="fb" aria-label="Cuadro anterior">◀︎ 1</button><button class="btn ghost sm" id="ff" aria-label="Cuadro siguiente">1 ▶︎</button>
       <select id="rate" style="width:auto;padding:4px 8px" aria-label="Velocidad"><option value="0.1">0,1×</option><option value="0.25">0,25×</option><option value="0.5">0,5×</option><option value="1" selected>1×</option></select>
       <button class="btn ghost sm" id="snd" aria-label="Sonido">🔊</button><span class="time" id="tc">0.00</span><button class="btn danger sm" id="clrplay" hidden>✕ Borrar y seguir</button></div>
@@ -2186,7 +2192,7 @@ R.video={html(){
     ${S.sample?`<div class="note">Toma 4 cuadros desde la posición actual (cada 0,25 s) y pide una revisión técnica. Es una ayuda, no reemplaza tu ojo.</div>`:""}
     <div id="aiout">${v.analisis?`<div class="ai">${esc(v.analisis)}</div>`:""}</div></section>`:""}</div>`;
 },bind(){
-  const v=S.vid.find(x=>x.id===S.param);if(!v)return;
+  const v=vidOf(S.param);if(!v)return;
   if(S.mode==="nadador")markSeen("vid",v.id);
   initPlayer(v);
   const b=$("#vshare");if(b)b.onclick=async()=>{const P=S.vp||{};const on=!v.compartido,n=nadById(v.nadadorId);
