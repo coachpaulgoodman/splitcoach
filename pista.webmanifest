@@ -1,0 +1,17 @@
+{
+  "name": "SplitCoach Pista",
+  "short_name": "SC Pista",
+  "description": "Análisis de video al borde de la piscina: flecha, círculo y ángulo, sin subir nada.",
+  "start_url": "pista.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0F1A20",
+  "theme_color": "#0F1A20",
+  "lang": "es",
+  "icons": [
+    {"src": "pista-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "pista-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "pista-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}

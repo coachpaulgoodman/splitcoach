@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#0F1A20">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SC Pista">
+<link rel="manifest" href="pista.webmanifest">
+<link rel="apple-touch-icon" href="pista-192.png">
+<link rel="icon" href="pista-192.png">
+<title>SplitCoach Pista</title>
+<style>
+:root{--bg:#0F1A20;--pan:#17252D;--pan2:#203440;--ink:#EAF2F5;--mut:#8FA6B0;--acc:#3CC4C9;--red:#FF4D4D;--yel:#FFD23F;--cya:#3FE0FF;--grn:#4CD08A}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:600 15px/1.3 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overscroll-behavior:none}
+body{display:flex;flex-direction:column;height:100dvh;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+button,label.b{font:inherit;color:var(--ink);background:var(--pan2);border:0;border-radius:16px;min-height:58px;min-width:58px;padding:6px 10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;touch-action:manipulation;user-select:none}
+button small,label.b small{font-size:11px;font-weight:600;color:var(--mut)}
+button .i{font-size:24px;line-height:1}
+button:active,label.b:active{transform:scale(.96)}
+button.on{background:var(--acc);color:#0B2A30}button.on small{color:#0B2A30}
+button:disabled{opacity:.35}
+.top{display:flex;align-items:center;gap:10px;padding:8px 12px}
+.top img{width:34px;height:34px;border-radius:8px}.top b{font-size:17px}.top span{flex:1}
+#tc{font:700 18px ui-monospace,Menlo,monospace;color:var(--mut)}
+#stage{flex:1;min-height:0;display:grid;place-items:center;background:#000;position:relative;overflow:hidden}
+#box{position:relative;max-width:100%;max-height:100%}
+#vid{display:block;max-width:100%;max-height:100%;background:#000}
+#ov{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+#empty{display:grid;gap:14px;justify-items:center;text-align:center;padding:24px;color:var(--mut)}
+#empty .big{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+#empty label.b{min-width:150px;min-height:90px;font-size:17px;background:var(--acc);color:#0B2A30}
+#empty label.b.alt{background:var(--pan2);color:var(--ink)}
+#empty label.b .i{font-size:34px}
+.bar{display:grid;gap:8px;padding:8px 10px;background:var(--pan)}
+.row{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:8px}
+.cols{display:flex;gap:8px;justify-content:center}
+.dot{width:40px;height:40px;min-height:40px;min-width:40px;border-radius:50%;padding:0;border:3px solid transparent}
+.dot.on{border-color:#fff}
+#hint{font-size:13px;color:var(--mut);text-align:center;min-height:18px;padding:0 10px}
+#rec{position:absolute;top:10px;right:10px;background:var(--red);color:#fff;border-radius:20px;padding:6px 12px;font-size:14px;display:none}
+#toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 160px);transform:translateX(-50%);background:#000c;color:#fff;padding:10px 16px;border-radius:12px;font-size:14px;display:none;z-index:9;max-width:90vw;text-align:center}
+@media (orientation:landscape) and (max-height:520px){
+  body{display:grid;grid-template-columns:minmax(0,1fr) 330px;grid-template-rows:minmax(0,1fr) auto}
+  .top{display:none}
+  #stage{grid-column:1;grid-row:1/3;height:100%}
+  .bar{grid-column:2;grid-row:1;overflow:auto;align-content:center;padding:6px}
+  #hint{grid-column:2;grid-row:2;background:var(--pan);padding:4px 8px 8px;font-size:12px}
+  button,label.b{min-width:0;min-height:50px;border-radius:12px;padding:4px}
+  button .i{font-size:20px}button small{font-size:10px}
+  .dot{width:34px;height:34px;min-height:34px}
+}
+</style>
+</head>
+<body>
+<div class="top"><img src="pista-192.png" alt=""><b>SplitCoach Pista</b><span></span><span id="tc">0.00</span></div>
+<div id="stage">
+  <div id="empty">
+    <div style="font-size:18px;color:var(--ink)">Analiza un video aquí mismo, sin subirlo</div>
+    <div class="big">
+      <label class="b"><span class="i">🎥</span>Grabar<input id="cam" type="file" accept="video/*" capture="environment" hidden></label>
+      <label class="b alt"><span class="i">🖼</span>Galería<input id="gal" type="file" accept="video/*" hidden></label>
+    </div>
+    <div style="font-size:13px">El video queda solo en este celular.</div>
+  </div>
+  <div id="box" hidden><video id="vid" playsinline preload="auto"></video><canvas id="ov"></canvas><div id="rec">● Grabando</div></div>
+</div>
+<div id="hint"></div>
+<div class="bar" id="bar" hidden>
+  <div class="row">
+    <button id="fb" aria-label="Cuadro anterior"><span class="i">⏮</span><small>Cuadro</small></button>
+    <button id="pp" aria-label="Reproducir"><span class="i">▶</span><small>Play</small></button>
+    <button id="ff" aria-label="Cuadro siguiente"><span class="i">⏭</span><small>Cuadro</small></button>
+    <button id="spd"><span class="i">1×</span><small>Velocidad</small></button>
+  </div>
+  <div class="row">
+    <button data-t="flecha"><span class="i">➜</span><small>Flecha</small></button>
+    <button data-t="circulo"><span class="i">◯</span><small>Círculo</small></button>
+    <button data-t="angulo"><span class="i">∠</span><small>Ángulo</small></button>
+    <button id="undo"><span class="i">↶</span><small>Deshacer</small></button>
+    <button id="clr"><span class="i">✕</span><small>Borrar y seguir</small></button>
+  </div>
+  <div class="cols" id="cols"></div>
+  <div class="row">
+    <button id="shot"><span class="i">📷</span><small>Enviar cuadro</small></button>
+    <button id="clip"><span class="i">⏺</span><small>Grabar clip</small></button>
+    <button id="new"><span class="i">＋</span><small>Otro video</small></button>
+  </div>
+</div>
+<div id="toast"></div>
+<script>
+(function(){
+const $=q=>document.querySelector(q),$$=q=>[...document.querySelectorAll(q)];
+const vid=$("#vid"),ov=$("#ov"),ctx=ov.getContext("2d");
+const COLS=["#FF4D4D","#FFD23F","#3FE0FF","#4CD08A","#FFFFFF"];
+const S={tool:null,col:COLS[0],shapes:[],batch:[],pts:[],drag:null,prev:null,hover:null,rate:1,url:null,name:"video",rec:null};
+const FR=1/30,SHOW=2;
+const toast=(t,ms)=>{const e=$("#toast");e.textContent=t;e.style.display="block";clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display="none",ms||2500)};
+const hint=t=>$("#hint").textContent=t||"";
+/* ---------- colores ---------- */
+$("#cols").innerHTML=COLS.map((c,i)=>`<button class="dot${i?"":" on"}" data-c="${c}" style="background:${c}" aria-label="Color ${i+1}"></button>`).join("");
+$$("[data-c]").forEach(b=>b.onclick=()=>{S.col=b.dataset.c;$$("[data-c]").forEach(x=>x.classList.toggle("on",x===b))});
+/* ---------- cargar video ---------- */
+function load(f){if(!f)return;if(S.url)URL.revokeObjectURL(S.url);S.url=URL.createObjectURL(f);S.name=(f.name||"video").replace(/\.[^.]+$/,"");
+  S.shapes=[];S.batch=[];S.pts=[];vid.src=S.url;vid.load();$("#empty").hidden=true;$("#box").hidden=false;$("#bar").hidden=false;hint("Toca ▶. Para marcar un error, elige Flecha, Círculo o Ángulo y dibuja: el video se pausa solo.")}
+$("#cam").onchange=e=>load(e.target.files[0]);$("#gal").onchange=e=>load(e.target.files[0]);
+$("#new").onclick=()=>{vid.pause();$("#gal").value="";$("#cam").value="";$("#empty").hidden=false;$("#box").hidden=true;$("#bar").hidden=true;hint("")};
+vid.onerror=()=>toast("Este celular no puede abrir ese video. Prueba grabándolo de nuevo con la cámara.",4000);
+/* ---------- tamaño ---------- */
+function fit(){const r=vid.getBoundingClientRect(),d=devicePixelRatio||1;ov.width=Math.round(r.width*d);ov.height=Math.round(r.height*d);draw()}
+vid.addEventListener("loadedmetadata",()=>{fit();vid.currentTime=0.001});new ResizeObserver(fit).observe(vid);addEventListener("orientationchange",()=>setTimeout(fit,300));
+const VW=()=>vid.videoWidth||1280,VH=()=>vid.videoHeight||720;
+/* ---------- controles ---------- */
+const pp=$("#pp");
+vid.onplay=()=>{pp.innerHTML='<span class="i">❚❚</span><small>Pausa</small>';S.batch=[];S.pts=[];S.prev=null;loop()};
+vid.onpause=()=>{pp.innerHTML='<span class="i">▶</span><small>Play</small>';draw()};
+vid.onseeked=draw;vid.ontimeupdate=()=>{$("#tc").textContent=vid.currentTime.toFixed(2)};
+const play=()=>{const r=vid.play();if(r&&r.catch)r.catch(()=>{})};
+pp.onclick=()=>vid.paused?play():vid.pause();
+$("#fb").onclick=()=>{vid.pause();vid.currentTime=Math.max(0,vid.currentTime-FR)};
+$("#ff").onclick=()=>{vid.pause();vid.currentTime=Math.min(vid.duration||0,vid.currentTime+FR)};
+$("#spd").onclick=()=>{const L=[1,.5,.25,.1];S.rate=L[(L.indexOf(S.rate)+1)%L.length];vid.playbackRate=S.rate;$("#spd .i").textContent=String(S.rate).replace(".",",")+"×"};
+function loop(){draw();if(!vid.paused&&!vid.ended)(vid.requestVideoFrameCallback?vid.requestVideoFrameCallback(loop):requestAnimationFrame(loop))}
+/* ---------- herramientas ---------- */
+const HINT={flecha:"Arrastra desde el inicio hasta la punta.",circulo:"Arrastra desde el centro hacia el borde.",angulo:"Toca 3 puntos: extremo, vértice y extremo."};
+function setTool(t){S.tool=S.tool===t?null:t;S.pts=[];S.prev=null;$$("[data-t]").forEach(b=>b.classList.toggle("on",b.dataset.t===S.tool));hint(S.tool?HINT[S.tool]:"");draw()}
+$$("[data-t]").forEach(b=>b.onclick=()=>setTool(b.dataset.t));
+const toV=e=>{const r=ov.getBoundingClientRect();return [(e.clientX-r.left)/r.width*VW(),(e.clientY-r.top)/r.height*VH()]};
+function add(sh){sh.at=+vid.currentTime.toFixed(2);sh.c=S.col;S.shapes.push(sh);S.batch.push(sh)}
+ov.addEventListener("pointerdown",e=>{if(!S.tool)return;e.preventDefault();if(!vid.paused)vid.pause();const p=toV(e);
+  if(S.tool==="angulo"){S.pts.push(p);if(S.pts.length===3){add({t:"angulo",p:S.pts.slice()});S.pts=[];S.hover=null}draw();return}
+  S.drag=p;try{ov.setPointerCapture(e.pointerId)}catch(_){}});
+ov.addEventListener("pointermove",e=>{if(!S.tool)return;const p=toV(e);
+  if(S.drag){S.prev={t:S.tool,p:[S.drag,p],c:S.col};draw()}else if(S.tool==="angulo"&&S.pts.length){S.hover=p;draw()}});
+ov.addEventListener("pointerup",e=>{if(!S.drag)return;const a=S.drag,p=toV(e);S.drag=null;S.prev=null;
+  if(Math.hypot(p[0]-a[0],p[1]-a[1])>VW()*.02)add({t:S.tool,p:[a,p]});draw()});
+$("#undo").onclick=()=>{if(S.pts.length)S.pts=[];else{const x=S.shapes.pop();S.batch=S.batch.filter(y=>y!==x)}draw()};
+$("#clr").onclick=()=>{S.shapes=S.shapes.filter(x=>!S.batch.includes(x));S.batch=[];S.pts=[];draw();play()};
+/* ---------- dibujo (en coordenadas del video, escalado a cualquier lienzo) ---------- */
+const ang=(a,b,c)=>{const v1=[a[0]-b[0],a[1]-b[1]],v2=[c[0]-b[0],c[1]-b[1]],d=Math.hypot(...v1)*Math.hypot(...v2)||1;return Math.acos(Math.max(-1,Math.min(1,(v1[0]*v2[0]+v1[1]*v2[1])/d)))*180/Math.PI};
+function paint(g,k,t,live){ // k = px de lienzo por px de video
+  const lw=Math.max(3,5*k*VW()/900);g.lineCap="round";g.lineJoin="round";
+  const vis=S.shapes.filter(s=>(live&&vid.paused&&S.batch.includes(s))||(t>=s.at-.05&&t<=s.at+SHOW));
+  const one=(s,alpha)=>{g.globalAlpha=alpha;g.strokeStyle=g.fillStyle=s.c;g.lineWidth=lw;const P=s.p.map(q=>[q[0]*k,q[1]*k]);
+    g.shadowColor="rgba(0,0,0,.6)";g.shadowBlur=lw;
+    if(s.t==="flecha"){const [a,b]=P,an=Math.atan2(b[1]-a[1],b[0]-a[0]),h=lw*4.2;g.beginPath();g.moveTo(...a);g.lineTo(b[0]-h*.6*Math.cos(an),b[1]-h*.6*Math.sin(an));g.stroke();
+      g.beginPath();g.moveTo(...b);g.lineTo(b[0]-h*Math.cos(an-.45),b[1]-h*Math.sin(an-.45));g.lineTo(b[0]-h*Math.cos(an+.45),b[1]-h*Math.sin(an+.45));g.closePath();g.fill()}
+    if(s.t==="circulo"){const [a,b]=P;g.beginPath();g.arc(a[0],a[1],Math.max(lw*2,Math.hypot(b[0]-a[0],b[1]-a[1])),0,7);g.stroke()}
+    if(s.t==="angulo"){const [a,b,c]=P;g.beginPath();g.moveTo(...a);g.lineTo(...b);g.lineTo(...c);g.stroke();
+      const a1=Math.atan2(a[1]-b[1],a[0]-b[0]),a2=Math.atan2(c[1]-b[1],c[0]-b[0]);let d=a2-a1;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;
+      g.beginPath();g.arc(b[0],b[1],lw*7,a1,a1+d,d<0);g.stroke();
+      const txt=ang(...s.p).toFixed(0)+"°",fs=Math.round(lw*5.5);g.font=`800 ${fs}px system-ui,sans-serif`;g.shadowBlur=0;const w=g.measureText(txt).width;
+      g.fillStyle="rgba(0,0,0,.65)";g.fillRect(b[0]+lw*3,b[1]-fs*1.1,w+fs*.5,fs*1.3);g.fillStyle=s.c;g.fillText(txt,b[0]+lw*3+fs*.25,b[1]-fs*.05)}
+    g.shadowBlur=0;g.globalAlpha=1};
+  vis.forEach(s=>{const fade=vid.paused?1:Math.max(.2,Math.min(1,(s.at+SHOW-t)/.5));one(s,fade)});
+  if(live){if(S.prev)one(S.prev,.75);
+    if(S.pts.length){g.fillStyle=S.col;S.pts.forEach(q=>{g.beginPath();g.arc(q[0]*k,q[1]*k,lw*1.6,0,7);g.fill()});
+      if(S.hover){g.strokeStyle=S.col;g.globalAlpha=.6;g.setLineDash([lw*2,lw*2]);g.beginPath();g.moveTo(S.pts[0][0]*k,S.pts[0][1]*k);S.pts.slice(1).forEach(q=>g.lineTo(q[0]*k,q[1]*k));g.lineTo(S.hover[0]*k,S.hover[1]*k);g.stroke();g.setLineDash([]);g.globalAlpha=1}}}
+}
+function draw(){ctx.clearRect(0,0,ov.width,ov.height);paint(ctx,ov.width/VW(),vid.currentTime,true);
+  $("#clr").disabled=!S.batch.length}
+/* ---------- compartir ---------- */
+async function shareFile(file,txt){
+  try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:"SplitCoach",text:txt});return}}catch(e){if(e&&e.name==="AbortError")return}
+  const a=document.createElement("a");a.href=URL.createObjectURL(file);a.download=file.name;document.body.appendChild(a);a.click();a.remove();toast("Guardado en Descargas")}
+function frameCanvas(){const sc=Math.min(1,1600/Math.max(VW(),VH())),c=document.createElement("canvas");c.width=Math.round(VW()*sc);c.height=Math.round(VH()*sc);
+  const g=c.getContext("2d");g.drawImage(vid,0,0,c.width,c.height);paint(g,sc,vid.currentTime,false);
+  return c}
+$("#shot").onclick=()=>{vid.pause();const c=frameCanvas();c.toBlob(b=>shareFile(new File([b],`${S.name}_${vid.currentTime.toFixed(2)}s.jpg`,{type:"image/jpeg"}),"Corrección de técnica · SplitCoach"),"image/jpeg",.9)};
+/* clip: graba lo que se ve (video + dibujos) mientras lo reproduces o dibujas */
+async function startRec(){
+  if(!window.MediaRecorder||!HTMLCanvasElement.prototype.captureStream){toast("Este navegador no permite grabar clips. Usa Enviar cuadro.");return}
+  const mime=["video/mp4;codecs=avc1,mp4a.40.2","video/mp4;codecs=avc1,opus","video/mp4;codecs=avc1","video/mp4","video/webm;codecs=vp9,opus","video/webm;codecs=vp8,opus","video/webm"].find(t=>MediaRecorder.isTypeSupported(t));
+  const sc=Math.min(1,1280/Math.max(VW(),VH())),c=document.createElement("canvas");c.width=Math.round(VW()*sc/2)*2;c.height=Math.round(VH()*sc/2)*2;const g=c.getContext("2d");
+  let tracks=c.captureStream(30).getVideoTracks();
+  try{if(!S.ac){S.ac=new (window.AudioContext||window.webkitAudioContext)();const src=S.ac.createMediaElementSource(vid);S.dst=S.ac.createMediaStreamDestination();src.connect(S.dst);src.connect(S.ac.destination)}
+    await S.ac.resume();tracks=tracks.concat(S.dst.stream.getAudioTracks())}catch(_){}
+  const rec=new MediaRecorder(new MediaStream(tracks),mime?{mimeType:mime,videoBitsPerSecond:4e6}:{videoBitsPerSecond:4e6}),parts=[];
+  rec.ondataavailable=e=>{if(e.data&&e.data.size)parts.push(e.data)};
+  rec.onstop=()=>{const type=(rec.mimeType||mime||"video/webm").split(";")[0],ext=type.includes("mp4")?"mp4":"webm";
+    shareFile(new File([new Blob(parts,{type})],`${S.name}_correccion.${ext}`,{type}),"Corrección de técnica · SplitCoach")};
+  const tick=()=>{if(!S.rec)return;g.drawImage(vid,0,0,c.width,c.height);paint(g,c.width/VW(),vid.currentTime,true);requestAnimationFrame(tick)};
+  S.rec=rec;rec.start(250);tick();$("#rec").style.display="block";$("#clip").innerHTML='<span class="i">⏹</span><small>Terminar clip</small>';$("#clip").classList.add("on");
+  hint("Grabando: reproduce, pausa y dibuja como quieras. Pulsa Terminar clip para enviarlo.");
+  S.recT=setTimeout(()=>{if(S.rec)stopRec()},60000);
+}
+function stopRec(){const r=S.rec;S.rec=null;clearTimeout(S.recT);if(r&&r.state!=="inactive")r.stop();$("#rec").style.display="none";$("#clip").innerHTML='<span class="i">⏺</span><small>Grabar clip</small>';$("#clip").classList.remove("on");hint("")}
+$("#clip").onclick=()=>S.rec?stopRec():startRec();
+/* ---------- sin conexión ---------- */
+if("serviceWorker" in navigator)addEventListener("load",()=>navigator.serviceWorker.register("pista-sw.js").catch(()=>{}));
+})();
+</script>
+</body>
+</html>
