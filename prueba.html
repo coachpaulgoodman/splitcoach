@@ -295,6 +295,7 @@ code{font-family:var(--f-mono);font-size:12.5px;background:var(--soft);padding:1
 .vloc #vsave,.vloc #vdel,.vloc #vmsg,.vloc label.coach-only{display:none!important}
 #errbar{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 16px);transform:translateX(-50%);z-index:60;width:min(560px,calc(100% - 24px));background:#5A1A1A;color:#fff;border:1px solid #FF7A6B;border-radius:14px;padding:12px 44px 12px 14px;display:grid;gap:4px;font-size:14px;box-shadow:0 8px 30px #0006}
 #errbar span{font-family:var(--f-mono);font-size:12.5px;word-break:break-word;opacity:.92}#errbar button{position:absolute;top:8px;right:8px;background:none;border:0;color:#fff;font-size:18px;cursor:pointer}
+#dbg{position:fixed;left:8px;right:8px;bottom:8px;max-height:34vh;overflow:auto;z-index:70;margin:0;padding:8px 10px;background:#000d;color:#7CFC9A;font:11.5px/1.35 ui-monospace,monospace;border-radius:10px;white-space:pre-wrap;pointer-events:auto}
 /* ---- Tema SplitCoach: pizarra + turquesa ---- */
 header.top{border-bottom:1px solid var(--line)}
 .brand{padding-block:14px 8px}
@@ -475,7 +476,15 @@ function route(){
 }
 window.addEventListener("hashchange",route);
 function typing(){const a=document.activeElement;return a&&$("#view").contains(a)&&(a.tagName==="TEXTAREA"||(a.tagName==="INPUT"&&!["checkbox","range","button","file"].includes(a.type)))}
+/* ---- modo diagnóstico: agrega ?debug a la dirección ---- */
+const DBG=/[?&]debug/.test(location.search);
+function dlog(t){if(!DBG)return;let b=document.getElementById("dbg");if(!b){b=document.createElement("pre");b.id="dbg";document.body.appendChild(b)}
+  const ts=new Date().toLocaleTimeString("es-CL",{hour12:false})+"."+String(Date.now()%1000).padStart(3,"0");b.textContent=(ts+"  "+t+"\n"+b.textContent).slice(0,6000)}
+if(DBG){addEventListener("hashchange",()=>dlog("hash → "+location.hash));addEventListener("error",e=>dlog("ERROR "+e.message));addEventListener("unhandledrejection",e=>dlog("PROMESA "+((e.reason&&(e.reason.message||e.reason.code))||e.reason)));
+  addEventListener("beforeunload",()=>{try{sessionStorage.setItem("sc-dbg-last",(document.getElementById("dbg")||{}).textContent||"")}catch(_){}});
+  addEventListener("load",()=>{let o="";try{o=sessionStorage.getItem("sc-dbg-last")||""}catch(_){}if(o)dlog("── recarga de página ── (registro anterior abajo)\n"+o)})}
 function render(force){
+  dlog(`render ${S.view}${force?" (forzado)":""}${!force&&(typing()||S.busy||(S.view==="video"&&S.vp))?" — omitido":""}`);
   if(!force&&(typing()||S.busy||(S.view==="video"&&S.vp))){S.pending=true;if(S.view==="video")refreshMarks();return}
   S.pending=false;
   const fn=S.mode==="?"?{html:()=>emptyBox("Cargando…","")}:(R[S.view]||R.plantel);
@@ -2443,6 +2452,9 @@ route();
   db.collection("buzon").onSnapshot(snap=>{const o={};snap.docs.forEach(d=>o[d.id]=d.data()||{});S.buz=o;render();autoLink()},()=>{});
   try{S.assets=await window.claude.use("assets")}catch(_){}
   try{S.ia=await window.claude.use("ia")}catch(_){}
+  if(DBG){dlog("modo diagnóstico activo · rol "+S.mode);if(S.assets){const up=S.assets.upload.bind(S.assets);S.assets.upload=async(f,o)=>{dlog(`subiendo ${f.name||"archivo"} · ${(f.size/1048576).toFixed(1)} MB · ${f.type||"?"}`);try{const r=await up(f,o);dlog("subida OK "+r.id);return r}catch(e){dlog("subida FALLÓ "+(e.message||e.code));throw e}}}
+    const C=S.db.collection.bind(S.db);S.db.collection=p=>{const c=C(p),add=c.add&&c.add.bind(c),doc=c.doc.bind(c);if(add)c.add=async d=>{dlog("guardando en "+p);try{const r=await add(d);dlog("guardado "+p+"/"+r.id);return r}catch(e){dlog("guardar FALLÓ "+(e.message||e.code));throw e}};
+      c.doc=id=>{const r=doc(id),set=r.set&&r.set.bind(r);if(set&&/informes|videos/.test(p))r.set=async d=>{dlog("guardando "+p+"/"+id);try{await set(d);dlog("guardado OK")}catch(e){dlog("guardar FALLÓ "+(e.message||e.code));throw e}};return r};return c}}
   try{S.sample=await window.claude.use("sample")}catch(_){}
   const sub=(col,key,map)=>db.collection(col).onSnapshot(snap=>{S[key]=snap.docs.map(d=>map(Object.assign({},d.data()||{},{id:d.id})));S.got[key]=1;render()},
     e=>{S.got[key]=1;$("#view").insertAdjacentHTML("afterbegin",`<div class="msg err">No se pudieron leer los datos (${esc(e.code)}). Recarga la página.</div>`)});
