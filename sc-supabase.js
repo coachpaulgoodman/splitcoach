@@ -163,13 +163,14 @@
     } catch (e) { L.err && L.err(mkErr(e)); }
   }
   const pend = new Map();
-  function changed(col) {
+  function changed(col, origen) {
+    if (window.__scLog) window.__scLog("cambio en " + col + (origen ? " (" + origen + ")" : ""));
     clearTimeout(pend.get(col));
     pend.set(col, setTimeout(() => { pend.delete(col); listeners.forEach(L => { if (L.col === col) deliver(L); }); }, 120));
   }
   function startRealtime() {
     sb.channel("docs-cambios").on("postgres_changes", { event: "*", schema: "public", table: "docs" }, p => {
-      const r = (p.new && p.new.col) ? p.new : p.old; if (r && r.col) changed(r.col);
+      const r = (p.new && p.new.col) ? p.new : p.old; if (r && r.col) changed(r.col, "tiempo real " + (p.eventType || ""));
     }).subscribe();
   }
   const split = path => { const i = path.lastIndexOf("/"); return [path.slice(0, i), path.slice(i + 1)]; };

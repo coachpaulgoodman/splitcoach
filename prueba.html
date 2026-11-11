@@ -470,6 +470,7 @@ function route(){
   const tab=S.mode==="nadador"&&v==="video"?"misvideos":S.mode==="nadador"&&v==="informe"?"misentrenos":v==="misinformes"?"misentrenos":v==="mistorneos"?"torneos":v==="informe"?(S.mode==="nadador"?"mificha":"evolucion"):v==="ficha"?"plantel":v==="video"?"videos":v==="chat"||v==="yo"?"mensajes":v;
   $$("#tabs a").forEach(a=>a.setAttribute("aria-current",a.dataset.v===tab?"page":"false"));
   if(v!=="video")stopVideo();
+  if(v!=="videos")S.vfile=null;
   S.pending=false;
   render(true);
   window.scrollTo(0,0);
@@ -477,18 +478,23 @@ function route(){
 window.addEventListener("hashchange",route);
 function typing(){const a=document.activeElement;return a&&$("#view").contains(a)&&(a.tagName==="TEXTAREA"||(a.tagName==="INPUT"&&!["checkbox","range","button","file"].includes(a.type)))}
 /* ---- modo diagnóstico: agrega ?debug a la dirección ---- */
-const DBG=/[?&]debug/.test(location.search);
+const DBG=/[?&]debug/.test(location.search);if(DBG)window.__scLog=t=>dlog(t);
 function dlog(t){if(!DBG)return;let b=document.getElementById("dbg");if(!b){b=document.createElement("pre");b.id="dbg";document.body.appendChild(b)}
   const ts=new Date().toLocaleTimeString("es-CL",{hour12:false})+"."+String(Date.now()%1000).padStart(3,"0");b.textContent=(ts+"  "+t+"\n"+b.textContent).slice(0,6000)}
 if(DBG){addEventListener("hashchange",()=>dlog("hash → "+location.hash));addEventListener("error",e=>dlog("ERROR "+e.message));addEventListener("unhandledrejection",e=>dlog("PROMESA "+((e.reason&&(e.reason.message||e.reason.code))||e.reason)));
   addEventListener("beforeunload",()=>{try{sessionStorage.setItem("sc-dbg-last",(document.getElementById("dbg")||{}).textContent||"")}catch(_){}});
   addEventListener("load",()=>{let o="";try{o=sessionStorage.getItem("sc-dbg-last")||""}catch(_){}if(o)dlog("── recarga de página ── (registro anterior abajo)\n"+o)})}
 function render(force){
-  dlog(`render ${S.view}${force?" (forzado)":""}${!force&&(typing()||S.busy||(S.view==="video"&&S.vp))?" — omitido":""}`);
-  if(!force&&(typing()||S.busy||(S.view==="video"&&S.vp))){S.pending=true;if(S.view==="video")refreshMarks();return}
+  const hold=!force&&(typing()||S.busy||(S.view==="video"&&S.vp)||(S.view==="videos"&&S.vfile));
+  dlog(`render ${S.view}${force?" (forzado)":""}${hold?" — omitido":""}`);
+  if(hold){S.pending=true;if(S.view==="video")refreshMarks();return}
   S.pending=false;
   const fn=S.mode==="?"?{html:()=>emptyBox("Cargando…","")}:(R[S.view]||R.plantel);
-  $("#view").innerHTML=banner()+fn.html();
+  const html=banner()+fn.html();
+  // si no cambió nada en pantalla, no se re-dibuja: así no se pierden archivos elegidos ni lo escrito
+  if(!force&&html===S.lastHtml&&S.view===S.lastView){if(S.mode==="coach")scheduleSync();dlog("   sin cambios: no se re-dibuja");return}
+  S.lastHtml=html;S.lastView=S.view;
+  $("#view").innerHTML=html;
   if(S.mode==="coach"){$("#nb").textContent=String(S.nad.filter(n=>unread(S.buz[tk(n)],"coach")).length||"");scheduleSync()}
   else if(S.mode==="nadador")swimBadges();
   fn.bind&&fn.bind();
@@ -2106,7 +2112,7 @@ R.videos={html(){
 },bind(){
   if(!$("#v-up"))return;
   let file=null,dur=0;
-  const pick=async inp=>{const f=inp.files[0];if(!f)return;file=f;$("#v-fn").textContent=f.name;$("#v-msg").textContent="";
+  const pick=async inp=>{const f=inp.files[0];if(!f)return;file=f;S.vfile=f;$("#v-fn").textContent=f.name;$("#v-msg").textContent="";
     const pv=$("#v-pv");pv.src=URL.createObjectURL(f);$("#v-prep").hidden=false;
     pv.onloadedmetadata=()=>{dur=pv.duration||0;const cut=dur>30.5;$("#v-cut").hidden=!cut;const r=$("#v-ini");r.max=Math.max(0,dur-30).toFixed(1);r.value=0;$("#v-ini-t").textContent=cut?` 0.0–30.0 s de ${dur.toFixed(1)} s`:""};
     pv.onerror=()=>{dur=0;$("#v-msg").innerHTML=`<span class="small muted">Este navegador no muestra la vista previa de este formato; se intentará convertir al subir.</span>`}};
@@ -2129,7 +2135,7 @@ R.videos={html(){
       m.textContent="Subiendo…";
       const up=await S.assets.upload(out,{type});
       const doc={nadadorId:$("#v-nad").value,prueba:$("#v-pr").value.trim(),fecha:$("#v-f").value||today(),assetId:up.id,notas:"",marcas:[],trazos:[],analisis:"",subido:today()};
-      const ref=await S.db.collection("videos").add(doc);S.busy=false;location.hash="#video-"+encodeURIComponent(ref.id)}
+      const ref=await S.db.collection("videos").add(doc);S.busy=false;S.vfile=null;location.hash="#video-"+encodeURIComponent(ref.id)}
     catch(e){S.busy=false;showErr((e&&e.message)||(e&&e.code)||String(e));m.innerHTML=`<span class="down">${e.code==="too_large"?"El video quedó muy pesado. Graba un clip más corto.":e.code==="no_recode"?"Este navegador no puede convertir el video. Súbelo desde el iPhone (Safari) o expórtalo como MP4.":e.code==="quota_or_state"?"Se llenó el espacio de almacenamiento. Elimina videos antiguos.":"No se pudo subir: "+esc(e.message||e.code||e)}</span>`;$("#v-up").disabled=false}
   };
 }};
