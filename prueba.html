@@ -293,6 +293,8 @@ code{font-family:var(--f-mono);font-size:12.5px;background:var(--soft);padding:1
 .tc-t{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:8px}.tc-t th{background:#14708A;color:#fff;padding:7px 8px;text-align:center}.tc-t th:first-child{text-align:center}
 .tc-t td{padding:6px 8px;text-align:center;border-bottom:1px solid var(--line)}.tc-t tr.hl td{background:color-mix(in srgb,var(--accent) 12%,transparent);font-weight:600}
 .vloc #vsave,.vloc #vdel,.vloc #vmsg,.vloc label.coach-only{display:none!important}
+#errbar{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 16px);transform:translateX(-50%);z-index:60;width:min(560px,calc(100% - 24px));background:#5A1A1A;color:#fff;border:1px solid #FF7A6B;border-radius:14px;padding:12px 44px 12px 14px;display:grid;gap:4px;font-size:14px;box-shadow:0 8px 30px #0006}
+#errbar span{font-family:var(--f-mono);font-size:12.5px;word-break:break-word;opacity:.92}#errbar button{position:absolute;top:8px;right:8px;background:none;border:0;color:#fff;font-size:18px;cursor:pointer}
 /* ---- Tema SplitCoach: pizarra + turquesa ---- */
 header.top{border-bottom:1px solid var(--line)}
 .brand{padding-block:14px 8px}
@@ -351,6 +353,7 @@ select,input,textarea{border-radius:12px;background:var(--bg);border-color:var(-
   </div>
 </header>
 <main class="wrap" id="view"></main>
+<div id="errbar" role="alert" hidden></div>
 
 <script>
 (function(){
@@ -473,7 +476,7 @@ function route(){
 window.addEventListener("hashchange",route);
 function typing(){const a=document.activeElement;return a&&$("#view").contains(a)&&(a.tagName==="TEXTAREA"||(a.tagName==="INPUT"&&!["checkbox","range","button","file"].includes(a.type)))}
 function render(force){
-  if(!force&&(typing()||(S.view==="video"&&S.vp))){S.pending=true;if(S.view==="video")refreshMarks();return}
+  if(!force&&(typing()||S.busy||(S.view==="video"&&S.vp))){S.pending=true;if(S.view==="video")refreshMarks();return}
   S.pending=false;
   const fn=S.mode==="?"?{html:()=>emptyBox("Cargando…","")}:(R[S.view]||R.plantel);
   $("#view").innerHTML=banner()+fn.html();
@@ -491,9 +494,10 @@ function emptyBox(title,text){
   return `<section class="card empty"><svg width="44" height="44" viewBox="0 0 44 44" fill="none" aria-hidden="true"><path d="M3 30c4 0 4-3 8-3s4 3 8 3 4-3 8-3 4 3 8 3 4-3 6-3" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M3 37c4 0 4-3 8-3s4 3 8 3 4-3 8-3 4 3 8 3 4-3 6-3" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" opacity=".45"/><circle cx="27" cy="13" r="4" fill="currentColor"/><path d="M10 22l9-6 6 5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><h3>${title}</h3><div class="muted small" style="max-width:46ch">${text}</div></section>`;
 }
 const loading=()=>!S.got.res&&S.dbState==="cargando";
+function showErr(t){const e=document.getElementById("errbar");if(!e)return;e.innerHTML=`<b>No se pudo completar</b><span>${esc(t)}</span><button type="button" aria-label="Cerrar">✕</button>`;e.hidden=false;e.querySelector("button").onclick=()=>e.hidden=true;clearTimeout(showErr.t);showErr.t=setTimeout(()=>e.hidden=true,20000)}
 async function dbWrite(fn,msgEl){
   if(!S.db){if(msgEl)msgEl.innerHTML=`<span class="down">La base de datos no está disponible.</span>`;return false}
-  try{await fn(S.db);return true}catch(e){if(msgEl)msgEl.innerHTML=`<span class="down">No se pudo guardar: ${esc(e&&e.message||e&&e.code||e)}</span>`;return false}
+  S.busy=true;try{await fn(S.db);return true}catch(e){const t="No se pudo guardar: "+(e&&e.message||e&&e.code||String(e));if(msgEl)msgEl.innerHTML=`<span class="down">${esc(t)}</span>`;showErr(t);return false}finally{S.busy=false}
 }
 
 /* ================= gráficos ================= */
@@ -1737,13 +1741,13 @@ function bindInfFicha(n){
   $("#if-pdf").onchange=async e=>{const f=e.target.files[0],m=$("#if-pmsg");if(!f)return;
     if(!/pdf$/i.test(f.type)&&!/\.pdf$/i.test(f.name)){m.innerHTML=`<span class="down">Elige un archivo PDF.</span>`;return}
     if(!S.assets){m.innerHTML=`<span class="down">No se pudo conectar el almacenamiento.</span>`;return}
-    m.textContent="Subiendo…";
+    m.textContent="Subiendo…";S.busy=true;
     try{const up=await S.assets.upload(f,{type:"application/pdf"}),s=infSesDia(n,d.fecha,d.pisc),id=infId(s.id,n.id);
       const tit=f.name.replace(/\.pdf$/i,"").replace(/[_-]+/g," ").trim();
       const doc={sesion:s.id,nadador:n.id,nombre:n.nombre,fecha:d.fecha,titulo:s.titulo||tit,pdf:up.id,data:null,act:Date.now()};
       if(await dbWrite(db=>db.collection("informes").doc(id).set(doc),m)){location.hash="#inf-"+encodeURIComponent(id)}}
-    catch(err){m.innerHTML=`<span class="down">${err.code==="too_large"?"El PDF pesa más de 50 MB.":/mime|type/i.test(err.message||"")?"Supabase no acepta PDF en el almacenamiento: en Storage → media → Edit bucket, agrega application/pdf a los tipos permitidos.":"No se pudo subir: "+esc(err.message||err.code||err)}</span>`}
-    e.target.value=""};
+    catch(err){S.busy=false;showErr("PDF: "+((err&&err.message)||(err&&err.code)||String(err)));m.innerHTML=`<span class="down">${err.code==="too_large"?"El PDF pesa más de 50 MB.":/mime|type/i.test(err.message||"")?"Supabase no acepta PDF en el almacenamiento: en Storage → media → Edit bucket, agrega application/pdf a los tipos permitidos.":"No se pudo subir: "+esc(err.message||err.code||err)}</span>`}
+    S.busy=false;e.target.value=""};
   if($("#if-pub"))$("#if-pub").onclick=async()=>{const m=$("#if-msg"),s=infSesDia(n,d.fecha,d.pisc),id=infId(s.id,n.id);
     const doc={sesion:s.id,nadador:n.id,nombre:n.nombre,fecha:d.fecha,titulo:s.titulo||"",texto:d.sent||d.txt,data:d.rep,act:Date.now()};
     if(await dbWrite(db=>db.collection("informes").doc(id).set(doc),m)){S.infDraft[n.id]=null;location.hash="#inf-"+encodeURIComponent(id)}};
@@ -2106,7 +2110,7 @@ R.videos={html(){
   $("#v-up").onclick=async()=>{
     const f=file,m=$("#v-msg");
     if(!f){m.innerHTML=`<span class="down">Graba o elige un video.</span>`;return}
-    $("#v-up").disabled=true;
+    $("#v-up").disabled=true;S.busy=true;
     try{
       const ok=["video/mp4","video/webm"].includes(f.type)||/\.(mp4|webm)$/i.test(f.name);
       let out=f;
@@ -2116,8 +2120,8 @@ R.videos={html(){
       m.textContent="Subiendo…";
       const up=await S.assets.upload(out,{type});
       const doc={nadadorId:$("#v-nad").value,prueba:$("#v-pr").value.trim(),fecha:$("#v-f").value||today(),assetId:up.id,notas:"",marcas:[],trazos:[],analisis:"",subido:today()};
-      const ref=await S.db.collection("videos").add(doc);location.hash="#video-"+encodeURIComponent(ref.id)}
-    catch(e){m.innerHTML=`<span class="down">${e.code==="too_large"?"El video quedó muy pesado. Graba un clip más corto.":e.code==="no_recode"?"Este navegador no puede convertir el video. Súbelo desde el iPhone (Safari) o expórtalo como MP4.":e.code==="quota_or_state"?"Se llenó el espacio de almacenamiento. Elimina videos antiguos.":"No se pudo subir: "+esc(e.message||e.code||e)}</span>`;$("#v-up").disabled=false}
+      const ref=await S.db.collection("videos").add(doc);S.busy=false;location.hash="#video-"+encodeURIComponent(ref.id)}
+    catch(e){S.busy=false;showErr((e&&e.message)||(e&&e.code)||String(e));m.innerHTML=`<span class="down">${e.code==="too_large"?"El video quedó muy pesado. Graba un clip más corto.":e.code==="no_recode"?"Este navegador no puede convertir el video. Súbelo desde el iPhone (Safari) o expórtalo como MP4.":e.code==="quota_or_state"?"Se llenó el espacio de almacenamiento. Elimina videos antiguos.":"No se pudo subir: "+esc(e.message||e.code||e)}</span>`;$("#v-up").disabled=false}
   };
 }};
 // convierte a MP4/WebM (H.264 o VP8/9), recorta a "max" s y baja a 1280 px: dibuja el video en un canvas y lo graba
