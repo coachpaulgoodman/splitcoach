@@ -4,7 +4,13 @@
 <meta name="theme-color" content="#1E252C">
 <script>try{if(localStorage.getItem("sc-tema")==="claro")document.documentElement.setAttribute("data-theme","light")}catch(e){}</script>
 <link rel="icon" type="image/png" href="logo.png"><link rel="apple-touch-icon" href="logo.png">
-<style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}#anim-ov{position:fixed;inset:0;z-index:9000;background:rgba(5,10,14,.82);display:grid;place-items:center;padding:10px;overflow:auto}
+.anim-box{background:var(--surface);border-radius:16px;padding:12px;width:min(440px,100%);display:grid;gap:10px}
+.anim-top{display:flex;justify-content:space-between;align-items:center}
+#an-c{width:100%;height:auto;max-height:68vh;object-fit:contain;border-radius:12px;background:#0F1A22}
+.anim-ctl{display:flex;flex-wrap:wrap;gap:8px;align-items:end}.anim-ctl label{display:grid;gap:3px;font-size:12.5px;color:var(--muted)}.anim-ctl .an-wide{flex:1 1 100%}
+@media print{#anim-ov{display:none!important}}
+</style>
 <title>SplitCoach</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -761,9 +767,10 @@ function pasBlock(n,g,coach){
   }else if(sR)diag=`<div class="note">Referencia en ritmo parejo (PB ${fmtT(refTot)} ÷ ${k}): sirve para el total, pero la salida siempre se verá más rápida y el cierre más lento. Carga los parciales de la carrera del PB para ver dónde gana o pierde tiempo.</div>`;
   const refInfo=ref.p?`${esc(ref.lbl==="PB"?"PB":"Medición anterior")}: ${esc(ref.p.torneo||tipoOf(ref.p))} · ${fmtD(ref.p.fecha)}`:ref.even!=null?`PB ${fmtT(ref.even)} sin parciales${ref.torneo?" · "+esc(ref.torneo):""}${ref.fecha?" · "+fmtD(ref.fecha):""}`:"";
   const series=sR?[{sp:sA},{sp:sR}]:[{sp:sA}];
+  ANIM[last.id]={nombre:n.nombre,prueba:last.prueba,piscina:last.piscina,torneo:last.torneo||tipoOf(last),fecha:last.fecha,T,sA,sR,lbl:ref.lbl,meta:metaOf(n,last.prueba,last.piscina)};
   const hist=g.slice(1,6).map(p=>`<div class="item"><div class="main"><div class="nm">${fmtD(p.fecha)} · ${esc(tipoOf(p))}</div><div class="sub small muted">${esc(p.torneo||"")}</div></div><span class="time">${fmtT(p.tot)}</span>${coach?`<button class="btn ghost sm" data-pdel="${esc(p.id)}">Borrar</button>`:""}</div>`).join("");
   return `<div class="ev"><div class="head"><h3>${esc(last.prueba)} <span class="small muted" style="font-family:var(--f-body)">· piscina ${esc(last.piscina)} m</span></h3><span class="time">${fmtT(tot)}</span></div>
-    <div class="row small" style="gap:6px"><span class="chip">${esc(tipoOf(last))}</span>${ref.nuevoPB?`<span class="chip pas-pb">Nuevo PB</span>`:""}<span class="muted">${esc(last.torneo||"")} · ${fmtD(last.fecha)}</span></div>
+    <div class="row small" style="gap:6px"><button class="btn sm" data-anim="${esc(last.id)}">▶ Animación</button><span class="chip">${esc(tipoOf(last))}</span>${ref.nuevoPB?`<span class="chip pas-pb">Nuevo PB</span>`:""}<span class="muted">${esc(last.torneo||"")} · ${fmtD(last.fecha)}</span></div>
     <div class="kpi">${refTot!=null?`<div><b>${fmtT(refTot)}</b><span>${esc(ref.lbl)}</span></div><div><b>${difS(tot-refTot)}</b><span>vs ${esc(ref.lbl)}</span></div><div><b>${(refTot/tot*100).toFixed(1)}%</b><span>de ${esc(ref.lbl)}</span></div>`:""}
       <div><b class="${m2<m1?"up":"down"}">${m2<m1?"−":"+"}${Math.abs(m2-m1).toFixed(2)}</b><span>${m2<m1?"Split negativo":"Split positivo"}</span></div></div>
     ${diag}
@@ -806,6 +813,112 @@ function bindPasadas(n){
     const ti=$("#p-ti").value,d={nadador:n.nombre,prueba:pr,piscina:$("#p-pi").value,tramo:tr,tipo:ti,torneo:$("#p-t").value.trim()||(ti==="Control"?"Control interno":""),fecha:$("#p-f").value||today(),splits:raw};
     if(await dbWrite(db=>db.collection("parciales").add(d),m))render(true)};
 }
+
+/* ---------- ANIMACIÓN DE CARRERA (parciales → piscina animada + video) ---------- */
+const ANIM={};
+function animOpen(id){
+  const a=ANIM[id];if(!a)return;
+  const old=$("#anim-ov");if(old)old.remove();
+  const ghosts=[];
+  if(a.sR)ghosts.push({k:"ref",lbl:a.lbl,sp:a.sR});
+  if(a.meta!=null){const base=a.sR||a.sA,bt=sumA(base);ghosts.push({k:"meta",lbl:"Meta",sp:base.map(v=>v/bt*a.meta)})}
+  const tot=sumA(a.sA),auto=tot>300?8:tot>150?4:tot>70?2:1;
+  const ov=document.createElement("div");ov.id="anim-ov";
+  ov.innerHTML=`<div class="anim-box"><div class="anim-top"><b>Animación de carrera</b><button class="btn ghost sm" id="an-x">Cerrar ✕</button></div>
+    <canvas id="an-c" width="720" height="1280"></canvas>
+    <div class="anim-ctl">
+      <button class="btn" id="an-play">▶ Reproducir</button>
+      <label>Velocidad<select id="an-sp">${[1,2,4,8].map(s=>`<option value="${s}" ${s===auto?"selected":""}>${s}×</option>`).join("")}</select></label>
+      <label>Comparar con<select id="an-g"><option value="">Nadie</option>${ghosts.map((g,i)=>`<option value="${i}" ${i===0?"selected":""}>${esc(g.lbl)} · ${fmtT(sumA(g.sp))}</option>`).join("")}</select></label>
+      <label class="an-wide">Brazadas cada 25 (opcional)<input id="an-br" placeholder="18/20/21/22" inputmode="numeric" style="font-family:var(--f-mono)"></label>
+      <button class="btn ghost" id="an-rec">⬇ Descargar video</button><span id="an-msg" class="small muted"></span>
+    </div></div>`;
+  document.body.appendChild(ov);
+  const cv=$("#an-c"),cx=cv.getContext("2d"),W=720,H=1280;
+  const FD='"Plus Jakarta Sans","Figtree",system-ui,sans-serif',FM='"JetBrains Mono",ui-monospace,Menlo,monospace';
+  const C={bg1:"#0F1A22",bg2:"#16303A",ink:"#F3F6F8",mut:"#8FA3B0",acc:"#4DB6BF",fast:"#5CD69B",slow:"#FF7A6B",water:"#0E4F63",water2:"#0B3E4E",rope:"#E8EEF2",ghost:"rgba(255,255,255,.55)"};
+  const L=+a.piscina===50?50:25,T=+a.T,dist=T*a.sA.length;
+  const cum=s=>{let c=0;return s.map(v=>c+=v)};
+  let g=ghosts[0]||null,spd=auto,br=[],raf=0,t0=null,rec=null;
+  const posAt=(sp,t)=>{const cs=cum(sp);if(t<=0)return 0;let prev=0;for(let i=0;i<cs.length;i++){if(t<=cs[i])return (i+(t-prev)/sp[i])*T;prev=cs[i]}return dist};
+  const fmtC=s=>{s=Math.max(0,s);const m=Math.floor(s/60),r=s-m*60;return (m?m+":"+(r<10?"0":""):"")+r.toFixed(2)};
+  const dS=d=>(d<0?"−":"+")+Math.abs(d).toFixed(2);
+  function rr(x,y,w,h,r){cx.beginPath();cx.moveTo(x+r,y);cx.arcTo(x+w,y,x+w,y+h,r);cx.arcTo(x+w,y+h,x,y+h,r);cx.arcTo(x,y+h,x,y,r);cx.arcTo(x,y,x+w,y,r);cx.closePath()}
+  function swimmer(d,y,col,solid){
+    const lap=Math.min(Math.floor(d/L),Math.round(dist/L)-1),u=(d-lap*L)/L,dir=lap%2?-1:1;
+    const x0=70,x1=650,x=dir>0?x0+u*(x1-x0):x1-u*(x1-x0);
+    if(solid&&d>0&&d<dist){cx.fillStyle="rgba(255,255,255,.18)";for(let k=1;k<=5;k++){cx.beginPath();cx.arc(x-dir*k*13,y,10-k*1.4,0,7);cx.fill()}}
+    cx.fillStyle=col;rr(x-22,y-11,44,22,11);cx.fill();
+    cx.fillStyle=solid?"#0E2A2E":"rgba(0,0,0,.35)";cx.beginPath();cx.arc(x+dir*13,y,7,0,7);cx.fill();
+  }
+  function draw(t){
+    const gr=cx.createLinearGradient(0,0,0,H);gr.addColorStop(0,C.bg1);gr.addColorStop(1,C.bg2);cx.fillStyle=gr;cx.fillRect(0,0,W,H);
+    cx.textBaseline="alphabetic";
+    cx.fillStyle=C.acc;cx.font=`700 22px ${FD}`;cx.fillText("CLUB FULLMAR · SPLITCOACH",50,80);
+    cx.fillStyle=C.ink;cx.font=`800 50px ${FD}`;cx.fillText(String(a.nombre||""),50,145,620);
+    cx.fillStyle=C.ink;cx.font=`600 32px ${FD}`;cx.fillText(`${a.prueba} · piscina ${a.piscina} m`,50,195,620);
+    cx.fillStyle=C.mut;cx.font=`500 24px ${FD}`;cx.fillText([a.torneo,fmtD(a.fecha)].filter(Boolean).join(" · "),50,232,620);
+    // reloj
+    const done=t>=tot;cx.textAlign="center";
+    cx.fillStyle=done?C.acc:C.ink;cx.font=`700 120px ${FM}`;cx.fillText(fmtC(Math.min(t,tot)),W/2,375);
+    cx.textAlign="left";
+    // piscina
+    const py=430,ph=270;cx.fillStyle=C.water;rr(40,py,640,ph,14);cx.fill();
+    cx.fillStyle=C.water2;cx.fillRect(40,py+ph/2-3,640,6);
+    cx.setLineDash([10,10]);cx.strokeStyle=C.rope;cx.lineWidth=4;cx.beginPath();cx.moveTo(52,py+ph/2);cx.lineTo(668,py+ph/2);cx.stroke();cx.setLineDash([]);
+    cx.fillStyle="rgba(255,255,255,.25)";cx.fillRect(70,py+8,3,ph-16);cx.fillRect(647,py+8,3,ph-16);
+    cx.fillStyle="rgba(255,255,255,.12)";cx.fillRect(40+640*0.5-1,py+8,2,ph-16);
+    const yA=py+ph*0.27,yG=py+ph*0.73;
+    cx.font=`600 20px ${FD}`;cx.fillStyle=C.acc;cx.fillText(String(a.nombre||"").split(" ")[0],56,py+30);
+    if(g){cx.fillStyle=C.ghost;cx.fillText(g.lbl+" · "+fmtT(sumA(g.sp)),56,py+ph/2+30)}
+    if(g)swimmer(posAt(g.sp,t),yG,C.ghost,false);
+    const dA=posAt(a.sA,t);swimmer(dA,yA,C.acc,true);
+    cx.fillStyle=C.mut;cx.font=`500 21px ${FD}`;cx.fillText(`${Math.floor(dA)} m de ${dist} m`,40,py+ph+36);
+    if(br.length){const i=Math.min(Math.floor(dA/25),br.length-1);if(br[i]!=null&&!done){cx.textAlign="right";cx.fillText(`Brazadas en este 25: ${br[i]}`,680,py+ph+36);cx.textAlign="left"}}
+    // parciales
+    const csA=cum(a.sA),csG=g?cum(g.sp):null,n=a.sA.length,top=py+ph+80,rh=Math.min(70,(H-top-200)/n);
+    cx.font=`600 19px ${FD}`;cx.fillStyle=C.mut;cx.fillText("PARCIAL",50,top);cx.textAlign="right";cx.fillText("TIEMPO",400,top);cx.fillText("ACUM.",540,top);if(g)cx.fillText("VS "+g.lbl.toUpperCase(),680,top);cx.textAlign="left";
+    const fs=Math.min(30,rh*.62);
+    for(let i=0;i<n;i++){if(t<csA[i])break;const y=top+16+rh*(i+.72);
+      cx.fillStyle="rgba(255,255,255,.05)";rr(40,y-rh*.68,640,rh-6,8);cx.fill();
+      cx.fillStyle=C.ink;cx.font=`600 ${fs}px ${FD}`;cx.fillText(`${(i+1)*T} m`,56,y);
+      cx.font=`700 ${fs}px ${FM}`;cx.textAlign="right";cx.fillText(fmtT(a.sA[i]),400,y);cx.fillStyle=C.mut;cx.fillText(fmtT(csA[i]),540,y);
+      let extra="";if(br.length&&T>=25){const k=T/25,b=br.slice(i*k,i*k+k).filter(x=>x!=null);if(b.length===k)extra=b.join("·")}
+      if(csG){const d=csA[i]-csG[i];cx.fillStyle=Math.abs(d)<.005?C.mut:d<0?C.fast:C.slow;cx.fillText(dS(d),680,y)}
+      else if(extra){cx.fillStyle=C.mut;cx.font=`500 ${fs*.8}px ${FM}`;cx.fillText(extra,680,y)}
+      cx.textAlign="left"}
+    // cierre
+    if(done){const by=H-150;cx.fillStyle="rgba(77,182,191,.16)";rr(40,by-70,640,150,18);cx.fill();
+      const h=Math.floor(n/2),m1=sumA(a.sA.slice(0,h)),m2=sumA(a.sA.slice(n-h));
+      cx.fillStyle=C.ink;cx.font=`800 40px ${FD}`;cx.fillText(`Total ${fmtT(tot)}`,64,by-15);
+      cx.font=`600 25px ${FD}`;
+      if(g){const d=tot-sumA(g.sp);cx.fillStyle=d<0?C.fast:C.slow;cx.fillText(`${dS(d)} vs ${g.lbl}`,64,by+30)}
+      cx.fillStyle=C.mut;cx.textAlign="right";cx.fillText(n>=2&&h?(m2<m1?"Split negativo":"Split positivo")+` (${dS(m2-m1)})`:"",656,by+30);cx.textAlign="left"}
+  }
+  const endT=()=>Math.max(tot,g?sumA(g.sp):0);
+  function loop(now){if(t0==null)t0=now;const t=((now-t0)/1000-1)*spd;draw(t);
+    if(t<endT()+3*spd)raf=requestAnimationFrame(loop);else{raf=0;$("#an-play").textContent="▶ Reproducir";if(rec&&rec.state==="recording")rec.stop()}}
+  function play(){cancelAnimationFrame(raf);t0=null;$("#an-play").textContent="↺ Repetir";raf=requestAnimationFrame(loop)}
+  const fonts=document.fonts?document.fonts.ready:Promise.resolve();fonts.then(()=>draw(-1));
+  $("#an-play").onclick=play;
+  $("#an-sp").onchange=e=>{spd=+e.target.value};
+  $("#an-g").onchange=e=>{g=e.target.value===""?null:ghosts[+e.target.value];if(!raf)draw(-1)};
+  $("#an-br").oninput=e=>{br=e.target.value.split(/[\/\s,;·]+/).filter(Boolean).map(x=>/^\d+$/.test(x)?+x:null);if(!raf)draw(-1)};
+  const close=()=>{cancelAnimationFrame(raf);if(rec&&rec.state==="recording")rec.stop();ov.remove()};
+  $("#an-x").onclick=close;ov.onclick=e=>{if(e.target===ov)close()};
+  $("#an-rec").onclick=()=>{
+    const msg=$("#an-msg");if(!cv.captureStream||!window.MediaRecorder){msg.textContent="Este navegador no puede grabar video.";return}
+    const types=["video/mp4;codecs=avc1","video/mp4","video/webm;codecs=vp9","video/webm"],mt=types.find(x=>MediaRecorder.isTypeSupported(x))||"";
+    const chunks=[];rec=new MediaRecorder(cv.captureStream(30),mt?{mimeType:mt,videoBitsPerSecond:6e6}:{});
+    rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
+    rec.onstop=async()=>{const ext=mt.includes("mp4")?"mp4":"webm",blob=new Blob(chunks,{type:mt||"video/webm"});
+      const name=`${String(a.nombre||"carrera").replace(/\s+/g,"_")}_${a.prueba.replace(/\s+/g,"_")}.${ext}`,file=new File([blob],name,{type:blob.type});
+      msg.textContent="Video listo.";
+      if(navigator.canShare&&navigator.canShare({files:[file]})&&/Mobi|Android|iPhone/i.test(navigator.userAgent)){try{await navigator.share({files:[file],title:name});return}catch(_){}}
+      const u=URL.createObjectURL(blob),l=document.createElement("a");l.href=u;l.download=name;document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),5000)};
+    rec.start();msg.textContent=`Grabando… (${Math.round((endT()/spd)+4)} s)`;play()};
+}
+document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-anim]");if(b){e.preventDefault();animOpen(b.dataset.anim)}});
 
 /* ---------- COMBINADO POR ESTILOS (historial, gráfico y escenarios) ---------- */
 const EST4=["Mariposa","Espalda","Pecho","Libre"],ECOL=["var(--zrp)","var(--z2)","var(--z3)","var(--z4)"];
