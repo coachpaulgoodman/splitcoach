@@ -43,6 +43,14 @@ button:disabled{opacity:.35}
 .dot.on{border-color:#fff}
 #hint{font-size:13px;color:var(--mut);text-align:center;min-height:18px;padding:0 10px}
 #rec{position:absolute;top:10px;right:10px;background:var(--red);color:#fff;border-radius:20px;padding:6px 12px;font-size:14px;display:none}
+#sheet{position:fixed;inset:0;background:#000a;z-index:20;display:flex;align-items:flex-end;justify-content:center}
+#sheet .in{background:var(--pan);width:min(520px,100%);border-radius:18px 18px 0 0;padding:16px;display:grid;gap:10px;padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+#sheet b{font-size:17px}#sheet label{display:grid;gap:4px;font-size:13px;color:var(--mut)}
+#sheet input{font:600 18px system-ui,sans-serif;color:var(--ink);background:var(--bg);border:2px solid var(--pan2);border-radius:12px;padding:12px}
+#sheet input:focus{outline:0;border-color:var(--acc)}
+#steps{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}#steps:empty{display:none}
+#steps span{background:var(--pan2);border-radius:20px;padding:6px 6px 6px 12px;font-size:13px;display:flex;align-items:center;gap:6px}
+#steps span button{min-height:28px;min-width:28px;border-radius:50%;padding:0;font-size:13px;background:#0003}
 #toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 160px);transform:translateX(-50%);background:#000c;color:#fff;padding:10px 16px;border-radius:12px;font-size:14px;display:none;z-index:9;max-width:90vw;text-align:center}
 @media (orientation:landscape) and (max-height:520px){
   body{display:grid;grid-template-columns:minmax(0,1fr) 330px;grid-template-rows:minmax(0,1fr) auto}
@@ -81,10 +89,17 @@ button:disabled{opacity:.35}
     <button data-t="flecha"><span class="i">➜</span><small>Flecha</small></button>
     <button data-t="circulo"><span class="i">◯</span><small>Círculo</small></button>
     <button data-t="angulo"><span class="i">∠</span><small>Ángulo</small></button>
+    <button data-t="etiqueta"><span class="i">🏷</span><small>Etiqueta</small></button>
     <button id="undo"><span class="i">↶</span><small>Deshacer</small></button>
     <button id="clr"><span class="i">✕</span><small>Borrar y seguir</small></button>
   </div>
   <div class="cols" id="cols"></div>
+  <div class="row">
+    <button id="step"><span class="i">＋</span><small>Paso</small></button>
+    <button id="gplay"><span class="i">▶</span><small>Ver guía</small></button>
+    <button id="grec"><span class="i">🎬</span><small>Video guía</small></button>
+  </div>
+  <div id="steps"></div>
   <div class="row">
     <button id="shot"><span class="i">📷</span><small>Enviar cuadro</small></button>
     <button id="clip"><span class="i">⏺</span><small>Grabar clip</small></button>
@@ -92,12 +107,14 @@ button:disabled{opacity:.35}
   </div>
 </div>
 <div id="toast"></div>
+<div id="sheet" hidden><div class="in"><b id="sh-t"></b><label id="sh-l1"><span></span><input id="sh-1" maxlength="40" autocomplete="off"></label><label id="sh-l2"><span></span><input id="sh-2" maxlength="70" autocomplete="off"></label>
+<div class="row"><button id="sh-no"><span class="i">✕</span><small>Cancelar</small></button><button id="sh-ok" class="on"><span class="i">✓</span><small>Guardar</small></button></div></div></div>
 <script>
 (function(){
 const $=q=>document.querySelector(q),$$=q=>[...document.querySelectorAll(q)];
 const vid=$("#vid"),ov=$("#ov"),ctx=ov.getContext("2d");
 const COLS=["#FF4D4D","#FFD23F","#3FE0FF","#4CD08A","#FFFFFF"];
-const S={tool:null,col:COLS[0],shapes:[],batch:[],pts:[],drag:null,prev:null,hover:null,rate:1,url:null,name:"video",rec:null};
+const S={tool:null,col:COLS[0],shapes:[],batch:[],pts:[],drag:null,prev:null,hover:null,rate:1,url:null,name:"video",rec:null,steps:[],guide:false,gi:0};
 const FR=1/30,SHOW=2;
 const toast=(t,ms)=>{const e=$("#toast");e.textContent=t;e.style.display="block";clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display="none",ms||2500)};
 const hint=t=>$("#hint").textContent=t||"";
@@ -106,7 +123,7 @@ $("#cols").innerHTML=COLS.map((c,i)=>`<button class="dot${i?"":" on"}" data-c="$
 $$("[data-c]").forEach(b=>b.onclick=()=>{S.col=b.dataset.c;$$("[data-c]").forEach(x=>x.classList.toggle("on",x===b))});
 /* ---------- cargar video ---------- */
 function load(f){if(!f)return;if(S.url)URL.revokeObjectURL(S.url);S.url=URL.createObjectURL(f);S.name=(f.name||"video").replace(/\.[^.]+$/,"");
-  S.shapes=[];S.batch=[];S.pts=[];vid.src=S.url;vid.load();$("#empty").hidden=true;$("#box").hidden=false;$("#bar").hidden=false;hint("Toca ▶. Para marcar un error, elige Flecha, Círculo o Ángulo y dibuja: el video se pausa solo.")}
+  S.shapes=[];S.batch=[];S.pts=[];S.steps=[];renderSteps();vid.src=S.url;vid.load();$("#empty").hidden=true;$("#box").hidden=false;$("#bar").hidden=false;hint("Toca ▶. Para marcar un error, elige Flecha, Círculo o Ángulo y dibuja: el video se pausa solo.")}
 $("#cam").onchange=e=>load(e.target.files[0]);$("#gal").onchange=e=>load(e.target.files[0]);
 $("#new").onclick=()=>{vid.pause();$("#gal").value="";$("#cam").value="";$("#empty").hidden=false;$("#box").hidden=true;$("#bar").hidden=true;hint("")};
 vid.onerror=()=>toast("Este celular no puede abrir ese video. Prueba grabándolo de nuevo con la cámara.",4000);
@@ -116,17 +133,17 @@ vid.addEventListener("loadedmetadata",()=>{fit();vid.currentTime=0.001});new Res
 const VW=()=>vid.videoWidth||1280,VH=()=>vid.videoHeight||720;
 /* ---------- controles ---------- */
 const pp=$("#pp");
-vid.onplay=()=>{pp.innerHTML='<span class="i">❚❚</span><small>Pausa</small>';S.batch=[];S.pts=[];S.prev=null;loop()};
+vid.onplay=()=>{pp.innerHTML='<span class="i">❚❚</span><small>Pausa</small>';if(!S.guide)S.batch=[];S.pts=[];S.prev=null;loop()};
 vid.onpause=()=>{pp.innerHTML='<span class="i">▶</span><small>Play</small>';draw()};
 vid.onseeked=draw;vid.ontimeupdate=()=>{$("#tc").textContent=vid.currentTime.toFixed(2)};
 const play=()=>{const r=vid.play();if(r&&r.catch)r.catch(()=>{})};
-pp.onclick=()=>vid.paused?play():vid.pause();
+pp.onclick=()=>{if(S.guide)endGuide();vid.paused?play():vid.pause()};
 $("#fb").onclick=()=>{vid.pause();vid.currentTime=Math.max(0,vid.currentTime-FR)};
 $("#ff").onclick=()=>{vid.pause();vid.currentTime=Math.min(vid.duration||0,vid.currentTime+FR)};
 $("#spd").onclick=()=>{const L=[1,.5,.25,.1];S.rate=L[(L.indexOf(S.rate)+1)%L.length];vid.playbackRate=S.rate;$("#spd .i").textContent=String(S.rate).replace(".",",")+"×"};
-function loop(){draw();if(!vid.paused&&!vid.ended)(vid.requestVideoFrameCallback?vid.requestVideoFrameCallback(loop):requestAnimationFrame(loop))}
+function loop(){guideTick();draw();if(!vid.paused&&!vid.ended)(vid.requestVideoFrameCallback?vid.requestVideoFrameCallback(loop):requestAnimationFrame(loop))}
 /* ---------- herramientas ---------- */
-const HINT={flecha:"Arrastra desde el inicio hasta la punta.",circulo:"Arrastra desde el centro hacia el borde.",angulo:"Toca 3 puntos: extremo, vértice y extremo."};
+const HINT={flecha:"Arrastra desde el inicio hasta la punta.",circulo:"Arrastra desde el centro hacia el borde.",angulo:"Toca 3 puntos: extremo, vértice y extremo.",etiqueta:"Arrastra desde la parte del cuerpo hasta donde va el texto."};
 function setTool(t){S.tool=S.tool===t?null:t;S.pts=[];S.prev=null;$$("[data-t]").forEach(b=>b.classList.toggle("on",b.dataset.t===S.tool));hint(S.tool?HINT[S.tool]:"");draw()}
 $$("[data-t]").forEach(b=>b.onclick=()=>setTool(b.dataset.t));
 const toV=e=>{const r=ov.getBoundingClientRect();return [(e.clientX-r.left)/r.width*VW(),(e.clientY-r.top)/r.height*VH()]};
@@ -137,14 +154,18 @@ ov.addEventListener("pointerdown",e=>{if(!S.tool)return;e.preventDefault();if(!v
 ov.addEventListener("pointermove",e=>{if(!S.tool)return;const p=toV(e);
   if(S.drag){S.prev={t:S.tool,p:[S.drag,p],c:S.col};draw()}else if(S.tool==="angulo"&&S.pts.length){S.hover=p;draw()}});
 ov.addEventListener("pointerup",e=>{if(!S.drag)return;const a=S.drag,p=toV(e);S.drag=null;S.prev=null;
-  if(Math.hypot(p[0]-a[0],p[1]-a[1])>VW()*.02)add({t:S.tool,p:[a,p]});draw()});
+  if(Math.hypot(p[0]-a[0],p[1]-a[1])<=VW()*.02){draw();return}
+  if(S.tool==="etiqueta"){const tool=S.tool;ask("Etiqueta",["Texto (ej. ESTIRA ADELANTE)",""],v=>{if(v[0])add({t:tool,p:[a,p],txt:v[0].toUpperCase()});draw()});return}
+  add({t:S.tool,p:[a,p]});draw()});
 $("#undo").onclick=()=>{if(S.pts.length)S.pts=[];else{const x=S.shapes.pop();S.batch=S.batch.filter(y=>y!==x)}draw()};
 $("#clr").onclick=()=>{S.shapes=S.shapes.filter(x=>!S.batch.includes(x));S.batch=[];S.pts=[];draw();play()};
 /* ---------- dibujo (en coordenadas del video, escalado a cualquier lienzo) ---------- */
 const ang=(a,b,c)=>{const v1=[a[0]-b[0],a[1]-b[1]],v2=[c[0]-b[0],c[1]-b[1]],d=Math.hypot(...v1)*Math.hypot(...v2)||1;return Math.acos(Math.max(-1,Math.min(1,(v1[0]*v2[0]+v1[1]*v2[1])/d)))*180/Math.PI};
 function paint(g,k,t,live){ // k = px de lienzo por px de video
   const lw=Math.max(3,5*k*VW()/900);g.lineCap="round";g.lineJoin="round";
-  const vis=S.shapes.filter(s=>(live&&vid.paused&&S.batch.includes(s))||(t>=s.at-.05&&t<=s.at+SHOW));
+  const ks=curStep(t),from=ks>=0?S.steps[ks].at-.05:-1;
+  const vis=S.guide?S.shapes.filter(s=>s.at>=from&&t>=s.at-.05&&(S.gHold||t<=s.at+SHOW))
+    :S.shapes.filter(s=>(live&&vid.paused&&S.batch.includes(s))||(t>=s.at-.05&&t<=s.at+SHOW&&s.at>=from));
   const one=(s,alpha)=>{g.globalAlpha=alpha;g.strokeStyle=g.fillStyle=s.c;g.lineWidth=lw;const P=s.p.map(q=>[q[0]*k,q[1]*k]);
     g.shadowColor="rgba(0,0,0,.6)";g.shadowBlur=lw;
     if(s.t==="flecha"){const [a,b]=P,an=Math.atan2(b[1]-a[1],b[0]-a[0]),h=lw*4.2;g.beginPath();g.moveTo(...a);g.lineTo(b[0]-h*.6*Math.cos(an),b[1]-h*.6*Math.sin(an));g.stroke();
@@ -155,14 +176,55 @@ function paint(g,k,t,live){ // k = px de lienzo por px de video
       g.beginPath();g.arc(b[0],b[1],lw*7,a1,a1+d,d<0);g.stroke();
       const txt=ang(...s.p).toFixed(0)+"°",fs=Math.round(lw*5.5);g.font=`800 ${fs}px system-ui,sans-serif`;g.shadowBlur=0;const w=g.measureText(txt).width;
       g.fillStyle="rgba(0,0,0,.65)";g.fillRect(b[0]+lw*3,b[1]-fs*1.1,w+fs*.5,fs*1.3);g.fillStyle=s.c;g.fillText(txt,b[0]+lw*3+fs*.25,b[1]-fs*.05)}
+    if(s.t==="etiqueta"){const [a,b]=P,fs=Math.round(lw*4.4);g.beginPath();g.arc(a[0],a[1],lw*1.4,0,7);g.fill();g.beginPath();g.moveTo(...a);g.lineTo(...b);g.stroke();
+      g.shadowBlur=0;g.font=`800 ${fs}px system-ui,sans-serif`;const w=g.measureText(s.txt).width,pd=fs*.55,bw=w+pd*2,bh=fs*1.7,bx=Math.min(Math.max(b[0]-bw/2,4),g.canvas.width-bw-4),by=Math.min(Math.max(b[1]-bh/2,4),g.canvas.height-bh-4);
+      g.fillStyle="rgba(10,20,26,.88)";rr(g,bx,by,bw,bh,bh*.3);g.fill();g.lineWidth=lw*.7;rr(g,bx,by,bw,bh,bh*.3);g.stroke();g.fillStyle=s.c;g.textBaseline="middle";g.fillText(s.txt,bx+pd,by+bh/2+1);g.textBaseline="alphabetic"}
     g.shadowBlur=0;g.globalAlpha=1};
+  stepOverlay(g,t);
   vis.forEach(s=>{const fade=vid.paused?1:Math.max(.2,Math.min(1,(s.at+SHOW-t)/.5));one(s,fade)});
   if(live){if(S.prev)one(S.prev,.75);
     if(S.pts.length){g.fillStyle=S.col;S.pts.forEach(q=>{g.beginPath();g.arc(q[0]*k,q[1]*k,lw*1.6,0,7);g.fill()});
       if(S.hover){g.strokeStyle=S.col;g.globalAlpha=.6;g.setLineDash([lw*2,lw*2]);g.beginPath();g.moveTo(S.pts[0][0]*k,S.pts[0][1]*k);S.pts.slice(1).forEach(q=>g.lineTo(q[0]*k,q[1]*k));g.lineTo(S.hover[0]*k,S.hover[1]*k);g.stroke();g.setLineDash([]);g.globalAlpha=1}}}
 }
+function rr(g,x,y,w,h,r){g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath()}
+function curStep(t){let k=-1;S.steps.forEach((st,i)=>{if(t>=st.at-.04)k=i});return k}
+function wrap(g,txt,maxW){const out=[];let line="";txt.split(/\s+/).forEach(w=>{const tl=line?line+" "+w:w;if(g.measureText(tl).width>maxW&&line){out.push(line);line=w}else line=tl});if(line)out.push(line);return out.slice(0,3)}
+function stepOverlay(g,t){const k=curStep(t);if(k<0)return;const st=S.steps[k],W=g.canvas.width,H=g.canvas.height,u=Math.min(W,H);
+  const fs=Math.round(u*.062),pad=u*.035,n=S.steps.length;
+  g.font=`900 ${fs}px system-ui,sans-serif`;const title=`${k+1} · ${st.title.toUpperCase()}`;
+  const hh=fs*1.35+pad*1.6+u*.014;g.fillStyle="rgba(10,20,26,.78)";g.fillRect(0,0,W,hh);
+  g.fillStyle="#fff";g.textAlign="center";g.textBaseline="top";g.fillText(title,W/2,pad*.8,W-pad*2);
+  const bw=Math.min(u*.12,(W-pad*2)/n-8),gap=u*.015,tot=n*bw+(n-1)*gap,y=pad*.8+fs*1.2+pad*.4;
+  for(let i=0;i<n;i++){g.fillStyle=i===k?"#3CC4C9":i<k?"rgba(60,196,201,.45)":"rgba(255,255,255,.25)";rr(g,W/2-tot/2+i*(bw+gap),y,bw,u*.012,u*.006);g.fill()}
+  g.font=`600 ${Math.round(u*.024)}px system-ui,sans-serif`;g.fillStyle="rgba(255,255,255,.55)";g.textAlign="right";g.fillText("FULLMAR · SplitCoach",W-pad*.6,hh-u*.032);
+  if(st.sub){const sf=Math.round(u*.05);g.font=`800 ${sf}px system-ui,sans-serif`;const L=wrap(g,st.sub,W*.84),bh=L.length*sf*1.25+sf*.9,bwid=Math.max(...L.map(x=>g.measureText(x).width))+sf*1.4,by=H-bh-u*.05;
+    g.fillStyle="rgba(10,20,26,.82)";rr(g,W/2-bwid/2,by,bwid,bh,sf*.4);g.fill();g.fillStyle="#fff";g.textAlign="center";L.forEach((x,i)=>g.fillText(x,W/2,by+sf*.45+i*sf*1.25))}
+  g.textAlign="left";g.textBaseline="alphabetic"}
 function draw(){ctx.clearRect(0,0,ov.width,ov.height);paint(ctx,ov.width/VW(),vid.currentTime,true);
   $("#clr").disabled=!S.batch.length}
+/* ---------- hoja para escribir ---------- */
+function ask(title,labels,cb,vals){const sh=$("#sheet");$("#sh-t").textContent=title;
+  [1,2].forEach(i=>{const l=$("#sh-l"+i),inp=$("#sh-"+i);l.hidden=!labels[i-1];l.querySelector("span").textContent=labels[i-1]||"";inp.value=(vals&&vals[i-1])||""});
+  sh.hidden=false;setTimeout(()=>$("#sh-1").focus(),50);
+  const done=ok=>{sh.hidden=true;if(ok)cb([$("#sh-1").value.trim(),$("#sh-2").value.trim()])};
+  $("#sh-ok").onclick=()=>done(true);$("#sh-no").onclick=()=>done(false);
+  $("#sh-1").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();labels[1]?$("#sh-2").focus():done(true)}};$("#sh-2").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();done(true)}}}
+/* ---------- guía técnica por pasos ---------- */
+function renderSteps(){$("#steps").innerHTML=S.steps.map((st,i)=>`<span data-go="${i}">${i+1}. ${st.title.replace(/</g,"&lt;")} <small style="color:var(--mut)">${st.at.toFixed(1)}s</small><button data-del="${i}" aria-label="Quitar paso">✕</button></span>`).join("");
+  $$("[data-go]").forEach(e=>e.onclick=ev=>{if(ev.target.dataset.del!=null){S.steps.splice(+ev.target.dataset.del,1);renderSteps();draw();return}vid.pause();S.batch=[];vid.currentTime=S.steps[+e.dataset.go].at});
+  $("#gplay").disabled=$("#grec").disabled=!S.steps.length}
+renderSteps();
+$("#step").onclick=()=>{vid.pause();const at=+vid.currentTime.toFixed(2),ex=S.steps.find(x=>Math.abs(x.at-at)<.05);
+  ask(ex?"Editar paso":"Nuevo paso en "+at.toFixed(2)+" s",["Título (ej. Entrada de mano)","Clave para el nadador (ej. Sin salpicar: estira y desliza)"],v=>{if(!v[0])return;
+    if(ex){ex.title=v[0];ex.sub=v[1]}else{S.steps.push({at,title:v[0],sub:v[1]});S.batch=[]}S.steps.sort((a,b)=>a.at-b.at);renderSteps();draw();hint("Paso listo. Ahora marca con Etiqueta, Flecha o Círculo en este mismo cuadro.")},ex?[ex.title,ex.sub]:null)};
+const HOLD=3500;
+function guide(){if(!S.steps.length)return;S.guide=true;S.gi=0;S.batch=[];vid.pause();vid.currentTime=0;$("#gplay").innerHTML='<span class="i">⏹</span><small>Detener</small>';setTimeout(play,400)}
+function endGuide(){S.guide=false;clearTimeout(S.gT);$("#gplay").innerHTML='<span class="i">▶</span><small>Ver guía</small>';if(S.rec&&S.grec){S.grec=false;setTimeout(stopRec,800)}}
+function guideTick(){if(!S.guide||vid.paused)return;const st=S.steps[S.gi];if(st&&vid.currentTime>=st.at-.02){vid.pause();S.gHold=true;vid.currentTime=st.at;S.gi++;
+  S.gT=setTimeout(()=>{S.gHold=false;if(S.guide)play()},HOLD)}}
+$("#gplay").onclick=()=>S.guide?(vid.pause(),endGuide()):guide();
+$("#grec").onclick=async()=>{if(S.rec)return;await startRec(150000);if(!S.rec)return;S.grec=true;hint("Grabando la guía… se envía sola al terminar.");guide()};
+vid.addEventListener("ended",()=>{if(S.guide)setTimeout(endGuide,1200)});
 /* ---------- compartir ---------- */
 async function shareFile(file,txt){
   try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:"SplitCoach",text:txt});return}}catch(e){if(e&&e.name==="AbortError")return}
@@ -172,7 +234,7 @@ function frameCanvas(){const sc=Math.min(1,1600/Math.max(VW(),VH())),c=document.
   return c}
 $("#shot").onclick=()=>{vid.pause();const c=frameCanvas();c.toBlob(b=>shareFile(new File([b],`${S.name}_${vid.currentTime.toFixed(2)}s.jpg`,{type:"image/jpeg"}),"Corrección de técnica · SplitCoach"),"image/jpeg",.9)};
 /* clip: graba lo que se ve (video + dibujos) mientras lo reproduces o dibujas */
-async function startRec(){
+async function startRec(maxMs){
   if(!window.MediaRecorder||!HTMLCanvasElement.prototype.captureStream){toast("Este navegador no permite grabar clips. Usa Enviar cuadro.");return}
   const mime=["video/mp4;codecs=avc1,mp4a.40.2","video/mp4;codecs=avc1,opus","video/mp4;codecs=avc1","video/mp4","video/webm;codecs=vp9,opus","video/webm;codecs=vp8,opus","video/webm"].find(t=>MediaRecorder.isTypeSupported(t));
   const sc=Math.min(1,1280/Math.max(VW(),VH())),c=document.createElement("canvas");c.width=Math.round(VW()*sc/2)*2;c.height=Math.round(VH()*sc/2)*2;const g=c.getContext("2d");
@@ -186,10 +248,10 @@ async function startRec(){
   const tick=()=>{if(!S.rec)return;g.drawImage(vid,0,0,c.width,c.height);paint(g,c.width/VW(),vid.currentTime,true);requestAnimationFrame(tick)};
   S.rec=rec;rec.start(250);tick();$("#rec").style.display="block";$("#clip").innerHTML='<span class="i">⏹</span><small>Terminar clip</small>';$("#clip").classList.add("on");
   hint("Grabando: reproduce, pausa y dibuja como quieras. Pulsa Terminar clip para enviarlo.");
-  S.recT=setTimeout(()=>{if(S.rec)stopRec()},60000);
+  S.recT=setTimeout(()=>{if(S.rec)stopRec()},maxMs||60000);
 }
 function stopRec(){const r=S.rec;S.rec=null;clearTimeout(S.recT);if(r&&r.state!=="inactive")r.stop();$("#rec").style.display="none";$("#clip").innerHTML='<span class="i">⏺</span><small>Grabar clip</small>';$("#clip").classList.remove("on");hint("")}
-$("#clip").onclick=()=>S.rec?stopRec():startRec();
+$("#clip").onclick=()=>{if(S.rec){S.grec=false;if(S.guide)endGuide();stopRec()}else startRec()};
 /* ---------- sin conexión ---------- */
 if("serviceWorker" in navigator)addEventListener("load",()=>navigator.serviceWorker.register("pista-sw.js").catch(()=>{}));
 })();
