@@ -1100,6 +1100,7 @@ R.chat={html(){
   if(S.chat&&S.chat.ok&&th&&th.ultimo&&th.ultimo.t>(th.leidoCoach||0)&&!S.chat.marking){S.chat.marking=1;S.db.doc("buzon/"+key).update({leidoCoach:th.ultimo.t}).catch(()=>{}).finally(()=>{if(S.chat)S.chat.marking=0})}
   $("#c-tipo").onchange=e=>{S.ctipo=e.target.value};$("#c-vid").onchange=e=>{S.cvid=e.target.value};$("#c-txt").oninput=e=>{S.ctxt=e.target.value};
   $("#c-send").onclick=async()=>{const m=$("#c-msg"),txt=$("#c-txt").value.trim(),vid=S.vid.find(v=>v.id===$("#c-vid").value),tipo=$("#c-tipo").value;
+    if(/file:\/\/|[A-Z]:\\Users\\/i.test(txt)){m.textContent="Eso es una ruta de tu computador: el nadador no puede abrirla. Para enviar un PDF usa 📄 Subir informe en PDF en su ficha.";m.className="small";m.style.color="var(--rope)";return}
     if(!txt&&!vid){m.innerHTML=`<span class="down">Escribe algo o adjunta un video.</span>`;return}
     if(tipo==="drill"&&!vid){m.innerHTML=`<span class="down">Un drill de video necesita un video adjunto.</span>`;return}
     $("#c-send").disabled=true;
