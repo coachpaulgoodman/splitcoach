@@ -34,6 +34,14 @@ button:disabled{opacity:.35}
 #empty{display:grid;gap:14px;justify-items:center;text-align:center;padding:24px;color:var(--mut)}
 #empty .big{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
 #empty label.b{min-width:150px;min-height:90px;font-size:17px;background:var(--acc);color:#0B2A30}
+#empty button.b{min-width:150px;min-height:90px;font-size:17px;background:#E8B23A;color:#2A1E05;flex-direction:column}#empty button.b .i{font-size:34px}
+#camv-w{position:fixed;inset:0;z-index:15;background:#000;display:flex;flex-direction:column}
+#camv-w video{flex:1;min-height:0;width:100%;object-fit:contain;background:#000}
+#camv-st{position:absolute;top:calc(10px + env(safe-area-inset-top));left:12px;right:12px;display:flex;justify-content:space-between;gap:8px;font:700 14px system-ui,sans-serif;color:#fff;pointer-events:none}
+#camv-st span{background:#000a;border-radius:20px;padding:6px 12px}#camv-st .r{color:#FF6B6B}
+#camv-c{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom));background:var(--pan)}
+#camv-c .rep{background:var(--acc);color:#0B2A30;font-weight:800}#camv-c .rep small{color:#0B2A30;font-weight:700}
+@media (orientation:landscape){#camv-w{flex-direction:row}#camv-c{grid-template-columns:1fr;grid-auto-rows:1fr;width:150px}}
 #empty label.b.alt{background:var(--pan2);color:var(--ink)}
 #empty label.b .i{font-size:34px}
 .bar{display:grid;gap:8px;padding:8px 10px;background:var(--pan)}
@@ -77,6 +85,7 @@ button:disabled{opacity:.35}
     <div class="big">
       <label class="b"><span class="i">🎥</span>Grabar<input id="cam" type="file" accept="video/*" capture="environment" hidden></label>
       <label class="b alt"><span class="i">🖼</span>Galería<input id="gal" type="file" accept="video/*" hidden></label>
+      <button class="b" id="live"><span class="i">📹</span>Cámara y repetir</button>
     </div>
     <div style="font-size:13px">El video queda solo en este celular.</div>
   </div>
@@ -122,9 +131,14 @@ button:disabled{opacity:.35}
     <button id="shot"><span class="i">📷</span><small>Enviar cuadro</small></button>
     <button id="clip"><span class="i">⏺</span><small>Grabar clip</small></button>
     <button id="new"><span class="i">＋</span><small>Otro video</small></button>
+    <button id="tocam" hidden><span class="i">📹</span><small>Volver a cámara</small></button>
   </div>
 </div>
 <div id="toast"></div>
+<div id="camv-w" hidden><video id="camv" playsinline muted autoplay></video>
+  <div id="camv-st"><span class="r" id="camv-r">● Grabando</span><span id="camv-h">Guarda los últimos 40 s</span></div>
+  <div id="camv-c"><button class="rep" data-rep="10"><span class="i">⏪</span><small>Últimos 10 s</small></button><button class="rep" data-rep="20"><span class="i">⏪</span><small>Últimos 20 s</small></button>
+  <button id="camv-flip"><span class="i">🔄</span><small>Cambiar cámara</small></button><button id="camv-x"><span class="i">✕</span><small>Salir</small></button></div></div>
 <div id="sheet" hidden><div class="in"><b id="sh-t"></b><label id="sh-l1"><span></span><input id="sh-1" maxlength="40" autocomplete="off"></label><label id="sh-l2"><span></span><input id="sh-2" maxlength="70" autocomplete="off"></label>
 <div class="row"><button id="sh-no"><span class="i">✕</span><small>Cancelar</small></button><button id="sh-ok" class="on"><span class="i">✓</span><small>Guardar</small></button></div></div></div>
 <script>
@@ -143,6 +157,35 @@ $$("[data-c]").forEach(b=>b.onclick=()=>{S.col=b.dataset.c;$$("[data-c]").forEac
 function load(f){if(S.rplay)endRace();if(!f)return;if(S.url)URL.revokeObjectURL(S.url);S.url=URL.createObjectURL(f);S.name=(f.name||"video").replace(/\.[^.]+$/,"");
   S.shapes=[];S.batch=[];S.pts=[];S.steps=[];renderSteps();S.race=newRace(S.race);renderRace();vid.src=S.url;vid.load();$("#empty").hidden=true;$("#box").hidden=false;$("#bar").hidden=false;hint("Toca ▶. Para marcar un error, elige Flecha, Círculo o Ángulo y dibuja: el video se pausa solo.")}
 $("#cam").onchange=e=>load(e.target.files[0]);$("#gal").onchange=e=>load(e.target.files[0]);
+/* ---------- cámara en vivo con repetición (graba sin parar, guarda ~40 s) ---------- */
+const LV={stream:null,facing:"environment",recs:[],timer:0,mime:"",SEG:20,MAX:40};
+function lvMime(){return ["video/mp4;codecs=avc1","video/mp4","video/webm;codecs=vp8","video/webm"].find(t=>window.MediaRecorder&&MediaRecorder.isTypeSupported(t))||""}
+function lvNewRec(){if(!LV.stream)return;let r;try{r=new MediaRecorder(LV.stream,LV.mime?{mimeType:LV.mime,videoBitsPerSecond:4e6}:{})}catch(e){toast("No se pudo grabar con esta cámara.",3000);return}
+  const o={r,t0:performance.now(),chunks:[],keep:false};r.ondataavailable=e=>{if(e.data&&e.data.size)o.chunks.push(e.data)};
+  r.onstop=()=>{if(o.keep&&o.onDone)o.onDone(new Blob(o.chunks,{type:LV.mime||"video/webm"}))};r.start(1000);LV.recs.push(o)}
+function lvTick(){const now=performance.now();
+  LV.recs.filter(o=>now-o.t0>LV.MAX*1000+1500&&o.r.state==="recording").forEach(o=>{o.r.stop()});LV.recs=LV.recs.filter(o=>o.r.state==="recording");
+  const last=LV.recs[LV.recs.length-1];if(!last||now-last.t0>=LV.SEG*1000)lvNewRec();
+  const old=LV.recs[0];$("#camv-h").textContent=old?`Guardando ${Math.min(LV.MAX,Math.round((now-old.t0)/1000))} s`:""}
+async function lvStart(){if(!navigator.mediaDevices||!window.MediaRecorder){toast("Este navegador no permite usar la cámara aquí.",3500);return}
+  try{LV.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:LV.facing,width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30}},audio:false})}
+  catch(e){toast("Permite el acceso a la cámara para usar esta función.",3500);return}
+  LV.mime=lvMime();$("#camv").srcObject=LV.stream;$("#camv-w").hidden=false;vid.pause();
+  try{LV.wake=await navigator.wakeLock.request("screen")}catch(_){}
+  LV.recs=[];lvNewRec();clearInterval(LV.timer);LV.timer=setInterval(lvTick,500)}
+function lvStop(){clearInterval(LV.timer);LV.recs.forEach(o=>{o.keep=false;try{o.r.stop()}catch(_){}});LV.recs=[];if(LV.stream)LV.stream.getTracks().forEach(t=>t.stop());LV.stream=null;$("#camv-w").hidden=true;$("#tocam").hidden=true;try{LV.wake&&LV.wake.release()}catch(_){}}
+function lvReplay(n){const now=performance.now(),o=LV.recs.find(x=>x.r.state==="recording");if(!o){toast("Aún no hay video guardado.");return}
+  const age=(now-o.t0)/1000;if(age<1.5){toast("Espera un segundo…");return}
+  o.keep=true;o.onDone=blob=>{const ext=(LV.mime.includes("mp4")?"mp4":"webm"),f=new File([blob],`repeticion_${new Date().toTimeString().slice(0,8).replace(/:/g,"")}.${ext}`,{type:blob.type});
+    $("#camv-w").hidden=true;load(f);$("#tocam").hidden=false;const st=Math.max(0,age-n);
+    vid.addEventListener("loadeddata",function go(){vid.removeEventListener("loadeddata",go);setTimeout(()=>{vid.currentTime=st;vid.playbackRate=S.rate||1;vid.play().catch(()=>{})},150)});
+    hint(`Repetición de los últimos ${Math.round(Math.min(n,age))} s. Dibuja para marcar; 📹 vuelve a la cámara.`)};
+  o.r.stop();LV.recs=LV.recs.filter(x=>x!==o);lvNewRec()}
+$("#live").onclick=lvStart;$("#camv-x").onclick=lvStop;
+$$("[data-rep]").forEach(b=>b.onclick=()=>lvReplay(+b.dataset.rep));
+$("#camv-flip").onclick=async()=>{LV.facing=LV.facing==="environment"?"user":"environment";lvStop();await lvStart()};
+$("#tocam").onclick=()=>{vid.pause();if(LV.stream){$("#camv-w").hidden=false}else lvStart()};
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&LV.stream&&!$("#camv-w").hidden){(async()=>{try{LV.wake=await navigator.wakeLock.request("screen")}catch(_){}})()}});
 $("#new").onclick=()=>{vid.pause();$("#gal").value="";$("#cam").value="";$("#empty").hidden=false;$("#box").hidden=true;$("#bar").hidden=true;hint("")};
 vid.onerror=()=>toast("Este celular no puede abrir ese video. Prueba grabándolo de nuevo con la cámara.",4000);
 /* ---------- tamaño ---------- */
