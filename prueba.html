@@ -10,6 +10,7 @@
 #an-c{width:100%;height:auto;max-height:68vh;object-fit:contain;border-radius:12px;background:#0F1A22}
 .anim-ctl{display:flex;flex-wrap:wrap;gap:8px;align-items:end}.anim-ctl label{display:grid;gap:3px;font-size:12.5px;color:var(--muted)}.anim-ctl .an-wide{flex:1 1 100%}
 @media print{#anim-ov{display:none!important}}
+.fbt{margin-top:12px;padding:12px;border-radius:12px;background:var(--surface-2,rgba(77,182,191,.08));border:1px solid var(--line);display:grid;gap:8px}.fbt textarea{width:100%;margin-top:4px}
 </style>
 <title>SplitCoach</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -639,7 +640,7 @@ R.ficha={html(){
       <a class="btn ghost sm" href="#chat-${encodeURIComponent(n.id)}">Mensajes${unread(S.buz[tk(n)],"coach")?" · nuevo":""}</a></div>
   </section>
   ${infFichaHTML(n)}
-  ${marcasHTML(n,true)}${torChartsHTML(n,false)}<section class="card" hidden><h3>Mejores tiempos</h3>${pbTable}
+  ${marcasHTML(n,true)}${torChartsHTML(n,false)}${(()=>{const T=torCards(n,false,3);return T.rs.length?`<section class="card"><h2>Torneos y feedback</h2><div class="note">Últimos torneos: tiempo vs PB previo y tu feedback. Al guardar, ${esc(String(n.nombre).split(" ")[0])} lo ve en su sección Torneos.</div></section>${T.cards}`:""})()}<section class="card" hidden><h3>Mejores tiempos</h3>${pbTable}
     <details><summary class="small" style="cursor:pointer;color:var(--accent);font-weight:600">Agregar marca (control o test)</summary>
       <div class="form three" style="margin-top:10px">
         <label>Prueba<select id="m-p">${PRUEBAS.map(p=>`<option>${p}</option>`).join("")}</select></label>
@@ -1158,7 +1159,7 @@ async function syncFichas(){
   rebuildIdx();
   for(const n of S.nad.filter(x=>x.uid)){
     const ks=keysOf(n);
-    const payload={nombre:n.nombre||"",sexo:n.sexo||"",nacimiento:n.nacimiento||"",club:n.club||"",objetivos:n.objetivos||"",pruebasFav:n.pruebasFav||"",metas:n.metas||{},
+    const payload={nombre:n.nombre||"",sexo:n.sexo||"",nacimiento:n.nacimiento||"",club:n.club||"",objetivos:n.objetivos||"",pruebasFav:n.pruebasFav||"",metas:n.metas||{},fbTor:n.fbTor||{},
       res:resOf(n.nombre).filter(r=>r.seg!=null).map(r=>({prueba:r.prueba,piscina:String(r.piscina||""),seg:r.seg,tiempo:r.tiempo||"",fecha:r.fecha||"",torneo:r.torneo||"",lugar:r.lugar||null})),
       par:S.par.filter(p=>ks.has(norm(p.nadador))).map(p=>({prueba:p.prueba,piscina:String(p.piscina||""),tramo:p.tramo,tipo:p.tipo||"",fecha:p.fecha||"",torneo:p.torneo||"",splits:p.splits||[]})),
       vid:S.vid.filter(v=>v.nadadorId===n.id&&v.compartido).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).slice(0,30).map(v=>({id:v.id,assetId:v.assetId,prueba:v.prueba||"",fecha:v.fecha||"",notas:v.notas||"",marcas:v.marcas||[],trazos:v.trazos||[],carrera:v.carrera||null})),
@@ -1173,7 +1174,7 @@ async function syncFichas(){
 }
 // nadador: arma su vista con los datos publicados
 function loadMiFicha(f){
-  const n={id:"yo",nombre:f.nombre,sexo:f.sexo,nacimiento:f.nacimiento,club:f.club,objetivos:f.objetivos,pruebasFav:f.pruebasFav,metas:f.metas||{}};
+  const n={id:"yo",nombre:f.nombre,sexo:f.sexo,nacimiento:f.nacimiento,club:f.club,objetivos:f.objetivos,pruebasFav:f.pruebasFav,metas:f.metas||{},fbTor:f.fbTor||{}};
   S.nad=[n];
   S.res=(f.res||[]).map((r,i)=>Object.assign({id:"r"+i,nadador:n.nombre},r));
   S.par=(f.par||[]).map((p,i)=>Object.assign({id:"p"+i,nadador:n.nombre},p));
@@ -1949,28 +1950,59 @@ function torChartsHTML(n,yo){
       <tr class="hl"><td><b>Mejora (${esc(String(tors[0].torneo).slice(0,14))} → ${esc(String(lastT.torneo).slice(0,14))})</b></td>${T.map(x=>`<td class="num">${mej(x)}</td>`).join("")}</tr></tbody></table></div>
     ${L.some(x=>x.meta==null)?`<div class="note">${yo?"":"Fija la meta de cada prueba en Mejores marcas para ver la línea de meta."}</div>`:""}</section>`;
 }
-R.mistorneos={html(){
-  const n=S.nad[0];if(!n)return emptyBox(loading()?"Cargando…":"Tu ficha aún no está publicada","");
+/* ---------- tarjetas por torneo: tiempos vs PB previo, gráfico y feedback del coach ---------- */
+const fbKey=(f,t)=>(f||"")+"|"+t,fbSid=k=>k.replace(/[^a-z0-9]/gi,"_");
+function torDiffSVG(rows){ // barras divergentes: diferencia vs PB previo (izq. verde = mejora)
+  const R=rows.filter(r=>r.d!=null);if(!R.length)return "";
+  const W=360,rh=36,P={l:96,r:66,t:8,b:22},H=P.t+P.b+rh*R.length,iw=W-P.l-P.r,mx=Math.max(.5,...R.map(r=>Math.abs(r.pct))),cx=P.l+iw/2,X=v=>cx+v/mx*(iw/2);
+  let g=`<line x1="${cx}" x2="${cx}" y1="${P.t-4}" y2="${H-P.b+4}" stroke="var(--muted)"/>`;
+  R.forEach((r,i)=>{const y=P.t+i*rh,col=r.d<0?"#2E9E6A":"#D0574F",x=X(r.pct),bw=Math.max(2,Math.abs(x-cx));
+    g+=`<text x="${P.l-8}" y="${y+rh/2+4}" text-anchor="end" font-size="12" font-weight="600" fill="var(--ink)">${esc(r.prueba)}</text>
+      <rect x="${Math.min(x,cx)}" y="${y+7}" width="${bw}" height="${rh-14}" rx="4" fill="${col}"/>
+      <text x="${W-2}" y="${y+rh/2-1}" text-anchor="end" font-size="11.5" font-weight="700" fill="${col}">${r.d<0?"−":"+"}${Math.abs(r.d).toFixed(2)} s</text><text x="${W-2}" y="${y+rh/2+11}" text-anchor="end" font-size="9.5" fill="var(--muted)">${(100/(1+r.pct/100)).toFixed(1)} % PB</text>`});
+  g+=`<text x="${P.l}" y="${H-6}" font-size="10" fill="var(--muted)">← más rápido que su PB</text><text x="${W-P.r}" y="${H-6}" text-anchor="end" font-size="10" fill="var(--muted)">más lento →</text>`;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Diferencia con el PB previo por prueba" style="width:100%;max-width:520px;display:block;margin:6px auto 0">${g}</svg>`;
+}
+function torCards(n,yo,max){
   const rs=resOf(n.nombre).filter(r=>r.seg!=null&&r.torneo);
-  if(!rs.length)return `<section class="card"><h2>Mis torneos</h2><div class="muted small">Todavía no hay resultados de torneos cargados con tu nombre.</div></section>`;
   const prevPB=r=>resOf(n.nombre).filter(x=>x.seg!=null&&x.prueba===r.prueba&&String(x.piscina)===String(r.piscina)&&(x.fecha||"")<(r.fecha||"")).reduce((m,x)=>m==null||x.seg<m?x.seg:m,null);
-  const groups={};rs.forEach(r=>{const k=(r.fecha||"")+"|"+r.torneo;(groups[k]=groups[k]||[]).push(r)});
+  const groups={};rs.forEach(r=>{const k=fbKey(r.fecha,r.torneo);(groups[k]=groups[k]||[]).push(r)});
   const keys=Object.keys(groups).sort((a,b)=>b.localeCompare(a));
-  let pbs=0;const med=[0,0,0];
-  const cards=keys.map(k=>{const g=groups[k].slice().sort((a,b)=>ordPrueba(a.prueba)-ordPrueba(b.prueba)),[f,t]=[k.split("|")[0],k.slice(k.indexOf("|")+1)];
+  let pbs=0;const med=[0,0,0];const fb=n.fbTor||{};
+  const cards=keys.map((k,ci)=>{const g=groups[k].slice().sort((a,b)=>ordPrueba(a.prueba)-ordPrueba(b.prueba)),f=k.split("|")[0],t=k.slice(k.indexOf("|")+1);
     let gpb=0;
-    const filas=g.map(r=>{const pb=prevPB(r),d=pb==null?null:r.seg-pb;if(d!=null&&d<0){pbs++;gpb++}if(r.lugar>=1&&r.lugar<=3)med[r.lugar-1]++;
-      return `<tr><td><b>${esc(r.prueba)}</b><div class="small muted">${esc(r.piscina)} m</div></td><td class="num time">${fmtT(r.seg)}</td>
+    const rows=g.map(r=>{const pb=prevPB(r),d=pb==null?null:r.seg-pb;if(d!=null&&d<0){pbs++;gpb++}if(r.lugar>=1&&r.lugar<=3)med[r.lugar-1]++;return {r,pb,d,prueba:r.prueba,pct:d==null?0:d/pb*100}});
+    if(max&&ci>=max)return "";
+    const filas=rows.map(({r,pb,d})=>`<tr><td><b>${esc(r.prueba)}</b><div class="small muted">${esc(r.piscina)} m</div></td><td class="num time">${fmtT(r.seg)}</td>
         <td class="num">${r.lugar>=1&&r.lugar<=3?`<span class="medal m${r.lugar}">${r.lugar}</span>`:r.lugar?r.lugar+"°":"—"}</td>
-        <td class="num">${pb==null?`<span class="chip">1ª vez</span>`:d<0?`<span class="chip pas-pb">PB</span> ${difS(d)}`:difS(d)}</td></tr>`}).join("");
-    const gm=[1,2,3].map(x=>g.filter(r=>r.lugar===x).length);
+        <td class="num">${pb==null?"—":fmtT(pb)}</td>
+        <td class="num">${pb==null?`<span class="chip">1ª vez</span>`:d<0?`<span class="chip pas-pb">PB</span> ${difS(d)}`:difS(d)}</td>
+</tr>`).join("");
+    const gm=[1,2,3].map(x=>g.filter(r=>r.lugar===x).length),o=fb[k],kid=encodeURIComponent(k),sid=fbSid(k);
+    const fbBox=yo?(o&&o.texto?`<div class="fbt"><div class="small" style="font-weight:700;color:var(--accent)">Feedback de tu entrenador${o.fecha?` · ${fmtD(o.fecha)}`:""}</div><div style="white-space:pre-wrap">${esc(o.texto)}</div></div>`:"")
+      :`<div class="fbt"><label class="small" style="font-weight:700;color:var(--accent)">Feedback del coach para ${esc(String(n.nombre).split(" ")[0])}
+        <textarea id="fbt-${sid}" rows="4" placeholder="Qué salió bien, qué ajustar y el foco para el próximo torneo">${esc(o&&o.texto||"")}</textarea></label>
+        <div class="row" style="gap:8px"><button class="btn sm" data-fbt="${kid}">${o&&o.texto?"Actualizar feedback":"Guardar y enviar"}</button>
+        ${o&&o.texto&&n.uid?`<a class="btn ghost sm" target="_blank" rel="noopener" href="${esc(waLink(n,`Hola ${String(n.nombre).split(" ")[0]}, te dejé el feedback de ${t} en SplitCoach: ${appUrl("#torneos")}`))}">Avisar por WhatsApp</a>`:""}
+        <span class="small" id="fbtm-${sid}">${o&&o.texto?`<span class="muted">Guardado ${fmtD(o.fecha)}${n.uid?" · lo ve en Torneos":" · aún no tiene acceso a la app"}</span>`:""}</span></div></div>`;
     return `<section class="card"><div class="head"><div><h3>${esc(t)}</h3><div class="small muted">${fmtD(f)} · ${g.length} prueba${g.length>1?"s":""}</div></div>
       <div class="row" style="gap:6px">${gpb?`<span class="chip pas-pb">${gpb} PB</span>`:""}${gm.map((c,i)=>c?`<span class="medal m${i+1}" title="${["Oro","Plata","Bronce"][i]}">${c}</span>`:"").join("")}</div></div>
-      <div class="tablewrap"><table class="pas-t prog-t"><thead><tr><th>Prueba</th><th class="num">Tiempo</th><th class="num">Lugar</th><th class="num">vs PB previo</th></tr></thead><tbody>${filas}</tbody></table></div></section>`}).join("");
+      <div class="tablewrap"><table class="pas-t prog-t"><thead><tr><th>Prueba</th><th class="num">Tiempo</th><th class="num">Lugar</th><th class="num">PB previo</th><th class="num">Dif.</th></tr></thead><tbody>${filas}</tbody></table></div>
+      ${torDiffSVG(rows)}${fbBox}</section>`}).join("");
+  return {cards,keys,rs,pbs,med};
+}
+R.mistorneos={html(){
+  const n=S.nad[0];if(!n)return emptyBox(loading()?"Cargando…":"Tu ficha aún no está publicada","");
+  const T=torCards(n,true);
+  if(!T.rs.length)return `<section class="card"><h2>Mis torneos</h2><div class="muted small">Todavía no hay resultados de torneos cargados con tu nombre.</div></section>`;
   return `${torChartsHTML(n,true)}<section class="card"><h2>Mis torneos</h2>
-    <div class="kpi"><div><b>${keys.length}</b><span>Torneos</span></div><div><b>${rs.length}</b><span>Pruebas nadadas</span></div><div><b class="up">${pbs}</b><span>PB logrados</span></div><div><b>${med[0]} · ${med[1]} · ${med[2]}</b><span>Oro · Plata · Bronce</span></div></div>
-    <div class="note">vs PB previo: tu tiempo comparado con tu mejor marca anterior a ese torneo (misma prueba y piscina). Verde = mejoraste.</div></section>${cards}`;
+    <div class="kpi"><div><b>${T.keys.length}</b><span>Torneos</span></div><div><b>${T.rs.length}</b><span>Pruebas nadadas</span></div><div><b class="up">${T.pbs}</b><span>PB logrados</span></div><div><b>${T.med[0]} · ${T.med[1]} · ${T.med[2]}</b><span>Oro · Plata · Bronce</span></div></div>
+    <div class="note">PB previo: tu mejor marca anterior a ese torneo (misma prueba y piscina). % PB = PB ÷ tiempo: 100 % o más es marca personal.</div></section>${T.cards}`;
 },bind(){}};
+document.addEventListener("click",async e=>{const b=e.target.closest&&e.target.closest("[data-fbt]");if(!b||S.mode!=="coach")return;
+  const n=nadById(S.param);if(!n)return;const k=decodeURIComponent(b.dataset.fbt),sid=fbSid(k),txt=($("#fbt-"+sid)||{}).value||"",m=$("#fbtm-"+sid);
+  const fbTor=Object.assign({},n.fbTor||{});if(txt.trim())fbTor[k]={texto:txt.trim(),fecha:new Date().toISOString().slice(0,10)};else delete fbTor[k];
+  b.disabled=true;if(await dbWrite(db=>db.collection("nadadores").doc(n.id).update({fbTor}),m)){n.fbTor=fbTor;m.innerHTML=`<span class="up">Guardado${n.uid?" · enviado a su app":""}</span>`;publicarYa()}b.disabled=false});
 R.misinformes={html(){
   const l=S.miInf||[];
   if(!l.length)return `<section class="card"><h2>Mis entrenos</h2><div class="muted small">Cuando tu entrenador publique el informe de una sesión, aparecerá aquí con tus tiempos, % de tu PB, gráficos y su feedback.</div></section>`;
