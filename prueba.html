@@ -1213,7 +1213,7 @@ R.tiempos={html(){
   if(m.scope==="plantel")rows=rows.filter(r=>plantel.has(norm(r.nadador)));
   const dists=uniq(rows.map(r=>distOf(r.prueba))).sort((a,b)=>a-b);
   const by={};
-  rows.forEach(r=>{const nn=nadByName(r.nadador);const k=nn?"id:"+nn.id:norm(r.nadador);const g=by[k]=by[k]||{nombre:nn?nn.nombre:r.nadador,club:r.club,pb:{}};const d=distOf(r.prueba);if(!g.pb[d]||r.seg<g.pb[d].seg)g.pb[d]=r});
+  rows.forEach(r=>{const nn=nadByName(r.nadador);const k=nn?"id:"+nn.id:norm(r.nadador);const g=by[k]=by[k]||{nombre:nn?nn.nombre:r.nadador,club:nn&&nn.club?nn.club:r.club,pb:{}};const d=distOf(r.prueba);if(!g.pb[d]||r.seg<g.pb[d].seg)g.pb[d]=r});
   let list=Object.values(by);
   const sortD=dists.includes(+m.sort)?+m.sort:dists[0];
   list.sort((a,b)=>((a.pb[sortD]||{}).seg||1e9)-((b.pb[sortD]||{}).seg||1e9)||a.nombre.localeCompare(b.nombre,"es"));
