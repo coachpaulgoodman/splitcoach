@@ -39,7 +39,7 @@ button:disabled{opacity:.35}
 #camv-w video{flex:1;min-height:0;width:100%;object-fit:contain;background:#000}
 #camv-st{position:absolute;top:calc(10px + env(safe-area-inset-top));left:12px;right:12px;display:flex;justify-content:space-between;gap:8px;font:700 14px system-ui,sans-serif;color:#fff;pointer-events:none}
 #camv-st span{background:#000a;border-radius:20px;padding:6px 12px}#camv-st .r{color:#FF6B6B}
-#camv-c{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom));background:var(--pan)}
+#camv-c{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;padding:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom));background:var(--pan)}
 #camv-c .rep{background:var(--acc);color:#0B2A30;font-weight:800}#camv-c .rep small{color:#0B2A30;font-weight:700}
 @media (orientation:landscape){#camv-w{flex-direction:row}#camv-c{grid-template-columns:1fr;grid-auto-rows:1fr;width:150px}}
 #empty label.b.alt{background:var(--pan2);color:var(--ink)}
@@ -93,7 +93,7 @@ button:disabled{opacity:.35}
 </div>
 <div id="hint"></div>
 <div class="bar m-dib" id="bar" hidden>
-  <div class="modes"><button data-mode="dib" class="on">✏️ Dibujar</button><button data-mode="guia">📋 Guía</button><button data-mode="car">⏱ Carrera</button></div>
+  <div class="modes"><button data-mode="dib" class="on">🎯 Analizar</button><button data-mode="guia">📋 Guía</button><button data-mode="car">⏱ Carrera</button></div>
   <div class="row">
     <button id="fb" aria-label="Cuadro anterior"><span class="i">⏮</span><small>Cuadro</small></button>
     <button id="pp" aria-label="Reproducir"><span class="i">▶</span><small>Play</small></button>
@@ -136,8 +136,8 @@ button:disabled{opacity:.35}
 </div>
 <div id="toast"></div>
 <div id="camv-w" hidden><video id="camv" playsinline muted autoplay></video>
-  <div id="camv-st"><span class="r" id="camv-r">● Grabando</span><span id="camv-h">Guarda los últimos 40 s</span></div>
-  <div id="camv-c"><button class="rep" data-rep="10"><span class="i">⏪</span><small>Últimos 10 s</small></button><button class="rep" data-rep="20"><span class="i">⏪</span><small>Últimos 20 s</small></button>
+  <div id="camv-st"><span class="r" id="camv-r">● Grabando</span><span id="camv-h">Guarda los últimos 60 s</span></div>
+  <div id="camv-c"><button class="rep" data-rep="10"><span class="i">⏪</span><small>Últimos 10 s</small></button><button class="rep" data-rep="20"><span class="i">⏪</span><small>Últimos 20 s</small></button><button class="rep" data-rep="30"><span class="i">⏪</span><small>Últimos 30 s</small></button>
   <button id="camv-flip"><span class="i">🔄</span><small>Cambiar cámara</small></button><button id="camv-x"><span class="i">✕</span><small>Salir</small></button></div></div>
 <div id="sheet" hidden><div class="in"><b id="sh-t"></b><label id="sh-l1"><span></span><input id="sh-1" maxlength="40" autocomplete="off"></label><label id="sh-l2"><span></span><input id="sh-2" maxlength="70" autocomplete="off"></label>
 <div class="row"><button id="sh-no"><span class="i">✕</span><small>Cancelar</small></button><button id="sh-ok" class="on"><span class="i">✓</span><small>Guardar</small></button></div></div></div>
@@ -158,7 +158,7 @@ function load(f){if(S.rplay)endRace();if(!f)return;if(S.url)URL.revokeObjectURL(
   S.shapes=[];S.batch=[];S.pts=[];S.steps=[];renderSteps();S.race=newRace(S.race);renderRace();vid.src=S.url;vid.load();$("#empty").hidden=true;$("#box").hidden=false;$("#bar").hidden=false;hint("Toca ▶. Para marcar un error, elige Flecha, Círculo o Ángulo y dibuja: el video se pausa solo.")}
 $("#cam").onchange=e=>load(e.target.files[0]);$("#gal").onchange=e=>load(e.target.files[0]);
 /* ---------- cámara en vivo con repetición (graba sin parar, guarda ~40 s) ---------- */
-const LV={stream:null,facing:"environment",recs:[],timer:0,mime:"",SEG:20,MAX:40};
+const LV={stream:null,facing:"environment",recs:[],timer:0,mime:"",SEG:30,MAX:60};
 function lvMime(){return ["video/mp4;codecs=avc1","video/mp4","video/webm;codecs=vp8","video/webm"].find(t=>window.MediaRecorder&&MediaRecorder.isTypeSupported(t))||""}
 function lvNewRec(){if(!LV.stream)return;let r;try{r=new MediaRecorder(LV.stream,LV.mime?{mimeType:LV.mime,videoBitsPerSecond:4e6}:{})}catch(e){toast("No se pudo grabar con esta cámara.",3000);return}
   const o={r,t0:performance.now(),chunks:[],keep:false};r.ondataavailable=e=>{if(e.data&&e.data.size)o.chunks.push(e.data)};
