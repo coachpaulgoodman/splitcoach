@@ -640,7 +640,7 @@ R.ficha={html(){
       <a class="btn ghost sm" href="#chat-${encodeURIComponent(n.id)}">Mensajes${unread(S.buz[tk(n)],"coach")?" · nuevo":""}</a></div>
   </section>
   ${infFichaHTML(n)}
-  ${marcasHTML(n,true)}${torChartsHTML(n,false)}${(()=>{const T=torCards(n,false,3);return T.rs.length?`<section class="card"><h2>Torneos y feedback</h2><div class="note">Últimos torneos: tiempo vs PB previo y tu feedback. Al guardar, ${esc(String(n.nombre).split(" ")[0])} lo ve en su sección Torneos.</div></section>${T.cards}`:""})()}<section class="card" hidden><h3>Mejores tiempos</h3>${pbTable}
+  ${marcasHTML(n,true)}${torChartsHTML(n,false)}${(()=>{const T=torCards(n,false,3);return T.rs.length?`<section class="card"><h2>Torneos y feedback</h2><div class="note">Últimos torneos: tiempo vs PB previo y tu feedback. Al guardar, ${esc(String(n.nombre).split(" ")[0])} lo ve en su sección Torneos.</div></section>${T.cards}`:""})()}<section class="card"><h3>Agregar marcas y metas</h3><h3>Mejores tiempos</h3>${pbTable}
     <details><summary class="small" style="cursor:pointer;color:var(--accent);font-weight:600">Agregar marca (control o test)</summary>
       <div class="form three" style="margin-top:10px">
         <label>Prueba<select id="m-p">${PRUEBAS.map(p=>`<option>${p}</option>`).join("")}</select></label>
@@ -649,6 +649,15 @@ R.ficha={html(){
         <label>Fecha<input id="m-f" type="date" value="${today()}"></label>
         <label class="full">Origen<input id="m-o" value="Control interno"></label>
         <div class="row full"><button class="btn" id="m-save">Guardar marca</button><span id="m-msg" class="small"></span></div>
+      </div></details>
+    <details id="mb-d" ${S.mbOpen?"open":""}><summary class="small" style="cursor:pointer;color:var(--accent);font-weight:600">Pegar varias marcas o metas</summary>
+      <div class="form" style="margin-top:10px">
+        <label class="full">Una por línea: prueba y tiempo. Acepta "100 Pecho 1:34.80" o "100P 1:34.80" (L, E, P, M, CI). Agrega "larga" para piscina de 50.
+          <textarea id="mb-t" rows="5" style="font-family:var(--f-mono)" placeholder="50L 34.00&#10;100P 1:34.80&#10;200CI 3:10.30"></textarea></label>
+        <label>Guardar como<select id="mb-k"><option value="pb">Marcas (PB de referencia)</option><option value="meta">Metas</option></select></label>
+        <label>Fecha de las marcas<input id="mb-f" type="date" value="${today()}"></label>
+        <label class="full">Origen<input id="mb-o" value="PB de referencia"></label>
+        <div class="row full"><button class="btn" id="mb-save">Guardar</button><span id="mb-msg" class="small">${S.mbMsg||""}</span></div>
       </div></details></section>
   ${progresoHTML(n)}
   ${pasadasHTML(n)}
@@ -683,6 +692,19 @@ R.ficha={html(){
   $("#f-del").onclick=async e=>{const b=e.target;if(b.dataset.c!=="1"){b.dataset.c="1";b.textContent="¿Eliminar ficha? Los resultados se mantienen";b.className="btn danger sm";return}
     if(await dbWrite(db=>db.collection("nadadores").doc(n.id).delete(),$("#f-msg")))location.hash="#plantel"};
   bindPasadas(n);bindIM(n);bindInfFicha(n);bindMarcas(n);
+  $("#mb-d").ontoggle=e=>{S.mbOpen=e.target.open;if(!S.mbOpen)S.mbMsg=""};
+  $("#mb-save").onclick=async e=>{const b=e.target,m=$("#mb-msg"),L=parseMarkLines($("#mb-t").value),k=$("#mb-k").value;S.mbOpen=true;
+    if(!L.ok.length){m.innerHTML=`<span class="down">No reconocí ninguna línea. Ej.: 100P 1:34.80</span>`;return}
+    const lista=L.ok.map(x=>`${esc(x.prueba)}${x.pis==="50"?" (larga)":""} <b>${fmtT(x.seg)}</b>`).join(" · "),malas=L.bad.length?`<br><span class="down">No reconocidas (no se guardaron): ${L.bad.map(esc).join(" · ")}</span>`:"";
+    b.disabled=true;S.busy=true;let ok=0;
+    try{if(k==="meta"){const metas=Object.assign({},n.metas||{});L.ok.forEach(x=>{metas[x.prueba+"|"+x.pis]={total:fmtT(x.seg)}});
+        if(await dbWrite(db=>db.collection("nadadores").doc(n.id).update({metas}),m)){n.metas=metas;ok=L.ok.length;publicarYa()}}
+      else{const e2=edadMaster(n.nacimiento),f=$("#mb-f").value||today(),o=$("#mb-o").value.trim()||"PB de referencia";
+        for(const x of L.ok){const r={torneo:o,fecha:f,piscina:x.pis,nadador:n.nombre,sexo:n.sexo||"",edad:e2,categoria:catDe(e2),club:n.club||"",prueba:x.prueba,tiempo:fmtT(x.seg),seg:x.seg,lugar:null,tipo:"control"};
+          if(await dbWrite(db=>db.collection("resultados").add(r),m))ok++}}}
+    finally{S.busy=false;b.disabled=false}
+    S.mbMsg=ok?`<span class="up">✓ ${ok} ${k==="meta"?"meta":"marca"}${ok>1?"s":""} guardada${ok>1?"s":""}:</span> ${lista}${malas}`:m.innerHTML;
+    $("#mb-t").value="";m.innerHTML=S.mbMsg;render(true)};
   $("#m-save").onclick=async()=>{const t=$("#m-t").value,seg=parseT(t);if(seg==null){$("#m-msg").innerHTML=`<span class="down">Tiempo no reconocido. Usa 1:24.00 o 31.45.</span>`;return}
     const e=edadMaster(n.nacimiento);
     const r={torneo:$("#m-o").value.trim()||"Control interno",fecha:$("#m-f").value||today(),piscina:$("#m-pi").value,nadador:n.nombre,sexo:n.sexo||"",edad:e,categoria:catDe(e),club:n.club||"",prueba:$("#m-p").value,tiempo:t.trim(),seg,lugar:null,tipo:"control"};
@@ -1383,6 +1405,13 @@ function cargarHTML(){
       <div class="row"><button class="btn" id="c-go">Cargar filas</button><span id="c-msg" class="small"></span></div></section>
     ${dl("dl-t",uniq(S.res.map(r=>r.torneo)))}`;
 }
+function parseMarkLines(txt){const ok=[],bad=[],EST={l:"Libre",libre:"Libre",e:"Espalda",espalda:"Espalda",p:"Pecho",pecho:"Pecho",m:"Mariposa",mariposa:"Mariposa",ci:"Combinado",im:"Combinado",combinado:"Combinado"};
+  String(txt||"").split(/\n|·|;/).map(x=>x.trim()).filter(Boolean).forEach(line=>{
+    const mm=line.match(/(\d{2,4})\s*m?\s*(combinado|mariposa|espalda|libre|pecho|ci|im|l|e|p|m)\b\.?(?:\s*(?:larga|corta|lcm|scm))?\s*:?\s*(?:\([^)]*\))?\s*(\d+:\d{1,2}(?:[.,]\d+)?|\d+[.,]\d+|\d+)/i);
+    if(!mm){bad.push(line);return}const prueba=mm[1]+" "+EST[mm[2].toLowerCase()],seg=parseT(mm[3].replace(",","."));
+    if(!PRUEBAS.includes(prueba)||seg==null){bad.push(line);return}
+    ok.push({prueba,pis:/larga|\b50\s*m\b|lcm/i.test(line.slice(mm.index+mm[0].length))||/larga/i.test(line)?"50":"25",seg})});
+  return {ok,bad}}
 function mkRow(ctx,o){
   const edad=parseInt(o.edad,10),seg=parseT(o.tiempo);
   let prueba=String(o.prueba||"").trim().replace(/\s+/g," ").replace(/^(\d+)\s*m?\s*/i,"$1 ");
