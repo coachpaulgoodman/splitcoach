@@ -1830,7 +1830,7 @@ function infFichaHTML(n){
     <div class="form three"><label>Fecha<input id="if-f" type="date" value="${esc(d.fecha)}"></label>
       <label>Piscina<select id="if-p"><option value="25" ${d.pisc==="25"?"selected":""}>25 m</option><option value="50" ${d.pisc==="50"?"selected":""}>50 m</option></select></label></div>
     ${s.series.length?`<div class="note">Hay una sesión de Entrenos ese día (${esc(s.titulo||"sin título")}); sus series y tiempos reales se incluyen solos.</div>`:""}
-    ${d.chat.length?"":`<label>Entreno de hoy (series, tiempos, sensaciones)<textarea id="if-t" rows="6" placeholder="100 pecho: 24.54/25.38/29.28 · 1:50.92&#10;4x25 @20'' desc: 23.90/24.50/25.50/25.50&#10;Sensaciones: se cansó al final">${esc(d.txt)}</textarea></label>`}
+    ${d.chat.length?"":`<label>Entreno de hoy (series, tiempos, sensaciones)<textarea id="if-t" rows="6" placeholder="Pega aquí el entreno de hoy">${esc(d.txt)}</textarea></label>`}
     ${iaOn?`${d.chat.length?`<div class="ia-chat">${chat}${d.busy?`<div class="ia-msg bot muted">Claude está escribiendo…</div>`:""}</div>`:""}
       ${d.err?`<div class="msg err">${esc(d.err)}</div>`:""}
       ${d.chat.length?`<div class="row"><textarea id="if-say" rows="2" class="grow" placeholder="Responde o pide cambios: es pecho · más corto · enfócate en el pacing…" ${d.busy?"disabled":""}></textarea><button class="btn" id="if-send" ${d.busy?"disabled":""}>Enviar</button></div>
