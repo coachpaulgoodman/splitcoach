@@ -1103,7 +1103,7 @@ R.chat={html(){
   const n=nadById(S.param);
   if(!n)return `<section class="card"><a class="back" href="#mensajes">← Mensajes</a><div class="muted">${loading()?"Cargando…":"Nadador no encontrado."}</div></section>`;
   const key=tk(n),th=S.buz[key];subChat(key);
-  const vids=S.vid.slice().sort((a,b)=>((b.nadadorId===n.id)-(a.nadadorId===n.id))||(b.fecha||"").localeCompare(a.fecha||""));
+  const vids=S.vid.filter(v=>v.nadadorId===n.id).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""));
   const inv=`Hola ${n.nombre.split(" ")[0]}: te comparto SplitCoach, la app del equipo: ${location.origin+location.pathname} . Entra con tu correo ${n.email||""} y abre el enlace que te llegará (asunto \"Your sign-in link\"), en el mismo celular o computador. Ahí verás tu ficha, mis mensajes, instrucciones, análisis y videos de drills, y podrás responderme.`;
   return `<section class="card"><a class="back" href="#mensajes">← Mensajes</a>
     <div class="head"><div class="row" style="gap:12px"><span class="avatar">${esc(initials(n.nombre))}</span><div><h2>${esc(n.nombre)}</h2><div class="small muted">${n.uid?"Tiene acceso: lee y responde en SplitCoach":"Aún sin acceso: los mensajes quedan guardados y los verá al vincularse"}</div></div></div>
@@ -1111,7 +1111,7 @@ R.chat={html(){
   <section class="card"><div class="chatbox" id="chatbox">${S.chat&&S.chat.ok?(S.chat.err?`<div class="msg err">No se pudieron leer los mensajes (${esc(S.chat.err)}).</div>`:bubbles(S.chat.msgs,"coach")):`<div class="muted small">Cargando…</div>`}</div>
     <div class="form">
       <label>Tipo<select id="c-tipo">${["mensaje","instruccion","analisis","drill"].map(t=>`<option value="${t}" ${S.ctipo===t?"selected":""}>${TIPOS[t]}</option>`).join("")}</select></label>
-      <label>Video (opcional)<select id="c-vid"><option value="">Sin video</option>${vids.map(v=>{const vn=nadById(v.nadadorId);return `<option value="${esc(v.id)}" ${S.cvid===v.id?"selected":""}>${esc((v.prueba||"Video")+" · "+(vn?vn.nombre.split(" ")[0]:"sin nadador")+" · "+fmtD(v.fecha))}</option>`}).join("")}</select></label>
+      <label>Video (opcional)<select id="c-vid"><option value="">${vids.length?"Sin video":"Sin videos de "+esc(String(n.nombre||"").split(" ")[0])+" (súbelos en Videos)"}</option>${vids.map(v=>{const vn=nadById(v.nadadorId);return `<option value="${esc(v.id)}" ${S.cvid===v.id?"selected":""}>${esc((v.prueba||"Video")+" · "+(vn?vn.nombre.split(" ")[0]:"sin nadador")+" · "+fmtD(v.fecha))}</option>`}).join("")}</select></label>
       <label class="full">Texto<textarea id="c-txt" placeholder="Instrucción, análisis o comentario para ${esc(n.nombre.split(" ")[0])}">${esc(S.ctxt||"")}</textarea></label>
       <div class="row full"><button class="btn" id="c-send">Enviar</button><span id="c-msg" class="small"></span></div></div>
   </section>
