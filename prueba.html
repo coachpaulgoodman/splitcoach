@@ -1142,9 +1142,9 @@ R.chat={html(){
     if(/file:\/\/|[A-Z]:\\Users\\/i.test(txt)){m.textContent="Eso es una ruta de tu computador: el nadador no puede abrirla. Para enviar un PDF usa 📄 Subir informe en PDF en su ficha.";m.className="small";m.style.color="var(--rope)";return}
     if(!txt&&!vid){m.innerHTML=`<span class="down">Escribe algo o adjunta un video.</span>`;return}
     if(tipo==="drill"&&!vid){m.innerHTML=`<span class="down">Un drill de video necesita un video adjunto.</span>`;return}
-    $("#c-send").disabled=true;
+    $("#c-send").disabled=true;$("#c-send").textContent="Enviando…";
     const msg={de:"coach",tipo,texto:txt};if(vid){msg.assetId=vid.assetId;msg.videoTit=[vid.prueba,fmtD(vid.fecha)].filter(Boolean).join(" · ")}
-    if(await sendMsg(key,msg,th,{nadadorId:n.id,nombre:n.nombre},m)){S.ctxt="";S.cvid="";render(true)}else $("#c-send").disabled=false};
+    if(await sendMsg(key,msg,th,{nadadorId:n.id,nombre:n.nombre},m)){S.ctxt="";S.cvid="";render(true);showOk("Mensaje enviado correctamente",n.uid?`${n.nombre} lo verá en Mensajes.`:`${n.nombre} aún no entra a la app: lo verá cuando se vincule.`)}else{$("#c-send").disabled=false;$("#c-send").textContent="Enviar"}};
   $$("[data-mdel]").forEach(b=>b.onclick=async()=>{if(b.dataset.c!=="1"){b.dataset.c="1";b.textContent="¿Borrar?";return}
     await dbWrite(db=>db.collection("buzon/"+key+"/msgs").doc(b.dataset.mdel).delete())});
   if($("#c-code"))$("#c-code").onclick=()=>dbWrite(db=>db.collection("nadadores").doc(n.id).update({codigo:newCode()}),$("#c-msg"));
