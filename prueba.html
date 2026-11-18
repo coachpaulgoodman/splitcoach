@@ -11,6 +11,8 @@
 .anim-ctl{display:flex;flex-wrap:wrap;gap:8px;align-items:end}.anim-ctl label{display:grid;gap:3px;font-size:12.5px;color:var(--muted)}.anim-ctl .an-wide{flex:1 1 100%}
 @media print{#anim-ov{display:none!important}}
 .fbt{margin-top:12px;padding:12px;border-radius:12px;background:var(--surface-2,rgba(77,182,191,.08));border:1px solid var(--line);display:grid;gap:8px}.fbt textarea{width:100%;margin-top:4px}
+.ctxbar{position:sticky;top:var(--hh,64px);z-index:4;display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px;padding:10px 12px;border-radius:14px;background:var(--surface);border:1.5px solid var(--accent);box-shadow:0 6px 18px #0003}
+.ctxbar .avatar{width:38px;height:38px;font-size:15px}.ctxbar b{font-size:16px}.ctxbar .grow{min-width:140px}.ctxbar [aria-current]{background:var(--accent);color:#0B2A30}
 </style>
 <title>SplitCoach</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -498,7 +500,7 @@ function render(force){
   if(hold){S.pending=true;if(S.view==="video")refreshMarks();return}
   S.pending=false;
   const fn=S.mode==="?"?{html:()=>emptyBox("Cargando…","")}:(R[S.view]||R.plantel);
-  const html=banner()+fn.html();
+  const html=banner()+ctxBar()+fn.html();
   // si no cambió nada en pantalla, no se re-dibuja: así no se pierden archivos elegidos ni lo escrito
   if(!force&&html===S.lastHtml&&S.view===S.lastView){if(S.mode==="coach")scheduleSync();dlog("   sin cambios: no se re-dibuja");return}
   S.lastHtml=html;S.lastView=S.view;
@@ -508,6 +510,18 @@ function render(force){
   fn.bind&&fn.bind();
 }
 document.addEventListener("focusout",()=>setTimeout(()=>{if(S.pending&&!typing()&&!(S.view==="video"&&S.vp))render()},30));
+function ctxNad(){if(S.mode!=="coach")return null;
+  if(S.view==="ficha"||S.view==="chat")return nadById(S.param);
+  if(S.view==="video"){const v=S.vid.find(x=>x.id===S.param);return v?nadById(v.nadadorId):null}
+  if(S.view==="informe"){const i=(S.inf||[]).find(x=>x.id===S.param);return i?nadById(i.nadador):null}
+  if(S.view==="videos"&&S.vnad)return nadById(S.vnad);
+  return null}
+function ctxBar(){const n=ctxNad();if(!n)return "";const id=encodeURIComponent(n.id),on=v=>S.view===v?' aria-current="page"':"";
+  return `<div class="ctxbar no-print"><span class="avatar">${esc(initials(n.nombre))}</span><div class="grow"><div class="small muted">Estás en el perfil de</div><b>${esc(n.nombre)}</b></div>
+    <a class="btn ghost sm" href="#ficha-${id}"${on("ficha")}>Ficha</a><a class="btn ghost sm" href="#chat-${id}"${on("chat")}>Mensajes</a><a class="btn ghost sm" href="#videos" data-vnad="${esc(n.id)}">Subir video</a></div>`}
+document.addEventListener("click",e=>{const a=e.target.closest&&e.target.closest("a[href]");if(!a)return;if(a.dataset.vnad)S.vnad=a.dataset.vnad;else if(a.getAttribute("href")==="#videos")S.vnad=null});
+document.addEventListener("change",e=>{if(e.target&&e.target.id==="v-nad")S.vnad=e.target.value||null});
+const setHH=()=>{const h=document.querySelector("header.top");if(h)document.documentElement.style.setProperty("--hh",h.offsetHeight+"px")};addEventListener("resize",setHH);addEventListener("load",setHH);setTimeout(setHH,500);
 function banner(){
   if(S.fullTor==="loading"&&(S.view==="resultados"||(S.view==="tiempos"&&S.mt.scope!=="plantel")))return `<div class="msg">Cargando todos los torneos…</div>`;
   if(S.dbState==="sin-db")return `<div class="msg err">La base de datos no está disponible en esta vista. Revisa tu conexión y recarga la página.</div>`;
@@ -2273,7 +2287,7 @@ R.videos={html(){
   const list=S.vid.slice().sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""));
   return `<section class="card"><h2>Subir video</h2>
     ${S.assets?`<div class="form">
-      <label>Nadador<select id="v-nad"><option value="">—</option>${S.nad.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")).map(n=>`<option value="${esc(n.id)}">${esc(n.nombre)}</option>`).join("")}</select></label>
+      <label>Nadador<select id="v-nad"><option value="">—</option>${S.nad.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")).map(n=>`<option value="${esc(n.id)}" ${S.vnad===n.id?"selected":""}>${esc(n.nombre)}</option>`).join("")}</select></label>
       <label>Prueba o ejercicio<input id="v-pr" list="dl-pr" placeholder="100 Espalda · subacuático"></label>
       <label>Fecha<input id="v-f" type="date" value="${today()}"></label>
       <label>Momento<select id="v-mo"><option value="">—</option>${MOMENTOS.map(m=>`<option>${m}</option>`).join("")}</select></label>
@@ -2309,6 +2323,7 @@ R.videos={html(){
   $("#v-up").onclick=async()=>{
     const f=file,m=$("#v-msg");
     if(!f){m.innerHTML=`<span class="down">Graba o elige un video.</span>`;return}
+    if(!$("#v-nad").value){m.innerHTML=`<span class="down">Elige el nadador antes de subir.</span>`;$("#v-nad").focus();return}
     $("#v-up").disabled=true;S.busy=true;
     try{
       const ok=["video/mp4","video/webm"].includes(f.type)||/\.(mp4|webm)$/i.test(f.name);
@@ -2391,7 +2406,7 @@ R.video={html(){
   <section class="card"><div class="head"><h3>${ro?"Correcciones":"Marcas y notas"}</h3></div>
     <div class="row coach-only"><input id="mk" class="grow" placeholder="Nota en el segundo actual: codo cae en el agarre…"><button class="btn sm" id="mkadd">Agregar</button></div>
     <div class="list marks" id="marks"></div>
-    ${ro?(v.notas?`<div class="bt">${esc(v.notas)}</div>`:""):""}<div class="form coach-only"><label>Momento<select id="vmo"><option value="">—</option>${MOMENTOS.map(m=>`<option ${v.momento===m?"selected":""}>${m}</option>`).join("")}</select></label><label>Corrección clave<input id="vcl" maxlength="90" value="${esc(v.clave||"")}" placeholder="Ej.: Mirada abajo en la salida"></label></div><label class="coach-only">Notas generales<textarea id="vn">${esc(v.notas||"")}</textarea></label>
+    ${ro?(v.notas?`<div class="bt">${esc(v.notas)}</div>`:""):""}<div class="form coach-only"><label>Nadador<select id="vnad"><option value="">— Sin nadador —</option>${S.nad.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")).map(x=>`<option value="${esc(x.id)}" ${v.nadadorId===x.id?"selected":""}>${esc(x.nombre)}</option>`).join("")}</select></label><label>Momento<select id="vmo"><option value="">—</option>${MOMENTOS.map(m=>`<option ${v.momento===m?"selected":""}>${m}</option>`).join("")}</select></label><label>Corrección clave<input id="vcl" maxlength="90" value="${esc(v.clave||"")}" placeholder="Ej.: Mirada abajo en la salida"></label></div><label class="coach-only">Notas generales<textarea id="vn">${esc(v.notas||"")}</textarea></label>
     <div class="row coach-only"><button class="btn" id="vsave">Guardar análisis</button><span id="vmsg" class="small"></span><span class="grow"></span><button class="btn ghost sm" id="vdel">Eliminar video</button></div></section>
   ${S.sample||v.analisis?`<section class="card"><div class="head"><h3>Análisis técnico</h3>${S.sample?'<button class="btn ghost sm" id="ai">Analizar 4 cuadros</button>':""}</div>
     ${S.sample?`<div class="note">Toma 4 cuadros desde la posición actual (cada 0,25 s) y pide una revisión técnica. Es una ayuda, no reemplaza tu ojo.</div>`:""}
@@ -2400,8 +2415,8 @@ R.video={html(){
   const v=vidOf(S.param);if(!v)return;
   if(S.mode==="nadador")markSeen("vid",v.id);
   initPlayer(v);
-  const b=$("#vshare");if(b)b.onclick=async()=>{const P=S.vp||{};const on=!v.compartido,n=nadById(v.nadadorId);
-    const d={compartido:on,momento:($("#vmo")||{}).value||v.momento||"",clave:(($("#vcl")||{}).value||v.clave||"").trim(),notas:($("#vn")||{}).value||"",marcas:P.marks||v.marcas||[],trazos:P.shapes||v.trazos||[],track:P.track||v.track||[],calib:P.calib||null,carrera:P.race||v.carrera||null};
+  const b=$("#vshare");if(b)b.onclick=async()=>{const P=S.vp||{};const on=!v.compartido,n=nadById(($("#vnad")||{}).value||v.nadadorId);
+    const d={compartido:on,nadadorId:($("#vnad")||{}).value||v.nadadorId||"",momento:($("#vmo")||{}).value||v.momento||"",clave:(($("#vcl")||{}).value||v.clave||"").trim(),notas:($("#vn")||{}).value||"",marcas:P.marks||v.marcas||[],trazos:P.shapes||v.trazos||[],track:P.track||v.track||[],calib:P.calib||null,carrera:P.race||v.carrera||null};
     b.disabled=true;if(await dbWrite(db=>db.collection("videos").doc(v.id).update(d),$("#vmsg"))){Object.assign(v,d);P.dirty=false;
       if(on)await publicarYa();
       if(on)showOk("Video compartido correctamente",(n?n.nombre:"El nadador")+" lo verá en Mis videos.");
@@ -2558,7 +2573,7 @@ function initPlayer(v){
     $$("[data-mdel]").forEach(b=>b.onclick=()=>{const s=P.marks.slice().sort((a,b)=>a.t-b.t);const k=s[+b.dataset.mdel];P.marks=P.marks.filter(x=>x!==k);P.dirty=true;P.drawMarks()})};
   P.drawMarks();
   $("#mkadd").onclick=()=>{const t=$("#mk").value.trim();if(!t)return;P.marks.push({t:+vid.currentTime.toFixed(2),txt:t});$("#mk").value="";P.dirty=true;P.drawMarks()};
-  $("#vsave").onclick=async()=>{const d={momento:($("#vmo")||{}).value||"",clave:(($("#vcl")||{}).value||"").trim(),notas:$("#vn").value,marcas:P.marks,trazos:P.shapes,track:P.track,calib:P.calib||null,carrera:P.race};
+  $("#vsave").onclick=async()=>{const d={nadadorId:($("#vnad")||{}).value||v.nadadorId||"",momento:($("#vmo")||{}).value||"",clave:(($("#vcl")||{}).value||"").trim(),notas:$("#vn").value,marcas:P.marks,trazos:P.shapes,track:P.track,calib:P.calib||null,carrera:P.race};
     if(await dbWrite(db=>db.collection("videos").doc(v.id).update(d),$("#vmsg"))){P.dirty=false;$("#vmsg").innerHTML=`<span class="up">Análisis guardado</span>`}};
   $("#vdel").onclick=async e=>{const b=e.target;if(b.dataset.c!=="1"){b.dataset.c="1";b.textContent="¿Eliminar video?";b.className="btn danger sm";return}
     const ok=await dbWrite(db=>db.collection("videos").doc(v.id).delete(),$("#vmsg"));if(ok){try{if(S.assets)await S.assets.delete(v.assetId)}catch(_){}location.hash="#videos"}};
