@@ -13,6 +13,8 @@
 .fbt{margin-top:12px;padding:12px;border-radius:12px;background:var(--surface-2,rgba(77,182,191,.08));border:1px solid var(--line);display:grid;gap:8px}.fbt textarea{width:100%;margin-top:4px}
 .ctxbar{position:sticky;top:var(--hh,64px);z-index:4;display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px;padding:10px 12px;border-radius:14px;background:var(--surface);border:1.5px solid var(--accent);box-shadow:0 6px 18px #0003}
 .ctxbar .avatar{width:38px;height:38px;font-size:15px}.ctxbar b{font-size:16px}.ctxbar .grow{min-width:140px}.ctxbar [aria-current]{background:var(--accent);color:#0B2A30}
+.newmsg{display:block;text-decoration:none;border:1.5px solid var(--accent);background:linear-gradient(90deg,rgba(77,182,191,.22),transparent);color:var(--ink);font-size:15px;margin-bottom:12px}
+#errbar .btn{align-self:flex-start}
 </style>
 <title>SplitCoach</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -500,7 +502,8 @@ function render(force){
   if(hold){S.pending=true;if(S.view==="video")refreshMarks();return}
   S.pending=false;
   const fn=S.mode==="?"?{html:()=>emptyBox("Cargando…","")}:(R[S.view]||R.plantel);
-  const html=banner()+ctxBar()+fn.html();
+  const html=banner()+msgBanner()+ctxBar()+fn.html();
+  try{const c=S.mode==="coach"?S.nad.filter(n=>unread(S.buz[tk(n)],"coach")).length:(unread(S.myThread,"nadador")?1:0);document.title=(c?`(${c}) `:"")+"SplitCoach"}catch(_){}
   // si no cambió nada en pantalla, no se re-dibuja: así no se pierden archivos elegidos ni lo escrito
   if(!force&&html===S.lastHtml&&S.view===S.lastView){if(S.mode==="coach")scheduleSync();dlog("   sin cambios: no se re-dibuja");return}
   S.lastHtml=html;S.lastView=S.view;
@@ -522,6 +525,11 @@ function ctxBar(){const n=ctxNad();if(!n)return "";const id=encodeURIComponent(n
 document.addEventListener("click",e=>{const a=e.target.closest&&e.target.closest("a[href]");if(!a)return;if(a.dataset.vnad)S.vnad=a.dataset.vnad;else if(a.getAttribute("href")==="#videos")S.vnad=null});
 document.addEventListener("change",e=>{if(e.target&&e.target.id==="v-nad")S.vnad=e.target.value||null});
 const setHH=()=>{const h=document.querySelector("header.top");if(h)document.documentElement.style.setProperty("--hh",h.offsetHeight+"px")};addEventListener("resize",setHH);addEventListener("load",setHH);setTimeout(setHH,500);
+function msgBanner(){
+  if(S.mode==="coach"&&S.view!=="mensajes"&&S.view!=="chat"){const u=S.nad.filter(n=>unread(S.buz[tk(n)],"coach"));
+    if(u.length)return `<a class="msg newmsg" href="${u.length===1?"#chat-"+encodeURIComponent(u[0].id):"#mensajes"}">📩 <b>${u.length===1?esc(u[0].nombre)+" te escribió":u.length+" nadadores te escribieron"}</b> · Ver mensajes →</a>`}
+  if(S.mode==="nadador"&&S.view!=="mensajes"&&unread(S.myThread,"nadador"))return `<a class="msg newmsg" href="#mensajes">📩 <b>Tu coach te envió un mensaje</b> · Ver →</a>`;
+  return ""}
 function banner(){
   if(S.fullTor==="loading"&&(S.view==="resultados"||(S.view==="tiempos"&&S.mt.scope!=="plantel")))return `<div class="msg">Cargando todos los torneos…</div>`;
   if(S.dbState==="sin-db")return `<div class="msg err">La base de datos no está disponible en esta vista. Revisa tu conexión y recarga la página.</div>`;
@@ -531,7 +539,7 @@ function emptyBox(title,text){
   return `<section class="card empty"><svg width="44" height="44" viewBox="0 0 44 44" fill="none" aria-hidden="true"><path d="M3 30c4 0 4-3 8-3s4 3 8 3 4-3 8-3 4 3 8 3 4-3 6-3" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M3 37c4 0 4-3 8-3s4 3 8 3 4-3 8-3 4 3 8 3 4-3 6-3" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" opacity=".45"/><circle cx="27" cy="13" r="4" fill="currentColor"/><path d="M10 22l9-6 6 5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><h3>${title}</h3><div class="muted small" style="max-width:46ch">${text}</div></section>`;
 }
 const loading=()=>!S.got.res&&S.dbState==="cargando";
-function showOk(t,sub){const e=document.getElementById("errbar");if(!e)return;e.classList.add("ok");e.innerHTML=`<b>✓ ${esc(t)}</b>${sub?`<span>${esc(sub)}</span>`:""}<button type="button" aria-label="Cerrar">✕</button>`;e.hidden=false;e.querySelector("button").onclick=()=>e.hidden=true;clearTimeout(showErr.t);showErr.t=setTimeout(()=>e.hidden=true,6000)}
+function showOk(t,sub,link,label){const e=document.getElementById("errbar");if(!e)return;e.classList.add("ok");e.innerHTML=`<b>✓ ${esc(t)}</b>${sub?`<span>${esc(sub)}</span>`:""}${link?`<a class="btn sm" style="margin-top:6px;background:#25D366;color:#06301A" target="_blank" rel="noopener" href="${esc(link)}">${esc(label||"Avisar por WhatsApp")}</a>`:""}<button type="button" class="x" aria-label="Cerrar">✕</button>`;e.hidden=false;e.querySelector("button.x").onclick=()=>e.hidden=true;clearTimeout(showErr.t);showErr.t=setTimeout(()=>e.hidden=true,link?15000:6000)}
 function showErr(t){const e=document.getElementById("errbar");if(!e)return;e.classList.remove("ok");e.innerHTML=`<b>No se pudo completar</b><span>${esc(t)}</span><button type="button" aria-label="Cerrar">✕</button>`;e.hidden=false;e.querySelector("button").onclick=()=>e.hidden=true;clearTimeout(showErr.t);showErr.t=setTimeout(()=>e.hidden=true,20000)}
 async function dbWrite(fn,msgEl){
   if(!S.db){if(msgEl)msgEl.innerHTML=`<span class="down">La base de datos no está disponible.</span>`;return false}
@@ -1102,6 +1110,8 @@ R.mensajes={html(){
   return `<div class="stats"><div class="stat"><b>${linked}</b><span>Con acceso</span></div><div class="stat"><b>${S.nad.length-linked}</b><span>Sin acceso</span></div>
     <div class="stat"><b>${rows.filter(r=>unread(r.th,"coach")).length}</b><span>Por leer</span></div><div class="stat"><b>${pend.length}</b><span>Solicitudes</span></div></div>
   <section class="card"><h2>Mensajes</h2>
+    <details ${S.aj&&S.aj.tel?"":"open"} style="margin-bottom:10px"><summary class="small" style="cursor:pointer;color:var(--accent);font-weight:600">Tu WhatsApp para avisos ${S.aj&&S.aj.tel?"· "+esc(S.aj.tel):"(sin configurar)"}</summary>
+      <div class="row" style="gap:8px;margin-top:8px"><input id="aj-tel" inputmode="tel" placeholder="9 1234 5678" value="${esc((S.aj&&S.aj.tel)||"")}" style="max-width:200px"><button class="btn sm" id="aj-save">Guardar</button><span id="aj-msg" class="small muted">Con este número, los nadadores pueden avisarte por WhatsApp cuando te responden.</span></div></details>
     <div class="list">${rows.map(({n,th})=>`<a class="item" href="#chat-${encodeURIComponent(n.id)}"><span class="avatar">${esc(initials(n.nombre))}</span>
       <div class="main"><div class="nm">${esc(n.nombre)}</div><div class="small muted">${th&&th.ultimo?(th.ultimo.de==="coach"?"Tú: ":"")+esc(th.ultimo.txt):"Sin mensajes"}</div></div>
       <div class="side">${unread(th,"coach")?`<span class="chip mine">Nuevo</span>`:`<span class="chip">${n.uid?"Con acceso":"Sin acceso"}</span>`}${th&&th.ultimo?`<span class="date">${fmtShort(th.ultimo.t)}</span>`:""}</div></a>`).join("")
@@ -1109,6 +1119,7 @@ R.mensajes={html(){
   ${pend.length?`<section class="card"><h3>Solicitudes sin vincular</h3><div class="note">Alguien abrió SplitCoach e ingresó un código que no coincide con ningún nadador sin acceso. Genera un código nuevo en su chat y vuelve a enviárselo.</div>
     <div class="list">${pend.map(([k,d])=>`<div class="item"><div class="main"><div class="nm" data-pname="${esc(k)}">Persona sin nombre visible</div><div class="small muted">Código ingresado: <code>${esc(d.codigo)}</code></div></div><button class="btn ghost sm" data-pdel2="${esc(k)}">Descartar</button></div>`).join("")}</div></section>`:""}`;
 },async bind(){
+  if($("#aj-save"))$("#aj-save").onclick=async()=>{const tel=$("#aj-tel").value.trim(),m=$("#aj-msg");if(await dbWrite(db=>db.collection("ajustes").doc("coach").set({tel}),m)){S.aj={tel};showOk("WhatsApp guardado","Se publicará a los nadadores en unos segundos.");publicarYa()}};
   $$("[data-pdel2]").forEach(b=>b.onclick=()=>dbWrite(db=>db.doc("buzon/"+b.dataset.pdel2).delete()));
   const ids=$$("[data-pname]").map(e=>e.dataset.pname);
   if(ids.length&&S.user)try{const ps=await S.user.profiles(ids);$$("[data-pname]").forEach(e=>{const p=ps[e.dataset.pname];if(p&&p.name)e.textContent=p.name})}catch(_){}
@@ -1144,7 +1155,7 @@ R.chat={html(){
     if(tipo==="drill"&&!vid){m.innerHTML=`<span class="down">Un drill de video necesita un video adjunto.</span>`;return}
     $("#c-send").disabled=true;$("#c-send").textContent="Enviando…";
     const msg={de:"coach",tipo,texto:txt};if(vid){msg.assetId=vid.assetId;msg.videoTit=[vid.prueba,fmtD(vid.fecha)].filter(Boolean).join(" · ")}
-    if(await sendMsg(key,msg,th,{nadadorId:n.id,nombre:n.nombre},m)){S.ctxt="";S.cvid="";render(true);showOk("Mensaje enviado correctamente",n.uid?`${n.nombre} lo verá en Mensajes.`:`${n.nombre} aún no entra a la app: lo verá cuando se vincule.`)}else{$("#c-send").disabled=false;$("#c-send").textContent="Enviar"}};
+    if(await sendMsg(key,msg,th,{nadadorId:n.id,nombre:n.nombre},m)){S.ctxt="";S.cvid="";render(true);showOk("Mensaje enviado correctamente",n.uid?`${n.nombre} lo verá en Mensajes.`:`${n.nombre} aún no entra a la app: lo verá cuando se vincule.`,waLink(n,`Hola ${String(n.nombre).split(" ")[0]}, te dejé un mensaje en SplitCoach 👉 ${appUrl("#mensajes")}`),`Avisar a ${String(n.nombre).split(" ")[0]} por WhatsApp`)}else{$("#c-send").disabled=false;$("#c-send").textContent="Enviar"}};
   $$("[data-mdel]").forEach(b=>b.onclick=async()=>{if(b.dataset.c!=="1"){b.dataset.c="1";b.textContent="¿Borrar?";return}
     await dbWrite(db=>db.collection("buzon/"+key+"/msgs").doc(b.dataset.mdel).delete())});
   if($("#c-code"))$("#c-code").onclick=()=>dbWrite(db=>db.collection("nadadores").doc(n.id).update({codigo:newCode()}),$("#c-msg"));
@@ -1179,7 +1190,8 @@ R.yo={html(){
   if(!$("#y-send"))return;
   $("#y-txt").oninput=e=>{S.ctxt=e.target.value};
   $("#y-send").onclick=async()=>{const txt=$("#y-txt").value.trim();if(!txt)return;$("#y-send").disabled=true;
-    if(await sendMsg(S.me,{de:"nadador",tipo:"respuesta",texto:txt},th,null,$("#y-msg"))){S.ctxt="";render(true)}else $("#y-send").disabled=false};
+    if(await sendMsg(S.me,{de:"nadador",tipo:"respuesta",texto:txt},th,null,$("#y-msg"))){S.ctxt="";render(true);const me=S.nad[0]||{};
+      showOk("Respuesta enviada","Tu coach la verá en SplitCoach.",S.coachTel?waLink({telefono:S.coachTel},`Hola coach, te respondí en SplitCoach (${me.nombre||""}) 👉 ${appUrl("")}`):"","Avisar al coach por WhatsApp")}else $("#y-send").disabled=false};
 }};
 
 /* ---------- FICHA DEL NADADOR (solo lectura) ---------- */
@@ -1197,7 +1209,7 @@ async function syncFichas(){
   rebuildIdx();
   for(const n of S.nad.filter(x=>x.uid)){
     const ks=keysOf(n);
-    const payload={nombre:n.nombre||"",sexo:n.sexo||"",nacimiento:n.nacimiento||"",club:n.club||"",objetivos:n.objetivos||"",pruebasFav:n.pruebasFav||"",metas:n.metas||{},fbTor:n.fbTor||{},
+    const payload={nombre:n.nombre||"",sexo:n.sexo||"",nacimiento:n.nacimiento||"",club:n.club||"",objetivos:n.objetivos||"",pruebasFav:n.pruebasFav||"",metas:n.metas||{},fbTor:n.fbTor||{},coachTel:(S.aj&&S.aj.tel)||"",
       res:resOf(n.nombre).filter(r=>r.seg!=null).map(r=>({prueba:r.prueba,piscina:String(r.piscina||""),seg:r.seg,tiempo:r.tiempo||"",fecha:r.fecha||"",torneo:r.torneo||"",lugar:r.lugar||null})),
       par:S.par.filter(p=>ks.has(norm(p.nadador))).map(p=>({prueba:p.prueba,piscina:String(p.piscina||""),tramo:p.tramo,tipo:p.tipo||"",fecha:p.fecha||"",torneo:p.torneo||"",splits:p.splits||[]})),
       vid:S.vid.filter(v=>v.nadadorId===n.id&&v.compartido).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).slice(0,30).map(v=>({id:v.id,assetId:v.assetId,prueba:v.prueba||"",fecha:v.fecha||"",momento:v.momento||"",clave:v.clave||"",notas:v.notas||"",marcas:v.marcas||[],trazos:v.trazos||[],carrera:v.carrera||null})),
@@ -1216,7 +1228,7 @@ function loadMiFicha(f){
   S.nad=[n];
   S.res=(f.res||[]).map((r,i)=>Object.assign({id:"r"+i,nadador:n.nombre},r));
   S.par=(f.par||[]).map((p,i)=>Object.assign({id:"p"+i,nadador:n.nombre},p));
-  S.miInf=f.inf||[];S.miRk=f.rk||null;
+  S.miInf=f.inf||[];S.miRk=f.rk||null;S.coachTel=f.coachTel||"";
   S.vid=(f.vid||[]).map(v=>Object.assign({nadadorId:"yo"},v));S.got.vid=1;
   S.got.res=1;
 }
@@ -2658,6 +2670,7 @@ route();
   }
   S.mode="coach";$("#tabs").hidden=false;route();
   db.collection("buzon").onSnapshot(snap=>{const o={};snap.docs.forEach(d=>o[d.id]=d.data()||{});S.buz=o;render();autoLink()},()=>{});
+  db.collection("ajustes").onSnapshot(snap=>{const d=snap.docs.find(x=>x.id==="coach");S.aj=d?d.data()||{}:{};render()},()=>{S.aj={}});
   try{S.assets=await window.claude.use("assets")}catch(_){}
   try{S.ia=await window.claude.use("ia")}catch(_){}
   if(DBG){dlog("modo diagnóstico activo · rol "+S.mode);if(S.assets){const up=S.assets.upload.bind(S.assets);S.assets.upload=async(f,o)=>{dlog(`subiendo ${f.name||"archivo"} · ${(f.size/1048576).toFixed(1)} MB · ${f.type||"?"}`);try{const r=await up(f,o);dlog("subida OK "+r.id);return r}catch(e){dlog("subida FALLÓ "+(e.message||e.code));throw e}}}
