@@ -282,6 +282,7 @@ code{font-family:var(--f-mono);font-size:12.5px;background:var(--soft);padding:1
 .chip.nuevo{background:var(--rope)!important;color:#fff!important;font-size:10.5px;padding:2px 8px;vertical-align:1px}
 .nbx:not(:empty){display:inline-grid;place-items:center;min-width:18px;height:18px;margin-left:5px;padding:0 5px;border-radius:9px;background:var(--rope);color:#fff;font-family:var(--f-body);font-size:11px;font-weight:700;vertical-align:2px}
 .plan-hoys{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}.plan-hoy{background:var(--soft);border-radius:12px;padding:12px;display:grid;gap:4px;min-width:0}.plan-cd{font-family:var(--f-display);font-size:18px;text-align:right;line-height:1.1}.plan-cd b{display:block;font-size:36px}.plan-weeks{display:grid;gap:10px}.plan-w{border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:8px;min-width:0}.plan-w.cur{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}.plan-w.past{opacity:.6}.plan-dl{display:grid;grid-template-columns:minmax(120px,auto) 1fr;gap:4px 12px;margin:0;font-size:13.5px}.plan-dl dt{color:var(--muted)}.plan-dl dd{margin:0;overflow-wrap:anywhere}.chip.asis{border:1px solid var(--line);cursor:pointer;font-size:13.5px;padding:7px 12px;font:inherit}.chip.asis.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}.t-in{font-family:var(--f-mono)}.rt-list{display:grid;gap:10px}.rt-item{border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:10px;min-width:0}.rt-head{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}.rt-head select{width:auto;min-width:140px}.rt-test{max-width:260px}.plan-w summary{cursor:pointer;display:grid;gap:4px;list-style-position:outside}@media (max-width:520px){.plan-dl{grid-template-columns:1fr}.plan-dl dt{margin-top:6px}}
+.ficha-tabs{display:flex;flex-wrap:nowrap;width:100%;overflow-x:auto;scrollbar-width:none;border-radius:12px;background:var(--surface)}[data-ftp]:not([hidden]){display:grid;gap:16px;min-width:0}.ficha-top .row a.btn{white-space:nowrap}.ficha-tabs::-webkit-scrollbar{display:none}.ficha-tabs button{flex:1 0 auto;padding:10px 14px;font-weight:600}.seg.ficha-tabs{border-radius:12px}.salud-msg{background:color-mix(in srgb,var(--z4) 20%,transparent);border:1px solid color-mix(in srgb,var(--z4) 45%,transparent)}details.card>summary{cursor:pointer}
 .nov-list{display:grid;gap:8px}
 .nov{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px;border-radius:14px;background:var(--soft);color:inherit;text-decoration:none;border:1px solid transparent}
 .nov.on{border-color:var(--accent)}.nov-i{font-size:22px}.nov-t{display:grid;gap:2px;min-width:0}.nov-t small{font-size:11px;color:var(--muted);letter-spacing:.04em}.nov-t b{font-size:15px}.nov-t span{font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -530,7 +531,7 @@ function ctxNad(){if(S.mode!=="coach")return null;
   if(S.view==="informe"){const i=(S.inf||[]).find(x=>x.id===S.param);return i?nadById(i.nadador):null}
   if(S.view==="videos"&&S.vnad)return nadById(S.vnad);
   return null}
-function ctxBar(){const n=ctxNad();if(!n)return "";const id=encodeURIComponent(n.id),on=v=>S.view===v?' aria-current="page"':"";
+function ctxBar(){const n=ctxNad();if(!n||S.view==="ficha")return "";const id=encodeURIComponent(n.id),on=v=>S.view===v?' aria-current="page"':"";
   return `<div class="ctxbar no-print"><span class="avatar">${esc(initials(n.nombre))}</span><div class="grow"><div class="small muted">Estás en el perfil de</div><b>${esc(n.nombre)}</b></div>
     <a class="btn ghost sm" href="#ficha-${id}"${on("ficha")}>Ficha</a><a class="btn ghost sm" href="#chat-${id}"${on("chat")}>Mensajes</a><a class="btn ghost sm" href="#videos" data-vnad="${esc(n.id)}">Subir video</a></div>`}
 document.addEventListener("click",e=>{const a=e.target.closest&&e.target.closest("a[href]");if(!a)return;if(a.dataset.vnad)S.vnad=a.dataset.vnad;else if(a.getAttribute("href")==="#videos")S.vnad=null});
@@ -779,6 +780,36 @@ function planNadHTML(pl){
 }
 
 /* ---------- FICHA PERSONAL ---------- */
+const FICHA_TABS=[["resumen","Resumen"],["marcas","Marcas"],["torneos","Torneos"],["entrenos","Entrenos"],["datos","Datos"]];
+S.fTab=(()=>{try{const t=localStorage.getItem("sc-ftab");return FICHA_TABS.some(x=>x[0]===t)?t:"resumen"}catch(_){return "resumen"}})();
+function fichaResumenHTML(n){
+  const hoy=today(),um=umbralDe(n,"25"),aj=+n.ajUmbral||0;
+  const a28=S.asis.filter(a=>a.id>addDias(hoy,-28)&&a.id<=hoy),pres=a28.filter(a=>(a.presentes||[]).includes(n.id)).length;
+  const si=S.plan?semanaPlan(S.plan,hoy):null,sd=S.plan?sesionDelDia(S.plan,grupoDe(n),hoy):null;
+  const metas=marcasData(n).filter(x=>x.meta!=null&&x.pb).map(x=>({x,falta:x.pb.seg-x.meta})).sort((a,b)=>b.falta-a.falta);
+  const tor=resOf(n.nombre).filter(r=>r.torneo&&r.seg!=null&&!/control|test|pb de referencia/i.test(r.torneo)).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""))[0];
+  const torRs=tor?resOf(n.nombre).filter(r=>r.torneo===tor.torneo&&r.fecha===tor.fecha&&r.seg!=null):[];
+  const sens=S.ses.filter(s=>s.resumen&&s.resumen.sens&&s.resumen.sens[n.id]).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).slice(0,3);
+  const go=(k,t)=>`<a href="#" class="small" data-goto="${k}" style="color:var(--accent);font-weight:600">${t} →</a>`;
+  return `<section class="card"><div class="head"><h3>Ritmo de trabajo</h3>${go("datos","Ajustar datos")}</div>
+    ${um?`<div class="kpi"><div style="background:color-mix(in srgb,var(--z3) 18%,transparent)"><b>${fmtT(um.p100+aj,1)}</b><span>Umbral /100${aj?` (ajuste ${aj>0?"+":""}${aj})`:""}</span></div>
+      <div><b>${fmtT((um.p100+aj)/2,1)}</b><span>Umbral /50</span></div>
+      <div><b>${S.plan?(si==null?"—":si<0?"Pronto":"Sem. "+(si+1)):"—"}</b><span>${S.plan?esc(S.plan.competencia||"Plan"):"Sin plan"}</span></div>
+      <div><b>${a28.length?Math.round(pres/a28.length*100)+"%":"—"}</b><span>Asistencia 28 días</span></div></div>
+      <div class="small muted">${esc(um.txt)} · piscina 25 m. Para series concretas usa Calculadora → Umbral.</div>`
+    :`<div class="muted small">Sin marcas de libre para calcular su umbral. ${go("marcas","Agregar marcas")}</div>`}
+    ${sd?`<div class="plan-hoy"><div class="small muted">Hoy · ${esc(grupoNom(grupoDe(n)))}</div><b>${esc(sd.label)}</b><div>${esc(sd.txt)}</div></div>`:""}</section>
+  <section class="card"><div class="head"><h3>Metas</h3>${go("marcas","Ver marcas")}</div>
+    ${metas.length?`<div class="list">${metas.map(({x,falta})=>`<div class="item"><div class="main"><div class="nm">${esc(x.prueba)} <span class="small muted">${esc(x.pis)} m</span></div>
+      <div class="small muted">PB ${fmtT(x.pb.seg)} · meta ${fmtT(x.meta)}</div></div><span class="time ${falta<=0?"up":""}">${falta<=0?"✓ lograda":"faltan "+falta.toFixed(2)+" s"}</span></div>`).join("")}</div>`
+    :`<div class="muted small">Sin metas. Cárgalas en Marcas → "Pegar varias marcas o metas" (Guardar como: Metas).</div>`}</section>
+  ${tor?`<section class="card"><div class="head"><h3>Último torneo</h3>${go("torneos","Ver torneos")}</div>
+    <div class="small"><b>${esc(tor.torneo)}</b> · ${fmtD(tor.fecha)} · piscina ${esc(tor.piscina)} m</div>
+    <div class="chips">${torRs.map(r=>`<span class="chip">${esc(r.prueba)} <b class="time">${fmtT(r.seg)}</b>${r.lugar>=1&&r.lugar<=3?" 🏅":""}</span>`).join("")}</div></section>`:""}
+  ${sens.length?`<section class="card"><div class="head"><h3>Últimas sensaciones</h3>${go("entrenos","Ver entrenos")}</div><div class="list">${sens.map(s=>{const x=s.resumen.sens[n.id];
+    return `<div class="item"><div class="main"><div class="nm">${esc(s.titulo||"Sesión")}</div><div class="small muted">${esc(x.txt||"Sin comentario")}</div></div>${x.rpe?`<span class="chip">RPE ${esc(x.rpe)}</span>`:""}<span class="date">${fmtD(s.fecha)}</span></div>`}).join("")}</div></section>`:""}
+  ${n.objetivos?`<section class="card"><h3>Objetivos de temporada</h3><div class="bt">${esc(n.objetivos)}</div></section>`:""}`;
+}
 R.ficha={html(){
   const n=nadById(S.param);
   if(!n)return `<section class="card"><a class="back" href="#plantel">← Plantel</a><div class="muted">${loading()?"Cargando…":"Nadador no encontrado."}</div></section>`;
@@ -788,7 +819,7 @@ R.ficha={html(){
   const byP={};rows.forEach(r=>{if(r.seg!=null)(byP[r.prueba]=byP[r.prueba]||[]).push(r)});
   const ps=Object.keys(byP).sort((a,b)=>ordPrueba(a)-ordPrueba(b));
   const pb25=pbsOf(n.nombre,"25"),pb50=pbsOf(n.nombre,"50");
-  const pbTable=ps.length?`<div class="tablewrap"><table><thead><tr><th>Prueba</th><th class="num">PB 25 m</th><th class="num">PB 50 m</th><th class="num">Ritmo /100</th></tr></thead><tbody>
+  const pbTable0=ps.length?`<div class="tablewrap"><table><thead><tr><th>Prueba</th><th class="num">PB 25 m</th><th class="num">PB 50 m</th><th class="num">Ritmo /100</th></tr></thead><tbody>
     ${ps.map(p=>{const a=pb25[p],b=pb50[p],best=[a,b].filter(Boolean).sort((x,y)=>x.seg-y.seg)[0];
       return `<tr><td>${esc(p)}</td><td class="num time">${a?fmtT(a.seg):"—"}</td><td class="num time">${b?fmtT(b.seg):"—"}</td><td class="num time muted">${best?fmtT(best.seg/distOf(p)*100):"—"}</td></tr>`}).join("")}
     </tbody></table></div>`:`<div class="muted small">Sin marcas todavía. Agrega una abajo o carga resultados de torneos.</div>`;
@@ -796,16 +827,20 @@ R.ficha={html(){
     return `<div class="ev"><div class="head"><h3>${esc(p)}</h3><span class="small muted">${rs.length} nadadas · última ${fmtT(rs[rs.length-1].seg)}</span></div>${spark(rs)}</div>`}).join("");
   const sens=S.ses.filter(s=>s.resumen&&s.resumen.sens&&s.resumen.sens[n.id]).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).slice(0,6);
   const vids=S.vid.filter(v=>v.nadadorId===n.id);
-  return `<section class="card">
-    <a class="back" href="#plantel">← Plantel</a>
-    <div class="row" style="gap:14px"><span class="avatar" style="width:56px;height:56px;font-size:22px">${esc(initials(n.nombre))}</span>
+  const ft=S.fTab||"resumen",pane=k=>ft===k?"":" hidden";
+  return `<section class="card ficha-top">
+    <div class="row" style="gap:8px"><a class="back" href="#plantel" style="margin-right:auto">← Plantel</a><a class="btn ghost sm" href="#chat-${encodeURIComponent(n.id)}">Mensajes${unread(S.buz[tk(n)],"coach")?" · nuevo":""}</a><a class="btn ghost sm" href="#videos" data-vnad="${esc(n.id)}">Subir video</a></div>
+    <div class="row" style="gap:12px"><span class="avatar" style="width:48px;height:48px;font-size:19px">${esc(initials(n.nombre))}</span>
       <div class="grow"><h2>${esc(n.nombre)}</h2><div class="chips" style="margin-top:6px">
         ${n.club?`<span class="chip ${isMine(n)?"mine":""}">${esc(n.club)}</span>`:""}<span class="chip">${sx(n.sexo)}</span>
-        ${e!=null?`<span class="chip">${e} años · ${esc(catDe(e))}</span>`:""}</div></div>
-      <a class="btn ghost sm" href="#chat-${encodeURIComponent(n.id)}">Mensajes${unread(S.buz[tk(n)],"coach")?" · nuevo":""}</a></div>
+        ${e!=null?`<span class="chip">${e} años · ${esc(catDe(e))}</span>`:""}<span class="chip">${esc(grupoNom(grupoDe(n)))}</span></div></div></div>
+    ${n.salud?`<div class="msg salud-msg">⚠️ ${esc(n.salud)}</div>`:""}
+    <div class="seg ficha-tabs" role="tablist" aria-label="Secciones de la ficha">${FICHA_TABS.map(([k,l])=>`<button type="button" role="tab" data-ft="${k}" aria-selected="${ft===k}" aria-pressed="${ft===k}">${l}</button>`).join("")}</div>
   </section>
-  ${infFichaHTML(n)}
-  ${marcasHTML(n,true)}${torChartsHTML(n,false)}${(()=>{const T=torCards(n,false,3);return T.rs.length?`<section class="card"><h2>Torneos y feedback</h2><div class="note">Últimos torneos: tiempo vs PB previo y tu feedback. Al guardar, ${esc(String(n.nombre).split(" ")[0])} lo ve en su sección Torneos.</div></section>${T.cards}`:""})()}<section class="card"><h3>Agregar marcas y metas</h3><h3>Mejores tiempos</h3>${pbTable}
+  <div data-ftp="resumen"${pane("resumen")}>${fichaResumenHTML(n)}</div>
+  <div data-ftp="marcas"${pane("marcas")}>
+  ${marcasHTML(n,true)}
+  <section class="card"><h3>Agregar marcas y metas</h3>
     <details><summary class="small" style="cursor:pointer;color:var(--accent);font-weight:600">Agregar marca (control o test)</summary>
       <div class="form three" style="margin-top:10px">
         <label>Prueba<select id="m-p">${PRUEBAS.map(p=>`<option>${p}</option>`).join("")}</select></label>
@@ -824,9 +859,20 @@ R.ficha={html(){
         <label class="full">Origen<input id="mb-o" value="PB de referencia"></label>
         <div class="row full"><button class="btn" id="mb-save">Guardar</button><span id="mb-msg" class="small">${S.mbMsg||""}</span></div>
       </div></details></section>
-  ${progresoHTML(n)}
+  <details class="card"><summary><h3 style="display:inline">Progreso detallado</h3> <span class="small muted">mejora del año, última marca y % vs PB</span></summary>${progresoHTML(n)}</details>
   ${pasadasHTML(n)}
   ${imHTML(n)}
+  </div>
+  <div data-ftp="torneos"${pane("torneos")}>${torChartsHTML(n,false)}${(()=>{const T=torCards(n,false,3);return T.rs.length?`<section class="card"><h2>Torneos y feedback</h2><div class="note">Últimos torneos: tiempo vs PB previo y tu feedback. Al guardar, ${esc(String(n.nombre).split(" ")[0])} lo ve en su sección Torneos.</div></section>${T.cards}`:""})()}${resOf(n.nombre).some(r=>r.torneo&&r.seg!=null)?"":emptyBox("Sin torneos","Cuando tenga resultados de torneos aparecerán aquí con su gráfico y tu feedback.")}</div>
+  <div data-ftp="entrenos"${pane("entrenos")}>
+  ${infFichaHTML(n)}
+  ${infListHTML((S.inf||[]).filter(i=>i.nadador===n.id),"Informes anteriores")}
+  <section class="card"><h3>Sensaciones recientes</h3>
+    ${sens.length?`<div class="list">${sens.map(s=>{const x=s.resumen.sens[n.id];return `<a class="item" href="#resumen" data-ses="${esc(s.id)}"><div class="main"><div class="nm">${esc(s.titulo||"Sesión")}</div><div class="small muted">${esc(x.txt||"Sin comentario")}</div></div>${x.rpe?`<span class="chip">RPE ${esc(x.rpe)}</span>`:""}<span class="date">${fmtD(s.fecha)}</span></a>`}).join("")}</div>`:`<div class="muted small">Se registran en Resumen de entrenamiento.</div>`}
+  </section>
+  <section class="card"><h3>Videos</h3>${vids.length?`<div class="list">${vids.map(v=>`<a class="item" href="#video-${encodeURIComponent(v.id)}"><div class="main"><div class="nm">${momChip(v)}${esc(v.prueba||"Video")}</div><div class="small muted">${esc(v.clave||v.notas||"")}</div></div><span class="date">${fmtD(v.fecha)}</span></a>`).join("")}</div>`:`<div class="muted small">Sin videos. Súbelos en la pestaña Videos.</div>`}</section>
+  </div>
+  <div data-ftp="datos"${pane("datos")}>
   <section class="card"><div class="head"><h3>Datos</h3><span id="f-msg" class="small"></span></div>
     <div class="form">
       <label class="full">Nombre<input data-f="nombre" value="${esc(f.nombre)}"></label>
@@ -843,12 +889,7 @@ R.ficha={html(){
       <label class="full">Salud / restricciones (aparece como alerta en Plan y Calculadora)<textarea data-f="salud" placeholder="Ej.: tensión hombro derecho, evitar pecho explosivo y paletas">${esc(f.salud)}</textarea></label>
     </div>
     <div class="row"><button class="btn" id="f-save">Guardar cambios</button><span class="grow"></span><button class="btn ghost sm" id="f-del">Eliminar nadador</button></div>
-  </section>
-  ${infListHTML((S.inf||[]).filter(i=>i.nadador===n.id),"Informes anteriores")}
-  <section class="card"><h3>Sensaciones recientes</h3>
-    ${sens.length?`<div class="list">${sens.map(s=>{const x=s.resumen.sens[n.id];return `<a class="item" href="#resumen" data-ses="${esc(s.id)}"><div class="main"><div class="nm">${esc(s.titulo||"Sesión")}</div><div class="small muted">${esc(x.txt||"Sin comentario")}</div></div>${x.rpe?`<span class="chip">RPE ${esc(x.rpe)}</span>`:""}<span class="date">${fmtD(s.fecha)}</span></a>`}).join("")}</div>`:`<div class="muted small">Se registran en Resumen de entrenamiento.</div>`}
-  </section>
-  <section class="card"><h3>Videos</h3>${vids.length?`<div class="list">${vids.map(v=>`<a class="item" href="#video-${encodeURIComponent(v.id)}"><div class="main"><div class="nm">${momChip(v)}${esc(v.prueba||"Video")}</div><div class="small muted">${esc(v.clave||v.notas||"")}</div></div><span class="date">${fmtD(v.fecha)}</span></a>`).join("")}</div>`:`<div class="muted small">Sin videos. Súbelos en la pestaña Videos.</div>`}</section>`;
+  </section></div>`;
 },bind(){
   const n=nadById(S.param);if(!n)return;
   $$("[data-f]").forEach(i=>i.addEventListener("input",()=>{S.fd[i.dataset.f]=i.value}));
@@ -858,6 +899,10 @@ R.ficha={html(){
   $("#f-del").onclick=async e=>{const b=e.target;if(b.dataset.c!=="1"){b.dataset.c="1";b.textContent="¿Eliminar ficha? Los resultados se mantienen";b.className="btn danger sm";return}
     if(await dbWrite(db=>db.collection("nadadores").doc(n.id).delete(),$("#f-msg")))location.hash="#plantel"};
   bindPasadas(n);bindIM(n);bindInfFicha(n);bindMarcas(n);
+  $$("[data-ft]").forEach(b=>b.onclick=()=>{S.fTab=b.dataset.ft;try{localStorage.setItem("sc-ftab",S.fTab)}catch(_){}
+    $$("[data-ft]").forEach(x=>{const on=x===b;x.setAttribute("aria-selected",String(on));x.setAttribute("aria-pressed",String(on))});
+    $$("[data-ftp]").forEach(d=>d.hidden=d.dataset.ftp!==S.fTab)});
+  $$("[data-goto]").forEach(a=>a.onclick=e=>{e.preventDefault();const b=$(`[data-ft="${a.dataset.goto}"]`);if(b)b.click();window.scrollTo(0,0)});
   $("#mb-d").ontoggle=e=>{S.mbOpen=e.target.open;if(!S.mbOpen)S.mbMsg=""};
   $("#mb-save").onclick=async e=>{const b=e.target,m=$("#mb-msg"),L=parseMarkLines($("#mb-t").value),k=$("#mb-k").value;S.mbOpen=true;
     if(!L.ok.length){m.innerHTML=`<span class="down">No reconocí ninguna línea. Ej.: 100P 1:34.80</span>`;return}
