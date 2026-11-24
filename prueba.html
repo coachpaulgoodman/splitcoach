@@ -1064,7 +1064,7 @@ function bubbles(msgs,me){
     return `<div class="bub ${mine?"mine":""}"><div class="bh"><span class="zb" style="background:${TCOL[m.tipo]||"var(--muted)"}">${esc(TIPOS[m.tipo]||"Mensaje")}</span><span class="date">${fmtTs(m.t)}</span>
       ${mine&&me==="coach"?`<button class="x" data-mdel="${esc(m.id)}" aria-label="Borrar mensaje" title="Borrar">×</button>`:""}</div>
       ${m.texto?`<div class="bt">${esc(m.texto)}</div>`:""}
-      ${m.assetId?`<div class="bv"><video src="${SC_BLOB}${esc(m.assetId)}" crossorigin="anonymous" controls playsinline preload="metadata"></video>${m.videoTit?`<div class="small muted">${esc(m.videoTit)}</div>`:""}</div>`:""}</div>`}).join("");
+      ${m.assetId?`<div class="bv"><video data-media="${esc(m.assetId)}" crossorigin="anonymous" controls playsinline preload="metadata"></video>${m.videoTit?`<div class="small muted">${esc(m.videoTit)}</div>`:""}</div>`:""}</div>`}).join("");
 }
 function subChat(key){
   if(!S.db||(S.chat&&S.chat.key===key))return;
@@ -1948,10 +1948,10 @@ R.informe={html(){
   if(S.mode==="nadador")markSeen("inf",S.param);
   const i=(S.mode==="nadador"?S.miInf||[]:S.inf||[]).find(x=>x.id===S.param);
   const back=S.mode==="nadador"?`<a class="back" href="#misentrenos">← Mis entrenos</a>`:`<a class="back" href="#evolucion">← Evolución</a>`;
-  if(i&&i.pdf){const url=SC_BLOB+i.pdf;
+  if(i&&i.pdf){
     const np=nadById(i.nadador);
-    return `${back}${S.mode==="nadador"?"":avisoHTML(np,"#inf-"+i.id,"informe de entrenamiento del "+fmtD(i.fecha))}<section class="card"><div class="head"><div><h2>${esc(i.titulo||"Informe de entrenamiento")}</h2><div class="small muted">${fmtD(i.fecha)}</div></div><a class="btn sm" href="${esc(url)}" target="_blank" rel="noopener">Abrir PDF</a></div>
-      <object data="${esc(url)}#view=FitH" type="application/pdf" class="inf-pdf"><div class="note">Tu navegador no muestra el PDF aquí. Usa "Abrir PDF".</div></object></section>${S.mode==="nadador"?"":`<div class="row" style="margin-top:12px"><span class="grow"></span><button class="btn ghost sm" id="inf-del">Eliminar informe</button><span id="inf-msg" class="small"></span></div>`}`}
+    return `${back}${S.mode==="nadador"?"":avisoHTML(np,"#inf-"+i.id,"informe de entrenamiento del "+fmtD(i.fecha))}<section class="card"><div class="head"><div><h2>${esc(i.titulo||"Informe de entrenamiento")}</h2><div class="small muted">${fmtD(i.fecha)}</div></div><a class="btn sm" data-media="${esc(i.pdf)}" target="_blank" rel="noopener">Abrir PDF</a></div>
+      <object data-media="${esc(i.pdf)}" data-media-frag="#view=FitH" type="application/pdf" class="inf-pdf"><div class="note">Tu navegador no muestra el PDF aquí. Usa "Abrir PDF".</div></object></section>${S.mode==="nadador"?"":`<div class="row" style="margin-top:12px"><span class="grow"></span><button class="btn ghost sm" id="inf-del">Eliminar informe</button><span id="inf-msg" class="small"></span></div>`}`}
   if(!i||!i.data)return back+emptyBox(loading()?"Cargando…":"Informe no encontrado","");
   const n=S.mode==="nadador"?S.nad[0]:nadById(i.nadador);
   const meta={nombre:(n&&n.nombre)||i.nombre||"",edad:n?edadMaster(n.nacimiento):null,fecha:i.fecha,titulo:i.titulo};
@@ -2313,7 +2313,7 @@ R.videos={html(){
       <div class="note">Máximo 30 segundos. Con la ✂ tijera: pausa la vista previa en la señal de salida y toca "Inicio aquí"; si quieres, pausa donde termina y toca "Fin aquí". Los videos de iPhone (.MOV) se convierten solos antes de subir (tarda lo que dura el clip).</div>`
     :`<div class="msg">Solo el entrenador puede subir videos.</div>`}</section>
     <section class="card"><h2>Biblioteca</h2>
-    ${list.length?`<div class="vgrid">${list.map(v=>{const n=nadById(v.nadadorId);return `<a class="vcard" href="#video-${encodeURIComponent(v.id)}"><video src="${SC_BLOB}${esc(v.assetId)}#t=0.5" crossorigin="anonymous" preload="metadata" muted playsinline></video>
+    ${list.length?`<div class="vgrid">${list.map(v=>{const n=nadById(v.nadadorId);return `<a class="vcard" href="#video-${encodeURIComponent(v.id)}"><video data-media="${esc(v.assetId)}" data-media-frag="#t=0.5" crossorigin="anonymous" preload="metadata" muted playsinline></video>
       <div><div class="nm">${esc(n?n.nombre:"Sin nadador")}</div><div class="small muted">${momChip(v)}${esc(v.prueba||"")} · ${fmtD(v.fecha)}</div>${v.clave?`<div class="small" style="margin-top:3px">${esc(v.clave)}</div>`:""}</div></a>`}).join("")}</div>`
       :`<div class="muted small">${loading()?"Cargando…":"Aún no hay videos."}</div>`}</section>`;
 },bind(){
@@ -2390,7 +2390,7 @@ R.video={html(){
       ${ro||loc?"":n?`<button class="btn ${v.compartido?"":"ghost "}sm" id="vshare">${v.compartido?"✓ Compartido con "+esc(n.nombre.split(" ")[0]):"Compartir con "+esc(n.nombre.split(" ")[0])}</button>`:`<span class="small muted">Asigna un nadador para compartir</span>`}</div>
     ${v.clave?`<div class="msg" style="margin:8px 0;font-weight:700">🎯 ${esc(v.clave)}</div>`:""}
     ${ro?`<div class="note">Dale ▶: las correcciones de tu entrenador aparecen sobre el video en el momento justo. Usa 0,25× para verlas con calma.</div>`:""}
-    <div class="stage" id="stage"><div class="vbox"><video id="vid" src="${v.local?v.src:SC_BLOB+esc(v.assetId)}" ${v.local?"":`crossorigin="anonymous"`} playsinline preload="auto"></video><canvas id="ov"></canvas></div></div>
+    <div class="stage" id="stage"><div class="vbox"><video id="vid" ${v.local?`src="${v.src}"`:`data-media="${esc(v.assetId)}" crossorigin="anonymous"`} playsinline preload="auto"></video><canvas id="ov"></canvas></div></div>
     <div class="ctrl"><button class="btn sm" id="pp">▶</button><button class="btn ghost sm" id="fb" aria-label="Cuadro anterior">◀︎ 1</button><button class="btn ghost sm" id="ff" aria-label="Cuadro siguiente">1 ▶︎</button>
       <select id="rate" style="width:auto;padding:4px 8px" aria-label="Velocidad"><option value="0.1">0,1×</option><option value="0.25">0,25×</option><option value="0.5">0,5×</option><option value="1" selected>1×</option></select>
       <button class="btn ghost sm" id="snd" aria-label="Sonido">🔊</button><span class="time" id="tc">0.00</span><button class="btn danger sm" id="clrplay" hidden>✕ Borrar y seguir</button></div>
