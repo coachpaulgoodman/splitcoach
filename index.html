@@ -119,6 +119,7 @@ textarea{min-height:84px;resize:vertical}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;flex-wrap:wrap}
 .seg button{background:transparent;border:0;padding:6px 11px;cursor:pointer;font-size:13.5px;color:var(--muted)}
 .seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.cmdbox{display:grid;gap:6px;padding:12px;border-radius:12px;background:color-mix(in srgb,var(--accent) 10%,transparent);border:1px solid color-mix(in srgb,var(--accent) 35%,transparent)}
 .chip.salud{background:color-mix(in srgb,var(--z4) 24%,transparent);color:var(--ink);white-space:normal;max-width:100%}.umb-list{display:grid;gap:10px}
 .calc-tools{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));width:100%;border-radius:12px;background:var(--surface)}.calc-tools button{padding:10px 6px;font-weight:600}
 @media (max-width:520px){.calc-tools{grid-template-columns:repeat(2,minmax(0,1fr))}.calc-tools button:first-child{grid-column:span 2}}
@@ -2377,7 +2378,25 @@ R.marcas={html(){
 // Umbral (CSS) = (D2 − D1) ÷ (T2 − T1) con sus dos mejores marcas de libre de 200 m o más.
 // Sin esas marcas: se estima el 400 desde su marca de libre más larga (Riegel 1,08) + 1,5 s por 100.
 // Las marcas se llevan a la piscina de hoy: cada viraje extra de piscina corta ahorra ~0,7 s (d/50 virajes extra).
-S.umb={sel:[],serie:"5x100",desc:15,pisc:"25",margen:""};
+S.umb={sel:[],serie:"5x100",desc:15,pisc:"25",margen:"",salida:"",cmd:"",cmsg:""};
+// caja de comandos: "5x100@1:50 catalina florencia byron" · "hoy" = presentes · "todos" · "larga"/"corta"
+const CMD_IGNORA=new Set(["umbral","anaerobico","aerobico","libre","para","con","de","del","la","el","los","las","a","en","y","e","serie","series","ritmo","piscina","metros","m","salida","cada","mañana","manana","entreno","test","vo2","rp","race","pace","z1","z2","z3","z4","z5"]);
+function aplicarComando(txt){
+  const u=S.umb,t=String(txt||"").trim();if(!t)return "";
+  const sm=t.match(/(\d+)\s*[x×*]\s*(\d+)/i);if(sm)u.serie=sm[1]+"x"+sm[2];
+  const am=t.match(/@\s*(\d{1,2}[:.,]\d{2}(?:[.,]\d{1,2})?|\d{2,3})/);u.salida=am?am[1].replace(",","."):"";
+  const pal=norm(t.replace(/(\d+)\s*[x×*]\s*(\d+)/ig," ").replace(/@\s*[\d:.,]+/g," ")).split(/[^a-zñ]+/).filter(Boolean);
+  u.pisc=pal.includes("larga")||/\b50\s*m\b/i.test(t)?"50":"25";
+  let sel=[];const noEnc=[];
+  pal.forEach(w=>{
+    if(w==="hoy"){sel.push(...asisDe(today()).filter(id=>nadById(id)));return}
+    if(w==="todos"||w==="todas"){sel.push(...S.nad.map(n=>n.id));return}
+    if(w==="larga"||w==="corta"||CMD_IGNORA.has(w)||w.length<3||/^(anae|anaer|aerob|umbr|veloc|tecn|pate|braz|lact|suave|fuerte|parej)/.test(w))return;
+    const m=S.nad.filter(n=>{const ks=[...keysOf(n)];return ks.some(k=>k.split(" ").includes(w))||ks.some(k=>k.startsWith(w))});
+    if(m.length)sel.push(...m.map(n=>n.id));else noEnc.push(w)});
+  sel=uniq(sel);if(sel.length)u.sel=sel;
+  return [sm?"":"No encontré la serie (ej.: 5x100).",noEnc.length?`No encontré a: ${noEnc.join(", ")}.`:"",!sel.length?"No reconocí nombres (o escribe hoy / todos).":""].filter(Boolean).join(" ");
+}
 const VIRAJE=0.7;
 function umbralDe(n,pisc){
   const best={};
@@ -2396,12 +2415,16 @@ const saludChip=n=>n&&n.salud?`<span class="chip salud" title="${esc(n.salud)}">
 function umbHTML(){
   const u=S.umb,ord=S.nad.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")),ma=margenAuto(),hoyP=asisDe(today());
   return `<section class="card" data-t="umb"${calcHid("umb")}><div class="head"><h2>Umbral y series</h2></div>
-    <div class="small muted">Elige quiénes nadan, escribe la serie y la app calcula la meta de cada uno con su umbral, llevado a la piscina de hoy.</div>
+    <div class="cmdbox"><label for="u-cmd" class="small">Escribe la serie en una línea</label>
+      <div class="row"><input id="u-cmd" class="grow" value="${esc(u.cmd)}" placeholder="5x100@1:50 catalina florencia byron" autocomplete="off" style="font-family:var(--f-mono)"><button type="button" class="btn" id="u-go">Calcular</button></div>
+      <div class="small muted">Serie, <b>@salida</b> (opcional) y nombres. También: <b>hoy</b> (presentes), <b>todos</b>, <b>larga</b> (piscina de 50).</div>${u.cmsg?`<div class="small down">${esc(u.cmsg)}</div>`:""}</div>
+    <div class="small muted">O elige a mano:</div>
     <div class="chips">${ord.map(n=>`<button type="button" class="chip asis${u.sel.includes(n.id)?" on":""}" data-us="${esc(n.id)}" aria-pressed="${u.sel.includes(n.id)}">${u.sel.includes(n.id)?"✓ ":""}${esc(n.nombre)}${n.salud?" ⚠️":""}</button>`).join("")}</div>
     <div class="row">${hoyP.length?`<button type="button" class="btn ghost sm" id="u-hoy">Los ${hoyP.length} presentes hoy</button>`:""}${u.sel.length?`<button type="button" class="btn ghost sm" id="u-clr">Quitar todos</button>`:""}</div>
     <div class="form three">
       <label>Serie<input id="u-serie" value="${esc(u.serie)}" placeholder="5x100" style="font-family:var(--f-mono)"></label>
-      <label>Descanso (s)<input id="u-desc" type="number" min="0" step="5" value="${esc(u.desc)}"></label>
+      <label>Salida (opcional)<input id="u-sal" value="${esc(u.salida)}" placeholder="1:50" inputmode="decimal"></label>
+      <label>Descanso si no hay salida (s)<input id="u-desc" type="number" min="0" step="5" value="${esc(u.desc)}"></label>
       <label>Piscina hoy<select id="u-pis"><option value="25" ${u.pisc==="25"?"selected":""}>25 m</option><option value="50" ${u.pisc==="50"?"selected":""}>50 m</option></select></label>
       <label class="full">Margen extra (s por 100)<input id="u-mar" type="number" step="0.5" value="${esc(u.margen)}" placeholder="Automático: +${ma.m} (${esc(ma.txt)})"></label>
     </div><div id="u-out"></div></section>`;
@@ -2416,16 +2439,17 @@ function calcUmb(){
     const aj=+n.ajUmbral||0,p=um.p100+mar+aj,t=p*d/100;return {n,um,aj,p,t}});
   const ok=filas.filter(f=>f.um);
   const lo=t=>d>=100?Math.floor(t):Math.floor(t*2)/2,hi=t=>d>=100?Math.floor(t)+1:Math.floor(t*2)/2+0.5,dec=d>=100?0:1;
-  const sal=ok.length?Math.ceil((Math.max(...ok.map(f=>hi(f.t)))+(+u.desc||0))/5)*5:null;
-  const wa=`*${reps}x${d} libre · umbral*${sal?` · salida cada ${fmtT(sal,0)}`:""}\n`+ok.map(f=>`${f.n.nombre.split(" ")[0]}: ${fmtT(lo(f.t),dec)}–${fmtT(hi(f.t),dec)}`).join("\n")+`\nTodas parejas (±1 s), esfuerzo 7/10.`;
+  const salFija=parseT(u.salida),sal=ok.length?(salFija||Math.ceil((Math.max(...ok.map(f=>hi(f.t)))+(+u.desc||0))/5)*5):null;
+  const wa=`*${reps}x${d} libre · umbral*${sal?` · salida cada ${fmtT(sal,0)}`:""}\n`+ok.map(f=>`${f.n.nombre.split(" ")[0]}: ${fmtT(lo(f.t),dec)}–${fmtT(hi(f.t),dec)}${f.n.salud?" (controlada, cuida la molestia)":""}`).join("\n")+`\nTodas parejas (±1 s), esfuerzo 7/10.`;
   o.innerHTML=`<div class="umb-list">${filas.map(f=>{const n=f.n;
     if(!f.um)return `<div class="rt-item"><div class="rt-head"><b>${esc(n.nombre)}</b>${saludChip(n)}</div><div class="small down">Sin marcas de libre. Cárgalas en su ficha.</div></div>`;
     return `<div class="rt-item"><div class="rt-head"><b>${esc(n.nombre)}</b>${saludChip(n)}</div>
       <div class="kpi"><div style="background:color-mix(in srgb,var(--z3) 18%,transparent)"><b>${fmtT(lo(f.t),dec)}–${fmtT(hi(f.t),dec)}</b><span>Meta por ${d} m</span></div>
-        <div><b>${fmtT(f.p,1)}</b><span>Ritmo /100</span></div><div><b>${fmtT(f.um.p100,1)}</b><span>${f.um.met==="css"?"Umbral (CSS)":"Umbral estimado"}</span></div></div>
+        <div><b>${fmtT(f.p,1)}</b><span>Ritmo /100</span></div><div><b>${fmtT(f.um.p100,1)}</b><span>${f.um.met==="css"?"Umbral (CSS)":"Umbral estimado"}</span></div>
+        ${sal?(r=>`<div${r<10?' style="background:color-mix(in srgb,var(--bad) 18%,transparent)"':""}><b>${r<0?"—":"~"+Math.round(r)+" s"}</b><span>${r<10?"Descanso corto ⚠️":"Descanso"}</span></div>`)(sal-hi(f.t)):""}</div>
       <div class="small muted">${esc(f.um.txt)} · ${f.um.marcas.map(x=>`${x.d} ${fmtT(x.r.seg)}${x.conv?` (piscina ${esc(x.r.piscina)} → ${fmtT(x.s)})`:""}`).join(" · ")} · margen +${mar}${f.aj?` · ajuste ${f.aj>0?"+":""}${f.aj}`:""}</div>
       <label class="rt-test">Ajuste personal (s por 100, se guarda)<input class="t-in" data-uaj="${esc(n.id)}" type="number" step="0.5" value="${esc(n.ajUmbral||"")}" placeholder="0"></label></div>`}).join("")}</div>
-    ${ok.length?`<div class="msg"><b>Salida sugerida para el grupo: cada ${fmtT(sal,0)}</b> (meta más lenta + ${+u.desc||0} s de descanso)</div>
+    ${ok.length?`<div class="msg"><b>${salFija?`Salida cada ${fmtT(sal,0)}`:`Salida sugerida para el grupo: cada ${fmtT(sal,0)}`}</b> ${salFija?(m=>m<10?`<span class="down">· ${esc(m<0?"la salida es más rápida que alguna meta":"alguien queda con menos de 10 s de descanso")}: súbela o separa grupos.</span>`:`· descansos de ${Math.round(m)} a ${Math.round(Math.max(...ok.map(f=>sal-hi(f.t))))} s`)(Math.min(...ok.map(f=>sal-hi(f.t)))):`(meta más lenta + ${+u.desc||0} s de descanso)`}</div>
     <div class="row"><button class="btn sm" id="u-copy">Copiar para WhatsApp</button><span class="small muted">Todas parejas (±1 s), esfuerzo 7 de 10.</span></div>`:""}
     <div class="note">Umbral = la velocidad que puede sostener sin que el lactato se dispare. Con dos marcas de libre de 200 m o más se calcula el CSS; si no, se estima y conviene confirmarlo con un test. El margen sube la meta al inicio del plan (+1 s en la semana 1, +0,5 en las semanas 2 y 3, 0 desde el test). Usa el ajuste personal para corregir a quien completa la serie muy cómodo (−) o se cae al final (+).</div>`;
   $$("[data-uaj]").forEach(i=>i.onchange=async()=>{const v=i.value.trim()===""?"":+i.value;const n=nadById(i.dataset.uaj);if(n)n.ajUmbral=v;
@@ -2437,6 +2461,9 @@ function bindUmb(){
   $$("[data-us]").forEach(b=>b.onclick=()=>{const id=b.dataset.us;u.sel=u.sel.includes(id)?u.sel.filter(x=>x!==id):[...u.sel,id];render(true)});
   if($("#u-hoy"))$("#u-hoy").onclick=()=>{u.sel=asisDe(today()).filter(id=>nadById(id));render(true)};
   if($("#u-clr"))$("#u-clr").onclick=()=>{u.sel=[];render(true)};
+  const go=()=>{u.cmd=$("#u-cmd").value;u.cmsg=aplicarComando(u.cmd);u.margen=u.margen||"";render(true)};
+  $("#u-go").onclick=go;$("#u-cmd").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();go()}};
+  $("#u-sal").oninput=e=>{u.salida=e.target.value;calcUmb()};
   $("#u-serie").oninput=e=>{u.serie=e.target.value;calcUmb()};$("#u-desc").oninput=e=>{u.desc=e.target.value;calcUmb()};
   $("#u-pis").onchange=e=>{u.pisc=e.target.value;calcUmb()};$("#u-mar").oninput=e=>{u.margen=e.target.value;calcUmb()};
   calcUmb();
