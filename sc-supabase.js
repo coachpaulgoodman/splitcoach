@@ -270,6 +270,33 @@
     }
   };
 
+  /* Consulta única a Claude (FODA de la sesión y análisis de cuadros de video), por la misma función "claude-informe".
+     Las imágenes requieren la versión de la función que acepta contenido con imágenes. */
+  const toB64 = blob => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(",")[1]); r.onerror = rej; r.readAsDataURL(blob); });
+  async function sample(prompt, opts) {
+    const images = (opts && opts.images) || [];
+    let content = String(prompt);
+    if (images.length) {
+      const blocks = [];
+      for (const b of images) blocks.push({ type: "image", source: { type: "base64", media_type: b.type || "image/jpeg", data: await toB64(b) } });
+      blocks.push({ type: "text", text: content });
+      content = blocks;
+    }
+    let text;
+    try { text = await ia.chat([{ role: "user", content }]); }
+    catch (e) {
+      if (images.length && (e.code === "mensajes" || e.code === "muy_largo")) throw { code: "images_unavailable", message: e.message };
+      throw { code: e.code === "no_ia" ? "not_granted" : e.code, message: e.message };
+    }
+    if (opts && typeof opts.onText === "function") opts.onText({ text });
+    return { text };
+  }
+  sample.json = async (prompt, opts) => {
+    const { text } = await sample(prompt + "\nResponde solo con el JSON, sin texto antes ni después.", opts);
+    const m = text.match(/\{[\s\S]*\}/);
+    try { return JSON.parse(m ? m[0] : text); } catch (_) { throw { code: "bad_json", message: "Respuesta no válida" }; }
+  };
+
   window.claude = {
     use: async name => {
       await ready;
@@ -277,7 +304,8 @@
       if (name === "user") return user;
       if (name === "assets") return rol === "coach" ? assets : null;
       if (name === "ia") return rol === "coach" ? ia : null;
-      return null; // sin funciones de IA en esta versión
+      if (name === "sample") return rol === "coach" ? sample : null;
+      return null;
     }
   };
 
