@@ -119,6 +119,8 @@ textarea{min-height:84px;resize:vertical}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;flex-wrap:wrap}
 .seg button{background:transparent;border:0;padding:6px 11px;cursor:pointer;font-size:13.5px;color:var(--muted)}
 .seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.calc-tools{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));width:100%;border-radius:12px;background:var(--surface)}.calc-tools button{padding:10px 6px;font-weight:600}
+@media (max-width:520px){.calc-tools{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .list{display:grid}
 .item{display:flex;align-items:center;gap:12px;padding:11px 2px;border-top:1px solid var(--line);min-width:0;width:100%;background:none;border-left:0;border-right:0;border-bottom:0;text-align:left;color:inherit;text-decoration:none}
 .list > .item:first-child{border-top:0}
@@ -135,7 +137,12 @@ a.item:hover .nm,button.item:hover .nm{color:var(--accent)}
 .medal{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;font-family:var(--f-display);font-weight:700;font-size:14px;color:#fff;flex:none}
 .m1{background:var(--gold)}.m2{background:var(--silver)}.m3{background:var(--bronze)}.mx{background:var(--soft);color:var(--muted)}
 .avatar{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--soft);color:var(--accent);font-family:var(--f-display);font-weight:700;font-size:16px;flex:none}
-.tablewrap{overflow-x:auto;margin-inline:-4px}
+.tablewrap{overflow-x:auto;margin-inline:-4px;
+  /* sombra en el borde por donde la tabla continúa (desaparece al llegar al final) */
+  background:linear-gradient(to right,var(--surface) 40%,transparent) left/28px 100% no-repeat local,
+    linear-gradient(to left,var(--surface) 40%,transparent) right/28px 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%,color-mix(in srgb,var(--ink) 22%,transparent),transparent) left/10px 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%,color-mix(in srgb,var(--ink) 22%,transparent),transparent) right/10px 100% no-repeat scroll}
 table{width:100%;border-collapse:collapse;font-size:14px}
 th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;text-align:left;padding:6px;border-bottom:1px solid var(--line);white-space:nowrap}
 th button{background:none;border:0;padding:0;font:inherit;color:inherit;letter-spacing:inherit;text-transform:inherit;cursor:pointer}
@@ -1673,6 +1680,9 @@ function statCell(st,ref){
     <div><b>±${st.sd.toFixed(1)}</b><span>Regularidad</span></div>
     ${r?`<div><b>${st.inR}/${st.ts.length}</b><span>En meta ${r[0]===r[1]?fmtT(r[0],1):fmtT(r[0],1)+"–"+fmtT(r[1],1)}</span></div>`:""}</div>`;
 }
+// ejemplo de tiempos para el campo, según la distancia de la serie (y la marca de referencia si existe)
+function ejTiempos(se,ref){const d=+se.dist||50,base=ref?ref.t*1.06:d/50*36,n=Math.min(+se.reps||4,4);
+  return Array.from({length:n},(_,i)=>fmtT(Math.round(base+(i%2?0.6:0)),0)).join("/")}
 R.evolucion={html(){
   const list=S.ses.slice().sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""));
   if(!list.length)return loading()?emptyBox("Cargando…",""):emptyBox("Sin sesiones","Crea una sesión en Entrenos y luego registra aquí los tiempos reales de cada serie.");
@@ -1681,7 +1691,7 @@ R.evolucion={html(){
   const reg=`<section class="card"><div class="head"><h2>Tiempos reales</h2><select id="ev-sel" style="width:auto;max-width:100%">${list.map(x=>`<option value="${esc(x.id)}" ${x.id===s.id?"selected":""}>${fmtD(x.fecha)} · ${esc(x.titulo||"Sesión")}</option>`).join("")}</select></div>
     ${ev.series.map((se,i)=>`<div class="ev"><h3>${esc(se.reps)}x${esc(se.dist)} ${esc(se.estilo)} ${zb(se.zona)} ${se.salida?`<span class="small muted" style="font-family:var(--f-body)">@ ${esc(se.salida)}</span>`:""}</h3>${se.desc?`<div class="small muted">${esc(se.desc)}</div>`:""}
       ${nads.map(n=>{const ref=ESTILOS.includes(se.estilo)?refPB(n.nombre,se.estilo,+se.dist,s.piscina):null;const v=(se.reales||{})[n.id]||"";
-        return `<div style="display:grid;gap:6px;padding-top:6px"><label>${esc(n.nombre)}${ref?` <span class="muted" style="text-transform:none;letter-spacing:0">· ref. ${fmtT(ref.t)}</span>`:""}<input data-rt="${i}|${esc(n.id)}" value="${esc(v)}" placeholder="18/19/18/18" inputmode="decimal" style="font-family:var(--f-mono)"></label>
+        return `<div style="display:grid;gap:6px;padding-top:6px"><label>${esc(n.nombre)}${ref?` <span class="muted" style="text-transform:none;letter-spacing:0">· ref. ${fmtT(ref.t)}</span>`:""}<input data-rt="${i}|${esc(n.id)}" value="${esc(v)}" placeholder="${esc(ejTiempos(se,ref))}" inputmode="decimal" style="font-family:var(--f-mono)"></label>
           <div id="st-${i}-${esc(n.id)}">${statCell(statsOf(v,ref&&ref.t,se.zona,parseT(se.meta)))}</div></div>`}).join("")||'<div class="muted small">Esta sesión no tiene nadadores asignados. Agrégalos en Entrenos.</div>'}</div>`).join("")}
     <div class="row"><button class="btn" id="ev-save">Guardar tiempos</button><span id="ev-msg" class="small"></span></div></section>`;
   // evolución
@@ -2166,9 +2176,13 @@ R.marcas={html(){
 },bind(){}};
 
 /* ---------- CALCULADORA ---------- */
+const CALC_TOOLS=[["rp","Ritmos y zonas"],["pace","Pace y parciales"],["plantel","% del plantel"],["dps","Brazada"]];
+S.calcTool=(()=>{try{const t=localStorage.getItem("sc-calc");return CALC_TOOLS.some(x=>x[0]===t)?t:"rp"}catch(_){return "rp"}})();
+const calcHid=k=>S.calcTool===k?"":" hidden";
 R.calculadora={html(){
   const c=S.calc,dp=S.dps,sp=S.split;
-  return `<section class="card"><div class="head"><h2>Race pace y zonas</h2></div>
+  return `<div class="seg calc-tools" role="group" aria-label="Herramienta">${CALC_TOOLS.map(([k,l])=>`<button type="button" data-tool="${k}" aria-pressed="${S.calcTool===k}">${l}</button>`).join("")}</div>
+  <section class="card" data-t="rp"${calcHid("rp")}><div class="head"><h2>Race pace y zonas</h2></div>
     <div class="form three">
       <label class="full">Nadador (opcional)<select id="c-nad"><option value="">Ingresar PB a mano</option>${S.nad.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,"es")).map(n=>`<option value="${esc(n.id)}" ${c.nad===n.id?"selected":""}>${esc(n.nombre)}</option>`).join("")}</select></label>
       <label>Estilo<select id="c-est">${ESTILOS.map(e=>`<option ${e===c.estilo?"selected":""}>${e}</option>`).join("")}</select></label>
@@ -2176,25 +2190,22 @@ R.calculadora={html(){
       <label>Tiempo PB<input id="c-pb" value="${esc(c.pb)}" inputmode="decimal" placeholder="1:24.00"></label>
       <label class="full">Series de hoy (una por línea)<textarea id="c-sets" style="font-family:var(--f-mono);min-height:90px">${esc(c.sets)}</textarea></label>
     </div><div id="c-src" class="note"></div><div id="c-out" class="out"></div></section>
-  <section class="card"><h2>Distancia por brazada</h2>
+  <section class="card" data-t="dps"${calcHid("dps")}><h2>Distancia por brazada</h2>
     <div class="form three">
       <label>Largo<select id="d-largo"><option value="25" ${dp.largo==25?"selected":""}>25 m</option><option value="50" ${dp.largo==50?"selected":""}>50 m</option></select></label>
       <label>Cuento<select id="d-cuenta"><option value="ciclos" ${dp.cuenta==="ciclos"?"selected":""}>Ciclos (2 brazos)</option><option value="brazadas" ${dp.cuenta==="brazadas"?"selected":""}>Brazadas (cada brazo)</option></select></label>
       <label>Subacuático / impulso (m)<input id="d-sub" type="number" min="0" max="15" step="0.5" value="${dp.sub}"></label>
       <label class="full">Largos: tiempo ; ciclos (uno por línea)<textarea id="d-txt" style="font-family:var(--f-mono)">${esc(dp.txt)}</textarea></label>
     </div><div id="d-out"></div></section>
-  <section class="card"><h2>Parciales parejos</h2>
-    <div class="form three"><label>Distancia<input id="s-dist" type="number" step="25" min="50" value="${sp.dist}"></label><label>Tiempo meta<input id="s-t" value="${esc(sp.t)}" inputmode="decimal"></label>
-      <label>Cada<select id="s-tr">${[25,50,100].map(v=>`<option ${+sp.tramo===v?"selected":""}>${v}</option>`).join("")}</select></label></div><div id="s-out"></div></section>
-  <section class="card"><div class="head"><h2>Conversor de pace</h2></div>
-    <h3>Tiempo → pace</h3>
-    <div class="form three"><label>Distancia (m)<input id="p-d1" type="number" min="25" step="25" value="${S.pace.d1}"></label><label>Tiempo<input id="p-t1" value="${esc(S.pace.t1)}" inputmode="decimal" placeholder="2:30.00"></label></div><div id="p-o1"></div>
+  <section class="card" data-t="pace"${calcHid("pace")}><div class="head"><h2>Pace y parciales</h2></div>
+    <h3>Tiempo → pace y parciales</h3>
+    <div class="form three"><label>Distancia (m)<input id="p-d1" type="number" min="25" step="25" value="${S.pace.d1}"></label><label>Tiempo<input id="p-t1" value="${esc(S.pace.t1)}" inputmode="decimal" placeholder="2:30.00"></label><label>Parciales cada<select id="s-tr">${[25,50,100].map(v=>`<option ${+sp.tramo===v?"selected":""}>${v}</option>`).join("")}</select></label></div><div id="p-o1"></div><div id="s-out" style="margin-top:8px"></div>
     <h3 style="margin-top:14px">Pace → tiempo total</h3>
     <div class="form three"><label>Distancia (m)<input id="p-d2" type="number" min="25" step="25" value="${S.pace.d2}"></label><label>Pace /100<input id="p-p2" value="${esc(S.pace.p2)}" inputmode="decimal" placeholder="1:30.00"></label></div><div id="p-o2"></div>
     <h3 style="margin-top:14px">% de cumplimiento</h3>
     <div class="form three"><label>Tiempo objetivo<input id="p-obj" value="${esc(S.pace.obj)}" inputmode="decimal"></label><label>Tiempo real (uno o varios: 1:31/1:30/1:32)<input id="p-real" value="${esc(S.pace.real)}" inputmode="decimal"></label></div><div id="p-o3"></div>
     <details style="margin-top:14px"><summary class="small"><b>Tabla rápida de paces</b> (0:45 a 2:30 por 100)</summary>${paceTableHTML()}</details></section>
-  <section class="card"><div class="head"><h2>Intensidades % del plantel</h2></div>
+  <section class="card" data-t="plantel"${calcHid("plantel")}><div class="head"><h2>Intensidades % del plantel</h2></div>
     <div class="form three">
       <label>Estilo<select id="i-est">${ESTILOS.map(e=>`<option ${e===S.int.estilo?"selected":""}>${e}</option>`).join("")}</select></label>
       <label>Piscina<select id="i-pis"><option value="25" ${S.int.pisc==="25"?"selected":""}>25 m</option><option value="50" ${S.int.pisc==="50"?"selected":""}>50 m</option></select></label>
@@ -2209,9 +2220,11 @@ R.calculadora={html(){
   $("#c-pb").oninput=e=>{c.pb=e.target.value;calcRP()};$("#c-sets").oninput=e=>{c.sets=e.target.value;calcRP()};
   $("#d-largo").onchange=e=>{dp.largo=+e.target.value;calcDPS()};$("#d-cuenta").onchange=e=>{dp.cuenta=e.target.value;calcDPS()};
   $("#d-sub").oninput=e=>{dp.sub=+e.target.value;calcDPS()};$("#d-txt").oninput=e=>{dp.txt=e.target.value;calcDPS()};
-  $("#s-dist").oninput=e=>{sp.dist=+e.target.value;calcSplit()};$("#s-t").oninput=e=>{sp.t=e.target.value;calcSplit()};$("#s-tr").onchange=e=>{sp.tramo=+e.target.value;calcSplit()};
+  $("#s-tr").onchange=e=>{sp.tramo=+e.target.value;calcSplit()};
+  $$("[data-tool]").forEach(b=>b.onclick=()=>{S.calcTool=b.dataset.tool;try{localStorage.setItem("sc-calc",S.calcTool)}catch(_){}
+    $$("[data-tool]").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));$$("#view [data-t]").forEach(sec=>sec.hidden=sec.dataset.t!==S.calcTool)});
   const pc=S.pace;
-  [["p-d1","d1"],["p-t1","t1"],["p-d2","d2"],["p-p2","p2"],["p-obj","obj"],["p-real","real"]].forEach(([id,k])=>{$("#"+id).oninput=e=>{pc[k]=e.target.value;calcPace()}});
+  [["p-d1","d1"],["p-t1","t1"],["p-d2","d2"],["p-p2","p2"],["p-obj","obj"],["p-real","real"]].forEach(([id,k])=>{$("#"+id).oninput=e=>{pc[k]=e.target.value;calcPace();if(k==="d1"||k==="t1")calcSplit()}});
   $("#i-est").onchange=e=>{S.int.estilo=e.target.value;calcInt()};$("#i-pis").onchange=e=>{S.int.pisc=e.target.value;calcInt()};$("#i-nad").onchange=e=>{S.int.nad=e.target.value;calcInt()};
   calcRP();calcDPS();calcSplit();calcPace();calcInt();
 }};
@@ -2285,10 +2298,10 @@ function calcDPS(){
     <div class="note">DPS = (largo − subacuático) ÷ ciclos. La frecuencia usa el tiempo nadado estimado sin el tramo subacuático. 1 ciclo = 2 brazadas en libre y espalda; en pecho y mariposa cuenta 1 ciclo por brazada y elige “Ciclos”.</div>`;
 }
 function calcSplit(){
-  const s=S.split,o=$("#s-out"),t=parseT(s.t),D=+s.dist,T=+s.tramo;
+  const s=S.split,o=$("#s-out"),t=parseT(S.pace.t1),D=+S.pace.d1,T=+s.tramo;
   if(t==null||!D||!T||D%T){o.innerHTML=`<div class="muted small">${D%T?"La distancia debe ser múltiplo del tramo.":"Ingresa un tiempo, por ejemplo 2:30.00."}</div>`;return}
   const n=D/T,each=t/n;
-  o.innerHTML=`<div class="kpi" style="margin-bottom:8px"><div><b>${fmtT(each)}</b><span>Cada ${T} m</span></div><div><b>${fmtT(t/D*100)}</b><span>Ritmo /100</span></div><div><b>${(D/t).toFixed(2)}</b><span>m/s</span></div></div>
+  o.innerHTML=`<h3 style="margin-top:6px">Parciales parejos · cada ${T} m = ${fmtT(each)}</h3>
   <div class="tablewrap"><table><thead><tr><th class="num">Metros</th><th class="num">Parcial</th><th class="num">Acumulado</th></tr></thead><tbody>${Array.from({length:n},(_,i)=>`<tr><td class="num">${(i+1)*T}</td><td class="num time">${fmtT(each)}</td><td class="num time">${fmtT(each*(i+1))}</td></tr>`).join("")}</tbody></table></div>`;
 }
 
@@ -2640,7 +2653,7 @@ Si la imagen no permite juzgar algo (ángulo de cámara, burbujas, distancia), d
       o.innerHTML=`<div class="ai" id="aitxt">Analizando…</div>`;
       const r=await S.sample(prompt,{images:frames,cache:false,onText:({text})=>{const e=$("#aitxt");if(e)e.textContent=text}});
       await dbWrite(db=>db.collection("videos").doc(v.id).update({analisis:r.text}));
-    }catch(e){o.innerHTML=`<div class="msg err">${e&&e.code==="not_granted"?"Claude no está habilitado para esta app.":e&&e.code==="images_unavailable"?"Esta vista no puede enviar imágenes a Claude.":e&&e.code==="rate_limited"?"Demasiadas consultas, intenta en un momento.":"No se pudo analizar el video."}</div>`}
+    }catch(e){o.innerHTML=`<div class="msg err">${e&&e.code==="not_granted"?"Claude no está habilitado para esta app.":e&&e.code==="images_unavailable"?"Para analizar imágenes falta actualizar la función de Claude en Supabase (claude-informe).":e&&e.code==="rate_limited"?"Demasiadas consultas, intenta en un momento.":"No se pudo analizar el video."}</div>`}
     b.disabled=false;
   };
   P.stop=()=>{try{ro.disconnect();vid.pause();if(P.auto)P.auto.stop=true}catch(_){}};

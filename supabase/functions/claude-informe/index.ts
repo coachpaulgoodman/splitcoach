@@ -30,9 +30,17 @@ Deno.serve(async (req) => {
     // 2) conversación
     const body = await req.json().catch(() => ({}));
     const messages = Array.isArray(body.messages) ? body.messages.slice(-20) : [];
-    if (!messages.length || messages.some((m: any) => !["user", "assistant"].includes(m?.role) || typeof m?.content !== "string"))
+    // contenido: texto, o una lista de bloques de texto e imágenes (máx. 6 imágenes JPEG/PNG/WebP)
+    const okBlock = (b: any) =>
+      (b?.type === "text" && typeof b.text === "string") ||
+      (b?.type === "image" && b.source?.type === "base64" && typeof b.source.data === "string" &&
+        ["image/jpeg", "image/png", "image/webp"].includes(b.source.media_type));
+    const okContent = (c: any) =>
+      typeof c === "string" ||
+      (Array.isArray(c) && c.length > 0 && c.every(okBlock) && c.filter((b: any) => b.type === "image").length <= 6);
+    if (!messages.length || messages.some((m: any) => !["user", "assistant"].includes(m?.role) || !okContent(m?.content)))
       return json({ error: "mensajes" }, 400);
-    if (JSON.stringify(messages).length > 200_000) return json({ error: "muy_largo" }, 413);
+    if (JSON.stringify(messages).length > 6_000_000) return json({ error: "muy_largo" }, 413);
 
     // 3) Claude
     const r = await fetch("https://api.anthropic.com/v1/messages", {
