@@ -282,6 +282,7 @@ code{font-family:var(--f-mono);font-size:12.5px;background:var(--soft);padding:1
 .chip.nuevo{background:var(--rope)!important;color:#fff!important;font-size:10.5px;padding:2px 8px;vertical-align:1px}
 .nbx:not(:empty){display:inline-grid;place-items:center;min-width:18px;height:18px;margin-left:5px;padding:0 5px;border-radius:9px;background:var(--rope);color:#fff;font-family:var(--f-body);font-size:11px;font-weight:700;vertical-align:2px}
 .plan-hoys{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}.plan-hoy{background:var(--soft);border-radius:12px;padding:12px;display:grid;gap:4px;min-width:0}.plan-cd{font-family:var(--f-display);font-size:18px;text-align:right;line-height:1.1}.plan-cd b{display:block;font-size:36px}.plan-weeks{display:grid;gap:10px}.plan-w{border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:8px;min-width:0}.plan-w.cur{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}.plan-w.past{opacity:.6}.plan-dl{display:grid;grid-template-columns:minmax(120px,auto) 1fr;gap:4px 12px;margin:0;font-size:13.5px}.plan-dl dt{color:var(--muted)}.plan-dl dd{margin:0;overflow-wrap:anywhere}.chip.asis{border:1px solid var(--line);cursor:pointer;font-size:13.5px;padding:7px 12px;font:inherit}.chip.asis.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}.t-in{font-family:var(--f-mono)}.rt-list{display:grid;gap:10px}.rt-item{border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:10px;min-width:0}.rt-head{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}.rt-head select{width:auto;min-width:140px}.rt-test{max-width:260px}.plan-w summary{cursor:pointer;display:grid;gap:4px;list-style-position:outside}@media (max-width:520px){.plan-dl{grid-template-columns:1fr}.plan-dl dt{margin-top:6px}}
+[data-ptp]:not([hidden]){display:grid;gap:16px;min-width:0}.subnav{display:flex;flex-wrap:nowrap;width:100%;overflow-x:auto;scrollbar-width:none;border-radius:12px;background:var(--surface)}.subnav::-webkit-scrollbar{display:none}.subnav a{flex:1 0 auto;text-align:center;padding:10px 14px;font-weight:600;text-decoration:none;color:var(--muted);white-space:nowrap}.subnav a[aria-current="page"]{background:var(--accent);color:var(--accent-ink)}.seg.subnav{border-radius:12px}
 .ficha-tabs{display:flex;flex-wrap:nowrap;width:100%;overflow-x:auto;scrollbar-width:none;border-radius:12px;background:var(--surface)}[data-ftp]:not([hidden]){display:grid;gap:16px;min-width:0}.ficha-top .row a.btn{white-space:nowrap}.ficha-tabs::-webkit-scrollbar{display:none}.ficha-tabs button{flex:1 0 auto;padding:10px 14px;font-weight:600}.seg.ficha-tabs{border-radius:12px}.salud-msg{background:color-mix(in srgb,var(--z4) 20%,transparent);border:1px solid color-mix(in srgb,var(--z4) 45%,transparent)}details.card>summary{cursor:pointer}
 .nov-list{display:grid;gap:8px}
 .nov{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px;border-radius:14px;background:var(--soft);color:inherit;text-decoration:none;border:1px solid transparent}
@@ -331,6 +332,7 @@ header.top{border-bottom:1px solid var(--line)}
 :root[data-theme="light"] .themebtn .i-moon{display:block}
 nav.tabs{gap:4px}
 nav.tabs a{font-family:var(--f-body);font-weight:700;font-size:13px;letter-spacing:.12em;padding:9px 10px 10px}
+@media (max-width:600px){nav.tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));overflow:visible;-webkit-mask-image:none;mask-image:none;padding-right:0;margin-inline:0;gap:0}nav.tabs a{text-align:center;font-size:12px;letter-spacing:.04em;padding:8px 2px 8px}.subnav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.subnav a{white-space:normal;padding:9px 6px}}
 nav.tabs a[aria-current="page"]{color:var(--accent);border-bottom-color:var(--accent)}
 h2{font-family:var(--f-display);font-weight:800;font-size:24px;text-transform:none;letter-spacing:-.02em}
 h3{font-family:var(--f-display);font-weight:700;font-size:17.5px;letter-spacing:-.01em}
@@ -366,13 +368,9 @@ select,input,textarea{border-radius:12px;background:var(--bg);border-color:var(-
     <nav class="tabs" id="tabs" hidden>
       <a href="#plantel" data-v="plantel">Plantel</a>
       <a href="#plan" data-v="plan">Plan</a>
-      <a href="#tiempos" data-v="tiempos">Mejores tiempos</a>
-      <a href="#resultados" data-v="resultados">Resultados</a>
       <a href="#entrenos" data-v="entrenos">Entrenos</a>
-      <a href="#resumen" data-v="resumen">Resumen</a>
-      <a href="#evolucion" data-v="evolucion">Evolución</a>
+      <a href="#tiempos" data-v="competencia">Competencia</a>
       <a href="#calculadora" data-v="calculadora">Calculadora</a>
-      <a href="#videos" data-v="videos">Videos</a>
       <a href="#mensajes" data-v="mensajes">Mensajes<span id="nb"></span></a>
     </nav>
   </div>
@@ -492,7 +490,10 @@ function route(){
   S.view=v;S.param=p;
   if(S.mode==="coach"&&S.db&&(v==="resultados"||(v==="tiempos"&&S.mt.scope!=="plantel")))loadFullTor();
   const tab=S.mode==="nadador"&&v==="video"?"misvideos":S.mode==="nadador"&&v==="informe"?"misentrenos":v==="misinformes"?"misentrenos":v==="mistorneos"?"torneos":v==="informe"?(S.mode==="nadador"?"mificha":"evolucion"):v==="ficha"?"plantel":v==="video"?"videos":v==="chat"||v==="yo"?"mensajes":v;
-  $$("#tabs a").forEach(a=>a.setAttribute("aria-current",a.dataset.v===tab?"page":"false"));
+  S.navTab=tab;
+  if(S.mode==="coach"){const g=grupoDeVista(tab);if(NAV_GRUPOS[g]&&NAV_GRUPOS[g].length>1&&NAV_GRUPOS[g].some(x=>x[0]===tab)){S.navSub[g]=tab;try{localStorage.setItem("sc-navsub",JSON.stringify(S.navSub))}catch(_){}}
+    $$("#tabs a").forEach(a=>{const k=a.dataset.v;a.setAttribute("aria-current",k===g?"page":"false");if(NAV_GRUPOS[k]&&NAV_GRUPOS[k].length>1)a.setAttribute("href","#"+(S.navSub[k]||NAV_GRUPOS[k][0][0]))})}
+  else $$("#tabs a").forEach(a=>a.setAttribute("aria-current",a.dataset.v===tab?"page":"false"));
   if(v!=="video")stopVideo();
   if(v!=="videos")S.vfile=null;
   S.pending=false;
@@ -514,7 +515,7 @@ function render(force){
   if(hold){S.pending=true;if(S.view==="video")refreshMarks();return}
   S.pending=false;
   const fn=S.mode==="?"?{html:()=>emptyBox("Cargando…","")}:(R[S.view]||R.plantel);
-  const html=banner()+msgBanner()+ctxBar()+fn.html();
+  const html=banner()+msgBanner()+subNav()+ctxBar()+fn.html();
   try{const c=S.mode==="coach"?S.nad.filter(n=>unread(S.buz[tk(n)],"coach")).length:(unread(S.myThread,"nadador")?1:0);document.title=(c?`(${c}) `:"")+"SplitCoach"}catch(_){}
   // si no cambió nada en pantalla, no se re-dibuja: así no se pierden archivos elegidos ni lo escrito
   if(!force&&html===S.lastHtml&&S.view===S.lastView){if(S.mode==="coach")scheduleSync();dlog("   sin cambios: no se re-dibuja");return}
@@ -531,6 +532,16 @@ function ctxNad(){if(S.mode!=="coach")return null;
   if(S.view==="informe"){const i=(S.inf||[]).find(x=>x.id===S.param);return i?nadById(i.nadador):null}
   if(S.view==="videos"&&S.vnad)return nadById(S.vnad);
   return null}
+/* menú del coach: 6 grupos; los que tienen varias vistas muestran sub-pestañas arriba de la página */
+const NAV_GRUPOS={plantel:[["plantel","Plantel"]],plan:[["plan","Plan"]],
+  entrenos:[["entrenos","Sesiones"],["resumen","Carga y sensaciones"],["evolucion","Tiempos e informes"],["videos","Videos"]],
+  competencia:[["tiempos","Mejores tiempos"],["resultados","Resultados"]],calculadora:[["calculadora","Calculadora"]],mensajes:[["mensajes","Mensajes"]]};
+const grupoDeVista=t=>Object.keys(NAV_GRUPOS).find(g=>NAV_GRUPOS[g].some(x=>x[0]===t))||t;
+S.navSub=(()=>{try{return JSON.parse(localStorage.getItem("sc-navsub")||"{}")||{}}catch(_){return {}}})();
+function subNav(){
+  if(S.mode!=="coach")return "";const t=S.navTab,g=grupoDeVista(t),L=NAV_GRUPOS[g];if(!L||L.length<2)return "";
+  return `<nav class="seg subnav no-print" aria-label="Secciones">${L.map(([v,l])=>`<a href="#${v}" aria-current="${v===t?"page":"false"}">${l}</a>`).join("")}</nav>`;
+}
 function ctxBar(){const n=ctxNad();if(!n||S.view==="ficha")return "";const id=encodeURIComponent(n.id),on=v=>S.view===v?' aria-current="page"':"";
   return `<div class="ctxbar no-print"><span class="avatar">${esc(initials(n.nombre))}</span><div class="grow"><div class="small muted">Estás en el perfil de</div><b>${esc(n.nombre)}</b></div>
     <a class="btn ghost sm" href="#ficha-${id}"${on("ficha")}>Ficha</a><a class="btn ghost sm" href="#chat-${id}"${on("chat")}>Mensajes</a><a class="btn ghost sm" href="#videos" data-vnad="${esc(n.id)}">Subir video</a></div>`}
@@ -671,7 +682,7 @@ const PLAN_NACIONAL_2027={competencia:"Nacional de Verano",fecha:"2027-01-06",in
     {fase:"Inicio puesta a punto",enfasis:"Velocidad ↑",vol:"~1.800–2.000 m",lun:"3×200 A2 + 6×25 rápidos",mie:"Último lactato: 4×50 a tope, desc. 3'",sab:"50 roto 2×25 con 10\", ×4 + salidas",dom:"20' suaves",gym:"Activación 1× (martes)"},
     {fase:"Puesta a punto",enfasis:"Velocidad y frescura",vol:"~1.400 m",lun:"4×100 A2 + 4×25 a ritmo",mie:"3×50 a ritmo de prueba, desc. 3'",sab:"4×25 a tope + salidas y virajes",dom:"Descanso",gym:"Activación 1× (martes, 20')"},
     {fase:"Competición",enfasis:"Activación",vol:"~1.000 m",lun:"1.000 de activación + 2×50 a ritmo",mie:"🏆 COMPETENCIA",sab:"—",dom:"—",gym:"Nada"}]}};
-S.plan=null;S.gotPlan=false;S.asis=[];S.planG="semifondo";S.planEd=null;S.asisF=null;
+S.plan=null;S.gotPlan=false;S.pTab=(()=>{try{const t=localStorage.getItem("sc-ptab");return ["hoy","ritmos","semanas"].includes(t)?t:"hoy"}catch(_){return "hoy"}})();S.asis=[];S.planG="semifondo";S.planEd=null;S.asisF=null;
 const addDias=(iso,d)=>{const x=new Date(iso+"T12:00:00");x.setDate(x.getDate()+d);return x.toISOString().slice(0,10)};
 const diasEntre=(a,b)=>Math.round((Date.parse(b+"T12:00:00")-Date.parse(a+"T12:00:00"))/864e5);
 const grupoDe=n=>n&&n.grupo==="velocistas"?"velocistas":"semifondo";
@@ -742,10 +753,14 @@ R.plan={html(){
     <details><summary class="small" style="cursor:pointer;color:var(--accent);font-weight:600">Cambiar competencia o fechas</summary>
       <div class="form three" style="margin-top:10px"><label>Competencia<input id="pl-comp" value="${esc(p.competencia||"")}"></label><label>Fecha<input id="pl-fecha" type="date" value="${esc(p.fecha||"")}"></label><label>Lunes de la semana 1<input id="pl-ini" type="date" value="${esc(p.inicio||"")}"></label>
       <div class="row full"><button class="btn sm" id="pl-save">Guardar</button><span id="pl-msg" class="small"></span></div></div></details></section>
-    <section class="card"><h3>Hoy · ${fmtD(hoy)}</h3><div class="plan-hoys">${hoyHTML}</div></section>
-    ${asis}${ritmos}${semanas}`;
+    <div class="seg ficha-tabs" role="tablist" aria-label="Secciones del plan">${[["hoy","Hoy y asistencia"],["ritmos","Grupos y ritmos"],["semanas","Semanas"]].map(([k,l])=>`<button type="button" role="tab" data-pt="${k}" aria-selected="${S.pTab===k}" aria-pressed="${S.pTab===k}">${l}</button>`).join("")}</div>
+    <div data-ptp="hoy"${S.pTab==="hoy"?"":" hidden"}><section class="card"><h3>Hoy · ${fmtD(hoy)}</h3><div class="plan-hoys">${hoyHTML}</div></section>${asis}</div>
+    <div data-ptp="ritmos"${S.pTab==="ritmos"?"":" hidden"}>${ritmos}</div>
+    <div data-ptp="semanas"${S.pTab==="semanas"?"":" hidden"}>${semanas}</div>`;
 },bind(){
   const p=S.plan;
+  $$("[data-pt]").forEach(b=>b.onclick=()=>{S.pTab=b.dataset.pt;try{localStorage.setItem("sc-ptab",S.pTab)}catch(_){}
+    $$("[data-pt]").forEach(x=>{const on=x===b;x.setAttribute("aria-selected",String(on));x.setAttribute("aria-pressed",String(on))});$$("[data-ptp]").forEach(d=>d.hidden=d.dataset.ptp!==S.pTab)});
   if($("#pl-load"))$("#pl-load").onclick=async e=>{e.target.disabled=true;if(!await dbWrite(db=>db.doc("config/plan").set(JSON.parse(JSON.stringify(PLAN_NACIONAL_2027))),$("#pl-msg")))e.target.disabled=false};
   if(!p)return;
   $("#pl-save").onclick=async()=>{const d={competencia:$("#pl-comp").value.trim()||"Competencia",fecha:$("#pl-fecha").value,inicio:$("#pl-ini").value};
