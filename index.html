@@ -280,6 +280,7 @@ code{font-family:var(--f-mono);font-size:12.5px;background:var(--soft);padding:1
 .inf-pdf{width:100%;height:75vh;border:1px solid var(--line);border-radius:12px;background:#fff;margin-top:10px}
 .chip.nuevo{background:var(--rope)!important;color:#fff!important;font-size:10.5px;padding:2px 8px;vertical-align:1px}
 .nbx:not(:empty){display:inline-grid;place-items:center;min-width:18px;height:18px;margin-left:5px;padding:0 5px;border-radius:9px;background:var(--rope);color:#fff;font-family:var(--f-body);font-size:11px;font-weight:700;vertical-align:2px}
+.plan-hoys{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}.plan-hoy{background:var(--soft);border-radius:12px;padding:12px;display:grid;gap:4px;min-width:0}.plan-cd{font-family:var(--f-display);font-size:18px;text-align:right;line-height:1.1}.plan-cd b{display:block;font-size:36px}.plan-weeks{display:grid;gap:10px}.plan-w{border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:8px;min-width:0}.plan-w.cur{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}.plan-w.past{opacity:.6}.plan-dl{display:grid;grid-template-columns:minmax(120px,auto) 1fr;gap:4px 12px;margin:0;font-size:13.5px}.plan-dl dt{color:var(--muted)}.plan-dl dd{margin:0;overflow-wrap:anywhere}.chip.asis{border:1px solid var(--line);cursor:pointer;font-size:13.5px;padding:7px 12px;font:inherit}.chip.asis.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}.t-in{font-family:var(--f-mono)}.rt-list{display:grid;gap:10px}.rt-item{border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:10px;min-width:0}.rt-head{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}.rt-head select{width:auto;min-width:140px}.rt-test{max-width:260px}.plan-w summary{cursor:pointer;display:grid;gap:4px;list-style-position:outside}@media (max-width:520px){.plan-dl{grid-template-columns:1fr}.plan-dl dt{margin-top:6px}}
 .nov-list{display:grid;gap:8px}
 .nov{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px;border-radius:14px;background:var(--soft);color:inherit;text-decoration:none;border:1px solid transparent}
 .nov.on{border-color:var(--accent)}.nov-i{font-size:22px}.nov-t{display:grid;gap:2px;min-width:0}.nov-t small{font-size:11px;color:var(--muted);letter-spacing:.04em}.nov-t b{font-size:15px}.nov-t span{font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -361,6 +362,7 @@ select,input,textarea{border-radius:12px;background:var(--bg);border-color:var(-
     </div>
     <nav class="tabs" id="tabs" hidden>
       <a href="#plantel" data-v="plantel">Plantel</a>
+      <a href="#plan" data-v="plan">Plan</a>
       <a href="#tiempos" data-v="tiempos">Mejores tiempos</a>
       <a href="#resultados" data-v="resultados">Resultados</a>
       <a href="#entrenos" data-v="entrenos">Entrenos</a>
@@ -474,7 +476,7 @@ function zoneRange(t,z){
 const volOf=s=>(s.series||[]).reduce((a,x)=>a+(+x.reps||0)*(+x.dist||0),0);
 
 /* ================= navegación ================= */
-const VIEWS=["plantel","tiempos","resultados","entrenos","resumen","evolucion","calculadora","videos","mensajes"];
+const VIEWS=["plantel","plan","tiempos","resultados","entrenos","resumen","evolucion","calculadora","videos","mensajes"];
 function route(){
   const h=decodeURIComponent((location.hash||"#plantel").slice(1));
   let v=h,p="";
@@ -643,6 +645,136 @@ R.plantel={html(){
   $$("[data-add]").forEach(b=>b.onclick=()=>{b.disabled=true;add([b.dataset.add])});
   if($("#addall"))$("#addall").onclick=e=>{e.target.disabled=true;add($$("[data-add]").map(b=>b.dataset.add))};
 }};
+
+/* ---------- PLAN (macrociclo, sesión de hoy, asistencia y ritmos) ---------- */
+// Datos: config/plan {competencia, fecha, inicio (lunes de la semana 1), semanas:{semifondo:[...], velocistas:[...]}}
+//        asistencia/<AAAA-MM-DD> {fecha, presentes:[ids]} · nadadores.grupo = "semifondo" | "velocistas"
+const GRUPOS=[["semifondo","Semifondo"],["velocistas","Velocistas"]];
+const DIAS_PLAN=[["lun","Lun · Aeróbico"],["mie","Mié · Anaeróbico"],["sab","Sáb · Ritmo de prueba"],["dom","Dom · Aguas abiertas"],["gym","Gimnasio (Mar/Jue)"]];
+const PLAN_NACIONAL_2027={competencia:"Nacional de Verano",fecha:"2027-01-06",inicio:"2026-11-23",semanas:{
+  semifondo:[
+    {fase:"Carga",enfasis:"Aeróbico y umbral ↑",vol:"100% · 3.200–3.500 m",lun:"Aeróbico largo (si no se hizo, pasarlo al sábado)",mie:"3 × (4×100 VO2máx, salida 1'50\")",sab:"4×400 A2–A3, desc. 30\" + 8×100 pull",dom:"40–45' con 3–4 cambios de ritmo de 3'",gym:"Fuerza 2×"},
+    {fase:"Carga",enfasis:"Anaeróbico ↑",vol:"100% · 3.200–3.500 m",lun:"3×800 A2, desc. 40\"",mie:"3 × (5×100 VO2máx) + 6×50 lactato, desc. 2'",sab:"6×200 a ritmo de 400, desc. 20\"",dom:"40–45' con 3–4 cambios de ritmo de 3'",gym:"Fuerza-potencia 2×"},
+    {fase:"Carga máxima",enfasis:"Ritmo de prueba ↑",vol:"95% · 3.200–3.500 m",lun:"5×400 progresivos 1→5",mie:"2 × (6×100 VO2máx)",sab:"400 roto 4×100 con 10\", ×3, desc. 3' + salidas y virajes",dom:"40–45' con 3–4 cambios de ritmo de 3'",gym:"Potencia 2×"},
+    {fase:"Descarga y test",enfasis:"Test el sábado",vol:"75% · ~2.500 m",lun:"2.000 suaves con técnica",mie:"8×50 rápidos, desc. 1'",sab:"TEST: 400 (o 200) cronometrado con parciales",dom:"30' suaves",gym:"Potencia 1–2×, ligero"},
+    {fase:"Específico",enfasis:"Ritmo de prueba y velocidad ↑",vol:"85% · ~3.000 m",lun:"4×300 A3, desc. 30\"",mie:"Último duro: 2 × (4×100 VO2máx) + 4×50 lactato",sab:"200 roto 4×50 con 10\", ×4 + salidas",dom:"30' suaves",gym:"Potencia 1× (última fuerza: martes)"},
+    {fase:"Puesta a punto",enfasis:"Calidad corta, mucho descanso",vol:"60% · ~2.000 m",lun:"4×200 A2 + 6×50 a ritmo",mie:"3×200 a ritmo de prueba, desc. 2'",sab:"4×100 a ritmo, desc. 1' + salidas y virajes",dom:"20' suaves o descanso",gym:"Activación 1× (martes, 30')"},
+    {fase:"Competición",enfasis:"Activación",vol:"40% · ~1.500 m",lun:"1.500 de activación + 2×100 a ritmo",mie:"🏆 COMPETENCIA",sab:"—",dom:"—",gym:"Nada"}],
+  velocistas:[
+    {fase:"Carga",enfasis:"Aeróbico y umbral ↑",vol:"60–70% del semifondo",lun:"Aeróbico corto + técnica",mie:"3 × (4×50 VO2máx, salida +15–20\") + 4×25 a tope",sab:"4×200 A2, desc. 40\" + 6×50 pull + 4×25 a tope",dom:"30' suaves",gym:"Fuerza 2×"},
+    {fase:"Carga",enfasis:"Anaeróbico ↑",vol:"60–70% del semifondo",lun:"3×400 A2, desc. 1'",mie:"3 × (3×50 VO2máx) + 4×50 lactato, desc. 3'",sab:"4×100 a ritmo de 100, desc. 40\" + 4×25 a tope",dom:"30' suaves",gym:"Fuerza-potencia 2×"},
+    {fase:"Carga máxima",enfasis:"Ritmo de prueba ↑",vol:"60–70% del semifondo",lun:"4×200 progresivos 1→4",mie:"2 × (4×50 VO2máx)",sab:"100 roto 4×25 con 10\", ×3, desc. 4' + salidas y virajes",dom:"30' suaves",gym:"Potencia 2×"},
+    {fase:"Descarga y test",enfasis:"Test el sábado",vol:"~1.800 m",lun:"1.500 suaves con técnica",mie:"6×25 rápidos, desc. 1'",sab:"TEST: 100 (o 50) cronometrado con parciales",dom:"20' suaves",gym:"Potencia 1–2×, ligero"},
+    {fase:"Inicio puesta a punto",enfasis:"Velocidad ↑",vol:"~1.800–2.000 m",lun:"3×200 A2 + 6×25 rápidos",mie:"Último lactato: 4×50 a tope, desc. 3'",sab:"50 roto 2×25 con 10\", ×4 + salidas",dom:"20' suaves",gym:"Activación 1× (martes)"},
+    {fase:"Puesta a punto",enfasis:"Velocidad y frescura",vol:"~1.400 m",lun:"4×100 A2 + 4×25 a ritmo",mie:"3×50 a ritmo de prueba, desc. 3'",sab:"4×25 a tope + salidas y virajes",dom:"Descanso",gym:"Activación 1× (martes, 20')"},
+    {fase:"Competición",enfasis:"Activación",vol:"~1.000 m",lun:"1.000 de activación + 2×50 a ritmo",mie:"🏆 COMPETENCIA",sab:"—",dom:"—",gym:"Nada"}]}};
+S.plan=null;S.gotPlan=false;S.asis=[];S.planG="semifondo";S.planEd=null;S.asisF=null;
+const addDias=(iso,d)=>{const x=new Date(iso+"T12:00:00");x.setDate(x.getDate()+d);return x.toISOString().slice(0,10)};
+const diasEntre=(a,b)=>Math.round((Date.parse(b+"T12:00:00")-Date.parse(a+"T12:00:00"))/864e5);
+const grupoDe=n=>n&&n.grupo==="velocistas"?"velocistas":"semifondo";
+const grupoNom=g=>(GRUPOS.find(x=>x[0]===g)||GRUPOS[0])[1];
+// semana del plan para una fecha: índice desde 0, o -1 antes / null después
+function semanaPlan(p,fecha){if(!p||!p.inicio)return null;const d=diasEntre(p.inicio,fecha);if(d<0)return -1;const i=Math.floor(d/7);const n=Math.max(...Object.values(p.semanas||{}).map(a=>a.length),0);return i<n?i:null}
+// qué toca un día: {k, label, txt}
+function sesionDelDia(p,g,fecha){
+  const i=semanaPlan(p,fecha);if(i==null||i<0)return null;const w=((p.semanas||{})[g]||[])[i];if(!w)return null;
+  const dow=new Date(fecha+"T12:00:00").getDay();
+  if(fecha===p.fecha)return {k:"comp",label:"Competencia",txt:"🏆 "+(p.competencia||"Competencia"),w,i};
+  const k=dow===1?"lun":dow===3?"mie":dow===6?"sab":dow===0?"dom":dow===2||dow===4?"gym":null;
+  if(!k)return {k:"desc",label:"Descanso",txt:"Día libre",w,i};
+  return {k,label:(DIAS_PLAN.find(x=>x[0]===k)||[,""])[1],txt:w[k]||"—",w,i};
+}
+// prueba principal y ritmo objetivo: test más reciente de esa prueba, o su mejor marca
+function pruebaPpal(n){const l=String(n.pruebasFav||"").split(",").map(x=>x.trim()).filter(Boolean);
+  const p=l.map(x=>PRUEBAS.find(y=>norm(y)===norm(x))).find(Boolean);if(p)return p;
+  const pb=pbsOf(n.nombre),ks=Object.keys(pb);return ks.length?ks.sort((a,b)=>distOf(b)-distOf(a))[0]:""}
+function ritmoObj(n){const pr=pruebaPpal(n);if(!pr)return null;const d=distOf(pr);
+  const rows=resOf(n.nombre).filter(r=>r.prueba===pr&&r.seg!=null);
+  const test=rows.filter(r=>/test/i.test(r.torneo||"")).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""))[0];
+  const best=rows.slice().sort((a,b)=>a.seg-b.seg)[0];const r=test||best;
+  return {prueba:pr,d,r,fuente:test?"Test "+fmtD(test.fecha):r?"Mejor marca":"",p100:r?r.seg/d*100:null,p50:r?r.seg/d*50:null}}
+function cuentaRegresiva(p){if(!p||!p.fecha)return "";const d=diasEntre(today(),p.fecha);
+  return d>0?`Faltan <b>${d}</b> día${d>1?"s":""}`:d===0?"<b>¡Es hoy!</b>":"Ya fue"}
+const asisDe=f=>(S.asis.find(a=>a.id===f)||{}).presentes||[];
+
+R.plan={html(){
+  const p=S.plan;
+  if(!S.gotPlan)return emptyBox("Cargando…","");
+  if(!p)return `<section class="card empty"><h3>Aún no hay un plan cargado</h3><div class="muted small" style="max-width:46ch">Carga el macrociclo de 7 semanas hacia el Nacional de Verano (6 de enero de 2027), con versión para semifondo y velocistas. Después puedes editar cada semana.</div>
+    <button class="btn" id="pl-load">Cargar plan Nacional de Verano 2027</button><span id="pl-msg" class="small"></span></section>`;
+  const hoy=today(),si=semanaPlan(p,hoy),nSem=Math.max(...Object.values(p.semanas).map(a=>a.length));
+  const semTxt=si==null?"Plan terminado":si<0?`Empieza el ${fmtD(p.inicio)}`:`Semana ${si+1} de ${nSem} · ${esc(((p.semanas.semifondo||[])[si]||{}).fase||"")}`;
+  // hoy por grupo
+  const hoyHTML=GRUPOS.map(([g,gl])=>{const s=sesionDelDia(p,g,hoy);const nG=S.nad.filter(n=>grupoDe(n)===g).length;
+    return `<div class="plan-hoy"><div class="small muted">${gl} · ${nG} nadador${nG===1?"":"es"}</div><b>${s?esc(s.label):"Sin sesión"}</b><div>${s?esc(s.txt):"Fuera del plan"}</div></div>`}).join("");
+  // asistencia
+  const fA=S.asisF||hoy,pres=new Set(asisDe(fA)),orden=S.nad.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
+  const asis=`<section class="card"><div class="head"><h3>Asistencia</h3><input id="as-f" type="date" value="${esc(fA)}" style="width:auto"></div>
+    <div class="chips">${orden.map(n=>`<button type="button" class="chip asis${pres.has(n.id)?" on":""}" data-as="${esc(n.id)}" aria-pressed="${pres.has(n.id)}">${pres.has(n.id)?"✓ ":""}${esc(n.nombre)}</button>`).join("")||`<span class="muted small">Agrega nadadores en Plantel.</span>`}</div>
+    <div class="small muted"><b>${pres.size}</b> de ${orden.length} presentes · se guarda al tocar</div><span id="as-msg" class="small"></span></section>`;
+  // semanas
+  const g=S.planG,ws=p.semanas[g]||[];
+  const semanas=`<section class="card"><div class="head"><h3>Semanas</h3><div class="seg">${GRUPOS.map(([k,l])=>`<button type="button" data-pg="${k}" aria-pressed="${g===k}">${l}</button>`).join("")}</div></div>
+    <div class="plan-weeks">${ws.map((w,i)=>{const ini=addDias(p.inicio,i*7),fin=addDias(ini,6),cur=i===si,ed=S.planEd===g+":"+i;
+      if(ed)return `<div class="plan-w cur"><div class="head"><b>Semana ${i+1} · ${fmtD(ini).slice(0,5)}–${fmtD(fin).slice(0,5)}</b></div>
+        <div class="form">${[["fase","Fase"],["enfasis","Énfasis"],["vol","Volumen"]].concat(DIAS_PLAN).map(([k,l])=>`<label class="${k==="fase"||k==="enfasis"||k==="vol"?"":"full"}">${l}<input data-pw="${k}" value="${esc(w[k]||"")}"></label>`).join("")}</div>
+        <div class="row"><button class="btn sm" id="pw-save">Guardar semana</button><button class="btn ghost sm" id="pw-cancel">Cancelar</button><span id="pw-msg" class="small"></span></div></div>`;
+      return `<details class="plan-w${cur?" cur":""}${si!=null&&si>=0&&i<si?" past":""}"${cur||(si==null||si<0)&&i===0?" open":""}><summary><b>Semana ${i+1} · ${fmtD(ini).slice(0,5)}–${fmtD(fin).slice(0,5)}</b>${cur?` <span class="chip mine">Esta semana</span>`:""}
+          <div class="small"><b>${esc(w.fase||"")}</b> · ${esc(w.enfasis||"")} · <span class="muted">${esc(w.vol||"")}</span></div></summary>
+        <dl class="plan-dl">${DIAS_PLAN.map(([k,l])=>`<dt>${l}</dt><dd>${esc(w[k]||"—")}</dd>`).join("")}</dl>
+        <div><button class="btn ghost sm" data-pe="${i}">Editar semana</button></div></details>`}).join("")}</div></section>`;
+  // grupos y ritmos
+  const filas=orden.map(n=>{const r=ritmoObj(n),g2=grupoDe(n);
+    const a28=S.asis.filter(a=>a.id>addDias(hoy,-28)&&a.id<=hoy),pct=a28.length?Math.round(a28.filter(a=>(a.presentes||[]).includes(n.id)).length/a28.length*100):null;
+    return `<div class="rt-item"><div class="rt-head"><a class="nm" href="#ficha-${encodeURIComponent(n.id)}">${esc(n.nombre)}</a>
+        <select data-gr="${esc(n.id)}" aria-label="Grupo de ${esc(n.nombre)}">${GRUPOS.map(([k,l])=>`<option value="${k}" ${g2===k?"selected":""}>${l}</option>`).join("")}</select></div>
+      ${r?`<div class="kpi"><div><b>${r.r?fmtT(r.r.seg):"—"}</b><span>${esc(r.prueba)}${r.fuente?" · "+esc(r.fuente):""}</span></div><div><b>${r.p100?fmtT(r.p100):"—"}</b><span>Ritmo /100</span></div><div><b>${r.p50?fmtT(r.p50):"—"}</b><span>Ritmo /50</span></div><div><b>${pct==null?"—":pct+"%"}</b><span>Asistencia 28 días</span></div></div>
+      <label class="rt-test">Cargar test de ${esc(r.prueba)}<input class="t-in" data-test="${esc(n.id)}" placeholder="${r.d<=50?"30.00":r.d<=100?"1:05.00":r.d<=200?"2:30.00":r.d<=400?"5:10.00":"10:40.00"}" inputmode="decimal"></label>`
+      :`<div class="small muted">Sin prueba principal ni marcas. Agrégala en su ficha (Pruebas principales).</div>`}</div>`}).join("");
+  const ritmos=`<section class="card"><div class="head"><h3>Grupos y ritmos objetivo</h3></div>
+    <div class="small muted">El ritmo sale del <b>test</b> más reciente de su prueba principal; si no hay test, de su mejor marca. Para cargar un test, escribe el tiempo y pulsa Enter (se guarda como "Test" con la fecha de hoy).</div>
+    <span id="rt-msg" class="small"></span><div class="rt-list">${filas}</div></section>`;
+  return `<section class="card plan-top"><div class="head"><div><div class="small muted">Objetivo</div><h2>${esc(p.competencia||"Competencia")}</h2><div class="small">${fmtD(p.fecha)} · ${semTxt}</div></div>
+      <div class="plan-cd">${cuentaRegresiva(p)}</div></div>
+    <details><summary class="small" style="cursor:pointer;color:var(--accent);font-weight:600">Cambiar competencia o fechas</summary>
+      <div class="form three" style="margin-top:10px"><label>Competencia<input id="pl-comp" value="${esc(p.competencia||"")}"></label><label>Fecha<input id="pl-fecha" type="date" value="${esc(p.fecha||"")}"></label><label>Lunes de la semana 1<input id="pl-ini" type="date" value="${esc(p.inicio||"")}"></label>
+      <div class="row full"><button class="btn sm" id="pl-save">Guardar</button><span id="pl-msg" class="small"></span></div></div></details></section>
+    <section class="card"><h3>Hoy · ${fmtD(hoy)}</h3><div class="plan-hoys">${hoyHTML}</div></section>
+    ${asis}${ritmos}${semanas}`;
+},bind(){
+  const p=S.plan;
+  if($("#pl-load"))$("#pl-load").onclick=async e=>{e.target.disabled=true;if(!await dbWrite(db=>db.doc("config/plan").set(JSON.parse(JSON.stringify(PLAN_NACIONAL_2027))),$("#pl-msg")))e.target.disabled=false};
+  if(!p)return;
+  $("#pl-save").onclick=async()=>{const d={competencia:$("#pl-comp").value.trim()||"Competencia",fecha:$("#pl-fecha").value,inicio:$("#pl-ini").value};
+    if(!d.fecha||!d.inicio){$("#pl-msg").innerHTML=`<span class="down">Faltan fechas.</span>`;return}
+    if(new Date(d.inicio+"T12:00:00").getDay()!==1){$("#pl-msg").innerHTML=`<span class="down">La semana 1 debe empezar un lunes.</span>`;return}
+    if(await dbWrite(db=>db.doc("config/plan").update(d),$("#pl-msg")))$("#pl-msg").innerHTML=`<span class="up">Guardado</span>`};
+  $("#as-f").onchange=e=>{S.asisF=e.target.value||null;render(true)};
+  $$("[data-as]").forEach(b=>b.onclick=async()=>{const f=S.asisF||today(),s=new Set(asisDe(f)),id=b.dataset.as;s.has(id)?s.delete(id):s.add(id);
+    const presentes=[...s];const loc=S.asis.find(a=>a.id===f);if(loc)loc.presentes=presentes;else S.asis.push({id:f,fecha:f,presentes});render(true);
+    await dbWrite(db=>db.collection("asistencia").doc(f).set({fecha:f,presentes}),$("#as-msg"))});
+  $$("[data-pg]").forEach(b=>b.onclick=()=>{S.planG=b.dataset.pg;S.planEd=null;render(true)});
+  $$("[data-pe]").forEach(b=>b.onclick=()=>{S.planEd=S.planG+":"+b.dataset.pe;render(true)});
+  if($("#pw-cancel"))$("#pw-cancel").onclick=()=>{S.planEd=null;render(true)};
+  if($("#pw-save"))$("#pw-save").onclick=async()=>{const [g,i]=S.planEd.split(":"),sem=JSON.parse(JSON.stringify(p.semanas));
+    $$("[data-pw]").forEach(x=>sem[g][+i][x.dataset.pw]=x.value.trim());
+    if(await dbWrite(db=>db.doc("config/plan").update({semanas:sem}),$("#pw-msg"))){S.planEd=null}};
+  $$("[data-gr]").forEach(s=>s.onchange=async()=>{await dbWrite(db=>db.collection("nadadores").doc(s.dataset.gr).update({grupo:s.value}),$("#rt-msg"))});
+  $$("[data-test]").forEach(inp=>inp.onkeydown=async e=>{if(e.key!=="Enter")return;const n=nadById(inp.dataset.test),r=n&&ritmoObj(n),seg=parseT(inp.value);
+    if(!n||!r){return}if(seg==null){$("#rt-msg").innerHTML=`<span class="down">Tiempo no reconocido. Usa 2:30.00 o 31.45.</span>`;return}
+    const ed=edadMaster(n.nacimiento);
+    const doc={torneo:"Test",fecha:today(),piscina:"25",nadador:n.nombre,sexo:n.sexo||"",edad:ed,categoria:catDe(ed),club:n.club||"",prueba:r.prueba,tiempo:inp.value.trim(),seg,lugar:null,tipo:"control"};
+    if(await dbWrite(db=>db.collection("resultados").add(doc),$("#rt-msg"))){const ok=`Test de ${esc(n.nombre)} guardado: ${esc(r.prueba)} ${fmtT(seg)}`;inp.value="";inp.blur();
+      setTimeout(()=>{render(true);const m=$("#rt-msg");if(m)m.innerHTML=`<span class="up">${ok}</span>`},400)}});
+}};
+// tarjeta del plan para el inicio del nadador (con los datos que publica el coach)
+function planNadHTML(pl){
+  if(!pl||!pl.semanas)return "";const hoy=today(),s=sesionDelDia(pl,pl.grupo,hoy),man=sesionDelDia(pl,pl.grupo,addDias(hoy,1));
+  return `<section class="card plan-top"><div class="head"><div><div class="small muted">${esc(grupoNom(pl.grupo))} · rumbo a</div><h3>${esc(pl.competencia||"Competencia")}</h3><div class="small">${fmtD(pl.fecha)}</div></div><div class="plan-cd">${cuentaRegresiva(pl)}</div></div>
+    <div class="plan-hoys"><div class="plan-hoy"><div class="small muted">Hoy</div><b>${s?esc(s.label):"Sin sesión"}</b><div>${s?esc(s.txt):"Fuera del plan"}</div></div>
+    <div class="plan-hoy"><div class="small muted">Mañana</div><b>${man?esc(man.label):"Sin sesión"}</b><div>${man?esc(man.txt):"—"}</div></div></div>
+    ${pl.ritmo&&pl.ritmo.p100?`<div class="kpi"><div><b>${fmtT(pl.ritmo.p100)}</b><span>Tu ritmo /100 · ${esc(pl.ritmo.prueba)}</span></div><div><b>${fmtT(pl.ritmo.p50)}</b><span>Tu ritmo /50</span></div></div><div class="note">Calculado con: ${esc(pl.ritmo.fuente)} (${fmtT(pl.ritmo.seg)}).</div>`:""}</section>`;
+}
 
 /* ---------- FICHA PERSONAL ---------- */
 R.ficha={html(){
@@ -1220,6 +1352,8 @@ async function syncFichas(){
       res:resOf(n.nombre).filter(r=>r.seg!=null).map(r=>({prueba:r.prueba,piscina:String(r.piscina||""),seg:r.seg,tiempo:r.tiempo||"",fecha:r.fecha||"",torneo:r.torneo||"",lugar:r.lugar||null})),
       par:S.par.filter(p=>ks.has(norm(p.nadador))).map(p=>({prueba:p.prueba,piscina:String(p.piscina||""),tramo:p.tramo,tipo:p.tipo||"",fecha:p.fecha||"",torneo:p.torneo||"",splits:p.splits||[]})),
       vid:S.vid.filter(v=>v.nadadorId===n.id&&v.compartido).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).slice(0,30).map(v=>({id:v.id,assetId:v.assetId,prueba:v.prueba||"",fecha:v.fecha||"",momento:v.momento||"",clave:v.clave||"",notas:v.notas||"",marcas:v.marcas||[],trazos:v.trazos||[],carrera:v.carrera||null})),
+      plan:S.plan&&S.plan.semanas?(g=>{const r=ritmoObj(n);return {competencia:S.plan.competencia||"",fecha:S.plan.fecha||"",inicio:S.plan.inicio||"",grupo:g,semanas:{[g]:S.plan.semanas[g]||[]},
+        ritmo:r&&r.r?{prueba:r.prueba,seg:r.r.seg,p100:r.p100,p50:r.p50,fuente:r.fuente}:null}})(grupoDe(n)):null,
       inf:(S.inf||[]).filter(i=>i.nadador===n.id).sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).slice(0,20).map(i=>({id:i.id,fecha:i.fecha||"",titulo:i.titulo||"",data:i.data||null,pdf:i.pdf||null}))};
     if(fichaHash[n.uid]===undefined){try{const s=await S.db.doc("buzon/"+n.uid+"/ficha/datos").get();const d=s.exists?Object.assign({},s.data()):null;if(d)delete d.act;prevRk[n.uid]=d&&d.rk||null;fichaHash[n.uid]=d?JSON.stringify(d):""}catch(_){fichaHash[n.uid]=""}}
     const rk=rankFor(n);if(rk)prevRk[n.uid]=rk;else loadFullTor();
@@ -1235,7 +1369,7 @@ function loadMiFicha(f){
   S.nad=[n];
   S.res=(f.res||[]).map((r,i)=>Object.assign({id:"r"+i,nadador:n.nombre},r));
   S.par=(f.par||[]).map((p,i)=>Object.assign({id:"p"+i,nadador:n.nombre},p));
-  S.miInf=f.inf||[];S.miRk=f.rk||null;S.coachTel=f.coachTel||"";
+  S.miInf=f.inf||[];S.miRk=f.rk||null;S.coachTel=f.coachTel||"";S.miPlan=f.plan||null;
   S.vid=(f.vid||[]).map(v=>Object.assign({nadadorId:"yo"},v));S.got.vid=1;
   S.got.res=1;
 }
@@ -2166,6 +2300,7 @@ R.mificha={html(){
   ].filter(Boolean).join("");
   return `<section class="card"><div class="row" style="gap:14px"><span class="avatar" style="width:52px;height:52px;font-size:20px">${esc(initials(n.nombre))}</span>
       <div class="grow"><h2>Hola, ${esc(String(n.nombre||"").split(" ")[0])}</h2><div class="chips" style="margin-top:6px">${n.club?`<span class="chip">${esc(n.club)}</span>`:""}${e!=null?`<span class="chip">${e} años · ${esc(catDe(e))}</span>`:""}</div></div></div></section>
+    ${planNadHTML(S.miPlan)}
     <section class="card"><h3>Novedades</h3>${items?`<div class="nov-list">${items}</div>`:`<div class="muted small">Todavía no hay novedades. Aquí verás tus informes, videos, mensajes y metas.</div>`}</section>
     ${n.objetivos?`<section class="card"><h3>Objetivos de temporada</h3><div class="bt">${esc(n.objetivos)}</div></section>`:""}
     ${S.miFicha.act?`<div class="note" style="text-align:center">Actualizado ${fmtTs(S.miFicha.act)}</div>`:""}`;
@@ -2706,6 +2841,8 @@ route();
   sub("videos","vid",x=>x);
   sub("parciales","par",x=>x);
   sub("informes","inf",x=>x);
+  db.doc("config/plan").onSnapshot(s=>{S.plan=s.exists?s.data()||null:null;S.gotPlan=true;render()},()=>{S.gotPlan=true;render()});
+  sub("asistencia","asis",x=>x);
   db.doc("config/app").onSnapshot(s=>{const d=s.exists?s.data()||{}:{};S.cfg={miClub:d.miClub||"",zonas:Array.isArray(d.zonas)&&d.zonas.length?d.zonas:Z_DEF};render()},()=>{});
   render(true);
 })();
