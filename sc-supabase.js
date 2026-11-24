@@ -5,10 +5,46 @@
   "use strict";
   const cfg = window.SPLITCOACH_CONFIG || {};
   const configured = /^https:\/\//.test(cfg.url || "") && (cfg.anonKey || "").length > 30;
-  window.SC_BLOB = configured ? cfg.url.replace(/\/$/, "") + "/storage/v1/object/public/media/" : "";
 
   let sb = null, session = null, rol = null, nadadorId = null;
   let resolveReady; const ready = new Promise(r => (resolveReady = r));
+
+  /* ---------------- videos y PDF con enlaces temporales ----------------
+     El bucket "media" es privado: cada archivo se abre con un enlace firmado que caduca.
+     En el HTML basta con poner data-media="<nombre del archivo>" (y opcional data-media-frag="#t=0.5")
+     en un <video>, <a> u <object>; este bloque pide el enlace y lo coloca. */
+  const MEDIA_TTL = 6 * 3600; // segundos que dura cada enlace
+  const mediaCache = new Map(); // nombre -> { url, exp }
+  const mediaPending = new Set();
+  let mediaTimer = null;
+  const mediaUrl = name => { const c = mediaCache.get(name); return c && c.exp > Date.now() ? c.url : null; };
+  async function mediaFlush() {
+    mediaTimer = null;
+    if (!sb || !session) { mediaTimer = setTimeout(mediaFlush, 500); return; }
+    const names = [...mediaPending]; mediaPending.clear();
+    if (!names.length) return;
+    const { data, error } = await sb.storage.from("media").createSignedUrls(names, MEDIA_TTL);
+    if (error) { console.warn("SplitCoach: no se pudieron firmar los archivos", error); return; }
+    const exp = Date.now() + (MEDIA_TTL - 600) * 1000;
+    (data || []).forEach(d => { if (d && d.signedUrl && d.path) mediaCache.set(d.path, { url: d.signedUrl, exp }); });
+    mediaHydrate();
+  }
+  function mediaHydrate() {
+    document.querySelectorAll("[data-media]").forEach(el => {
+      const name = el.getAttribute("data-media"); if (!name) return;
+      const u = mediaUrl(name);
+      if (!u) { mediaPending.add(name); if (!mediaTimer) mediaTimer = setTimeout(mediaFlush, 0); return; }
+      const full = u + (el.getAttribute("data-media-frag") || "");
+      const attr = el.tagName === "A" ? "href" : el.tagName === "OBJECT" ? "data" : "src";
+      if (el.getAttribute(attr) === full) return;
+      if (el.tagName === "OBJECT") { const c = el.cloneNode(true); c.setAttribute("data", full); el.replaceWith(c); }
+      else el.setAttribute(attr, full);
+    });
+  }
+  let mediaQueued = false;
+  new MutationObserver(() => { if (mediaQueued) return; mediaQueued = true; queueMicrotask(() => { mediaQueued = false; mediaHydrate(); }); })
+    .observe(document.documentElement, { childList: true, subtree: true });
+  window.SC_MEDIA = { url: mediaUrl, refresh: mediaHydrate };
 
   /* ---------------- interfaz de inicio de sesión ---------------- */
   const css = `
@@ -215,7 +251,7 @@
       if (file.size > 50 * 1024 * 1024) throw { code: "too_large", message: "Máximo 50 MB" };
       const { error } = await sb.storage.from("media").upload(name, file, { contentType: type, upsert: false });
       if (error) throw { code: /size|large/i.test(error.message) ? "too_large" : "unavailable", message: error.message };
-      return { id: name, url: window.SC_BLOB + name, sizeBytes: file.size, contentType: type };
+      return { id: name, url: "", sizeBytes: file.size, contentType: type };
     },
     async delete(id) { await sb.storage.from("media").remove([id]); }
   };
