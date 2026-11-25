@@ -911,7 +911,8 @@ R.ficha={html(){
   $$("[data-f]").forEach(i=>i.addEventListener("input",()=>{S.fd[i.dataset.f]=i.value}));
   $$("[data-ses]").forEach(a=>a.onclick=()=>{S.rsel=a.dataset.ses;S.rd=null});
   $("#f-save").onclick=async()=>{const d={};$$("[data-f]").forEach(i=>{const v=S.fd[i.dataset.f];d[i.dataset.f]=v==null?"":v});
-    if(await dbWrite(db=>db.collection("nadadores").doc(n.id).update(d),$("#f-msg")))$("#f-msg").innerHTML=`<span class="up">Guardado</span>`};
+    if(await dbWrite(db=>db.collection("nadadores").doc(n.id).update(d),$("#f-msg"))){$("#f-msg").innerHTML=`<span class="up">Guardado</span>`;
+      const em=String(d.email||"").trim();showOk("Ficha guardada correctamente",em?`${n.nombre} ya puede entrar a la app con ${em}.`:"",em&&!n.uid?waLink(Object.assign({},n,d),`Hola ${String(n.nombre).split(" ")[0]}, te comparto SplitCoach, la app del equipo 👉 ${appUrl("")} — Entra con tu correo ${em}, pide el enlace y ábrelo desde el correo "Your sign-in link" (revisa Spam) en el mismo celular.`):"","Enviar invitación por WhatsApp")}};
   $("#f-del").onclick=async e=>{const b=e.target;if(b.dataset.c!=="1"){b.dataset.c="1";b.textContent="¿Eliminar ficha? Los resultados se mantienen";b.className="btn danger sm";return}
     if(await dbWrite(db=>db.collection("nadadores").doc(n.id).delete(),$("#f-msg")))location.hash="#plantel"};
   bindPasadas(n);bindIM(n);bindInfFicha(n);bindMarcas(n);
