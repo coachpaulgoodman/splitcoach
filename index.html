@@ -15,6 +15,14 @@
 .ctxbar .avatar{width:38px;height:38px;font-size:15px}.ctxbar b{font-size:16px}.ctxbar .grow{min-width:140px}.ctxbar [aria-current]{background:var(--accent);color:#0B2A30}
 .newmsg{display:block;text-decoration:none;border:1.5px solid var(--accent);background:linear-gradient(90deg,rgba(77,182,191,.22),transparent);color:var(--ink);font-size:15px;margin-bottom:12px}
 #errbar .btn{align-self:flex-start}
+.tb-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-top:10px}
+.tb-card{background:var(--surface-2,rgba(255,255,255,.03));border:1px solid var(--line);border-radius:14px;padding:12px}.tb-card h3{margin:0 0 8px;font-size:14px}
+.tb-don{display:flex;align-items:center;gap:12px}.tb-don svg{width:110px;flex:0 0 110px}.tb-don ul{list-style:none;margin:0;padding:0;font-size:13px;display:grid;gap:4px}
+.tb-don .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+.tb-bars{display:grid;gap:6px}.tb-bar{display:grid;grid-template-columns:72px 1fr 46px;align-items:center;gap:8px;font-size:13px}.tb-bar .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tb-bar .tr{background:rgba(255,255,255,.08);border-radius:6px;height:12px;overflow:hidden}.tb-bar i{display:block;height:100%;background:#2E9E6A;border-radius:6px}.tb-bar b{text-align:right}
+.tb-t{font-size:13px}.tb-t th{white-space:nowrap}.tb-t td{vertical-align:middle}.tb-t td:first-child a{white-space:nowrap}.tb-pill{display:inline-block;border-radius:20px;padding:2px 9px;font-size:12px;font-weight:700;border:1.5px solid var(--c);color:var(--c)}
+.tb-cl{color:#fff;font-weight:700;font-size:12.5px;text-align:center;white-space:nowrap;border-radius:6px}
 </style>
 <title>SplitCoach</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -478,7 +486,7 @@ function zoneRange(t,z){
 const volOf=s=>(s.series||[]).reduce((a,x)=>a+(+x.reps||0)*(+x.dist||0),0);
 
 /* ================= navegación ================= */
-const VIEWS=["plantel","plan","tiempos","resultados","entrenos","resumen","evolucion","calculadora","videos","mensajes"];
+const VIEWS=["plantel","tablero","plan","tiempos","resultados","entrenos","resumen","evolucion","calculadora","videos","mensajes"];
 function route(){
   const h=decodeURIComponent((location.hash||"#plantel").slice(1));
   let v=h,p="";
@@ -534,7 +542,7 @@ function ctxNad(){if(S.mode!=="coach")return null;
   if(S.view==="videos"&&S.vnad)return nadById(S.vnad);
   return null}
 /* menú del coach: 6 grupos; los que tienen varias vistas muestran sub-pestañas arriba de la página */
-const NAV_GRUPOS={plantel:[["plantel","Plantel"]],plan:[["plan","Plan"]],
+const NAV_GRUPOS={plantel:[["plantel","Plantel"],["tablero","Tablero"]],plan:[["plan","Plan"]],
   entrenos:[["entrenos","Sesiones"],["resumen","Carga y sensaciones"],["evolucion","Tiempos e informes"],["videos","Videos"]],
   competencia:[["tiempos","Mejores tiempos"],["resultados","Resultados"]],calculadora:[["calculadora","Calculadora"]],mensajes:[["mensajes","Mensajes"]]};
 const grupoDeVista=t=>Object.keys(NAV_GRUPOS).find(g=>NAV_GRUPOS[g].some(x=>x[0]===t))||t;
@@ -661,6 +669,54 @@ R.plantel={html(){
   if($("#addall"))$("#addall").onclick=e=>{e.target.disabled=true;add($$("[data-add]").map(b=>b.dataset.add))};
 }};
 
+/* ---------- TABLERO DEL EQUIPO (acceso, asistencia, informes, videos, PB, metas, clasificación) ---------- */
+function tabStats(n){const hoy=today(),d28=addDias(hoy,-28),d30=addDias(hoy,-30),d90=addDias(hoy,-90);
+  const acceso=n.uid?"activo":(n.email?"invitado":"sin");
+  const a28=(S.asis||[]).filter(a=>a.id>d28&&a.id<=hoy),asis=a28.length?Math.round(a28.filter(a=>(a.presentes||[]).includes(n.id)).length/a28.length*100):null;
+  const infs=(S.inf||[]).filter(i=>i.nadador===n.id),inf30=infs.filter(i=>(i.fecha||"")>d30).length;
+  const vids=(S.vid||[]).filter(v=>v.nadadorId===n.id&&v.compartido),vid30=vids.filter(v=>(v.fecha||"")>d30).length;
+  const rs=resOf(n.nombre).filter(r=>r.seg!=null).sort((a,b)=>(a.fecha||"").localeCompare(b.fecha||""));const best={};let pbs=0;
+  rs.forEach(r=>{const k=r.prueba+"|"+r.piscina;if(best[k]==null||r.seg<best[k]){if(best[k]!=null&&(r.fecha||"")>d90)pbs++;best[k]=r.seg}});
+  let meta=null;Object.entries(n.metas||{}).forEach(([k,m])=>{const t=parseT(m&&m.total),b=best[k];if(t!=null&&b!=null){const pct=Math.min(100,t/b*100);if(!meta||pct>meta.pct)meta={prueba:k.split("|")[0],pct}}});
+  const th=S.buz[tk(n)]||{},tc=th.ultimo&&th.ultimo.de==="coach"?new Date(th.ultimo.t).toISOString().slice(0,10):"";
+  const ult=[tc,...infs.map(i=>i.fecha||""),...vids.map(v=>v.fecha||"")].filter(Boolean).sort().pop()||"";
+  const dias=ult?Math.round((Date.parse(hoy+"T12:00:00")-Date.parse(ult+"T12:00:00"))/864e5):null;
+  const hay=asis!=null||infs.length||vids.length||rs.length;
+  let cl="sin";if(hay){if((asis!=null&&asis<50)||dias==null||dias>21)cl="bajo";else if(asis!=null&&asis>=75&&(pbs>0||(meta&&meta.pct>=98)))cl="alto";else cl="medio"}
+  return {acceso,asis,inf30,vid30,pbs,meta,ult,dias,cl}}
+const CLAS={alto:["Alto avance","#2E9E6A"],medio:["Medio","#3A7BD5"],bajo:["Bajo","#E08A2E"],sin:["Sin iniciar","#D0574F"]};
+const ACC={activo:["Activo","#2E9E6A"],invitado:["Invitado","#E0B02E"],sin:["Sin correo","#8A96A3"]};
+function donutSVG(parts,title){const tot=parts.reduce((a,p)=>a+p.v,0)||1,R=52,r=32,cx=64,cy=64;let a0=-Math.PI/2,g="";
+  parts.forEach(p=>{if(!p.v)return;const a1=a0+p.v/tot*2*Math.PI,lg=a1-a0>Math.PI?1:0,P=(rr,a)=>`${cx+rr*Math.cos(a)},${cy+rr*Math.sin(a)}`;
+    g+=p.v===tot?`<circle cx="${cx}" cy="${cy}" r="${(R+r)/2}" fill="none" stroke="${p.c}" stroke-width="${R-r}"/>`:`<path d="M${P(R,a0)}A${R},${R} 0 ${lg} 1 ${P(R,a1)}L${P(r,a1)}A${r},${r} 0 ${lg} 0 ${P(r,a0)}Z" fill="${p.c}"><title>${esc(p.l)}: ${p.v}</title></path>`;a0=a1});
+  return `<div class="tb-card"><h3>${esc(title)}</h3><div class="tb-don"><svg viewBox="0 0 128 128" role="img" aria-label="${esc(title)}">${g}<text x="64" y="70" text-anchor="middle" font-size="20" font-weight="800" fill="var(--ink)">${tot}</text></svg>
+    <ul>${parts.map(p=>`<li><span class="dot" style="background:${p.c}"></span>${esc(p.l)} <b>${p.v}</b> <span class="muted">${Math.round(p.v/tot*100)}%</span></li>`).join("")}</ul></div></div>`}
+function barsSVG(rows,title,unit){if(!rows.length)return `<div class="tb-card"><h3>${esc(title)}</h3><div class="muted small">Sin datos todavía.</div></div>`;
+  const mx=Math.max(...rows.map(r=>r.v))||1;
+  return `<div class="tb-card"><h3>${esc(title)}</h3><div class="tb-bars">${rows.map(r=>`<div class="tb-bar"><span class="nm">${esc(r.l)}</span><span class="tr"><i style="width:${Math.max(4,r.v/mx*100)}%"></i></span><b>${r.v}${unit}</b></div>`).join("")}</div></div>`}
+R.tablero={html(){
+  if(!S.nad.length)return loading()?emptyBox("Cargando…",""):emptyBox("Sin nadadores","Agrega nadadores en el Plantel.");
+  const L=S.nad.map(n=>({n,st:tabStats(n)})).sort((a,b)=>a.n.nombre.localeCompare(b.n.nombre,"es"));
+  const cnt=(k,v)=>L.filter(x=>x.st[k]===v).length;
+  const acc=donutSVG(Object.entries(ACC).map(([k,[l,c]])=>({l,c,v:cnt("acceso",k)})),"Acceso a la app");
+  const cla=donutSVG(Object.entries(CLAS).map(([k,[l,c]])=>({l,c,v:cnt("cl",k)})),"Clasificación");
+  const hasA=L.some(x=>x.st.asis!=null);
+  const top=hasA?barsSVG(L.filter(x=>x.st.asis!=null).sort((a,b)=>b.st.asis-a.st.asis).slice(0,6).map(x=>({l:x.n.nombre.split(" ")[0],v:x.st.asis})),"Top asistencia (4 semanas)","%")
+    :barsSVG(L.filter(x=>x.st.pbs).sort((a,b)=>b.st.pbs-a.st.pbs).slice(0,6).map(x=>({l:x.n.nombre.split(" ")[0],v:x.st.pbs})),"Top PB nuevos (90 días)","");
+  const f=S.tbF||"todos",vis=L.filter(x=>f==="todos"||x.st.cl===f);
+  const rows=vis.map(({n,st})=>`<tr><td><a href="#ficha-${encodeURIComponent(n.id)}"><b>${esc(n.nombre)}</b></a><div class="small muted">${esc(grupoNom(grupoDe(n)))}</div></td>
+    <td><span class="tb-pill" style="--c:${ACC[st.acceso][1]}">${ACC[st.acceso][0]}</span></td>
+    <td class="num">${st.asis==null?"—":st.asis+" %"}</td><td class="num">${st.inf30||"—"}</td><td class="num">${st.vid30||"—"}</td>
+    <td class="num">${st.pbs?`<b class="up">${st.pbs}</b>`:"—"}</td>
+    <td class="num">${st.meta?`${st.meta.pct.toFixed(1)} %<div class="small muted">${esc(st.meta.prueba)}</div>`:"—"}</td>
+    <td class="num">${st.ult?`${fmtD(st.ult)}<div class="small ${st.dias>21?"down":"muted"}">hace ${st.dias} d</div>`:"—"}</td>
+    <td class="tb-cl" style="background:${CLAS[st.cl][1]}">${CLAS[st.cl][0]}</td></tr>`).join("");
+  return `<section class="card"><div class="head"><div><h2>Tablero del equipo</h2><div class="small muted">Visibilidad del progreso de todo el plantel · ${L.length} nadadores</div></div></div>
+    <div class="tb-grid">${acc}${cla}${top}</div></section>
+  <section class="card"><div class="head"><h3>Detalle por nadador</h3><div class="seg">${[["todos","Todos"],...Object.entries(CLAS).map(([k,[l]])=>[k,l])].map(([k,l])=>`<button type="button" data-tbf="${k}" aria-pressed="${f===k}">${l}</button>`).join("")}</div></div>
+    <div class="tablewrap"><table class="tb-t"><thead><tr><th>Nadador</th><th>Acceso</th><th class="num" title="Asistencia últimas 4 semanas">Asist.</th><th class="num" title="Informes últimos 30 días">Inf.</th><th class="num" title="Videos compartidos últimos 30 días">Videos</th><th class="num" title="PB nuevos últimos 90 días">PB</th><th class="num">% meta</th><th class="num">Contacto</th><th>Clasificación</th></tr></thead><tbody>${rows||`<tr><td colspan="9" class="muted">Nadie en esta clasificación.</td></tr>`}</tbody></table></div>
+    <div class="note">Asist. = últimas 4 semanas · Inf. y Videos = últimos 30 días · PB = nuevos en 90 días · Contacto = último informe, video o mensaje tuyo.<br>Clasificación: <b>Alto</b> = asistencia ≥ 75 % y un PB nuevo o ≥ 98 % de su meta · <b>Bajo</b> = asistencia &lt; 50 % o más de 21 días sin informe, video ni mensaje tuyo · <b>Medio</b> = el resto · <b>Sin iniciar</b> = sin datos. % meta = meta ÷ mejor marca (la prueba más cercana a su meta).</div></section>`},
+  bind(){$$("[data-tbf]").forEach(b=>b.onclick=()=>{S.tbF=b.dataset.tbf;render(true)})}};
 /* ---------- PLAN (macrociclo, sesión de hoy, asistencia y ritmos) ---------- */
 // Datos: config/plan {competencia, fecha, inicio (lunes de la semana 1), semanas:{semifondo:[...], velocistas:[...]}}
 //        asistencia/<AAAA-MM-DD> {fecha, presentes:[ids]} · nadadores.grupo = "semifondo" | "velocistas"
