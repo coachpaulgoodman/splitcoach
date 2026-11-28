@@ -486,7 +486,7 @@ function zoneRange(t,z){
 const volOf=s=>(s.series||[]).reduce((a,x)=>a+(+x.reps||0)*(+x.dist||0),0);
 
 /* ================= navegación ================= */
-const VIEWS=["plantel","tablero","plan","tiempos","resultados","entrenos","resumen","evolucion","calculadora","videos","mensajes"];
+const VIEWS=["plantel","tablero","rendimiento","plan","tiempos","resultados","entrenos","resumen","evolucion","calculadora","videos","mensajes"];
 function route(){
   const h=decodeURIComponent((location.hash||"#plantel").slice(1));
   let v=h,p="";
@@ -542,7 +542,7 @@ function ctxNad(){if(S.mode!=="coach")return null;
   if(S.view==="videos"&&S.vnad)return nadById(S.vnad);
   return null}
 /* menú del coach: 6 grupos; los que tienen varias vistas muestran sub-pestañas arriba de la página */
-const NAV_GRUPOS={plantel:[["plantel","Plantel"],["tablero","Tablero"]],plan:[["plan","Plan"]],
+const NAV_GRUPOS={plantel:[["plantel","Plantel"],["tablero","Tablero"],["rendimiento","Rendimiento"]],plan:[["plan","Plan"]],
   entrenos:[["entrenos","Sesiones"],["resumen","Carga y sensaciones"],["evolucion","Tiempos e informes"],["videos","Videos"]],
   competencia:[["tiempos","Mejores tiempos"],["resultados","Resultados"]],calculadora:[["calculadora","Calculadora"]],mensajes:[["mensajes","Mensajes"]]};
 const grupoDeVista=t=>Object.keys(NAV_GRUPOS).find(g=>NAV_GRUPOS[g].some(x=>x[0]===t))||t;
@@ -669,6 +669,52 @@ R.plantel={html(){
   if($("#addall"))$("#addall").onclick=e=>{e.target.disabled=true;add($$("[data-add]").map(b=>b.dataset.add))};
 }};
 
+/* ---------- TABLERO DE RENDIMIENTO (meta Temuco, PB, tendencia, mejora, mapa de calor) ---------- */
+function rdBest(n){const by={};resOf(n.nombre).filter(r=>r.seg!=null).forEach(r=>{const k=r.prueba+"|"+r.piscina;(by[k]=by[k]||[]).push(r)});
+  Object.values(by).forEach(l=>l.sort((a,b)=>(a.fecha||"").localeCompare(b.fecha||"")));return by}
+function rdKey(n,by){const metas=Object.keys(n.metas||{}).filter(k=>parseT((n.metas[k]||{}).total)!=null);
+  const fav=String(n.pruebasFav||"").split(",").map(x=>x.trim()).filter(Boolean).map(x=>PRUEBAS.find(y=>norm(y)===norm(x))).filter(Boolean);
+  for(const f of fav){const k=metas.find(m=>m.split("|")[0]===f&&m.endsWith("|25"))||metas.find(m=>m.split("|")[0]===f);if(k)return k}
+  if(metas.length){const pct=k=>{const l=by[k];if(!l)return -1;return parseT(n.metas[k].total)/Math.min(...l.map(r=>r.seg))};return metas.slice().sort((a,b)=>pct(b)-pct(a))[0]}
+  const pp=pruebaPpal(n);return pp?pp+"|25":""}
+function rdStats(n){const by=rdBest(n),k=rdKey(n,by),hoy=today(),d90=addDias(hoy,-90);
+  const l=k?(by[k]||[]):[],pb=l.length?Math.min(...l.map(r=>r.seg)):null,meta=k&&n.metas&&n.metas[k]?parseT(n.metas[k].total):null;
+  const last=l[l.length-1]||null,pct=pb!=null&&meta!=null?meta/pb*100:null;
+  let tend=null;if(l.length>=2){const t3=l.slice(-3),a=t3[0].seg,b=t3[t3.length-1].seg,d=(b-a)/a*100;tend=d<-0.3?"up":d>0.3?"down":"flat"}
+  let mej=null;Object.entries(by).forEach(([kk,ll])=>{const prev=ll.filter(r=>(r.fecha||"")<=d90),rec=ll.filter(r=>(r.fecha||"")>d90);if(!prev.length||!rec.length)return;
+    const p0=Math.min(...prev.map(r=>r.seg)),p1=Math.min(...rec.map(r=>r.seg));if(p1<p0){const pc=(p0-p1)/p0*100;if(!mej||pc>mej.pct)mej={prueba:kk.split("|")[0],s:p0-p1,pct:pc}}});
+  const sem=meta==null?"sin":pb==null?"sin":pb<=meta?"logrado":pct>=98?"cerca":pct>=95?"camino":"lejos";
+  return {k,prueba:k?k.split("|")[0]:"",pis:k?k.split("|")[1]:"",pb,meta,pct,last,tend,mej,sem,by}}
+const SEM={logrado:["Meta lograda","#3A7BD5"],cerca:["Cerca","#2E9E6A"],camino:["En camino","#E0B02E"],lejos:["Lejos","#D0574F"],sin:["Sin meta","#8A96A3"]};
+const pctCol=p=>p==null?"transparent":p>=100?"#3A7BD5":p>=98?"#2E9E6A":p>=95?"#E0B02E":"#D0574F";
+R.rendimiento={html(){
+  if(!S.nad.length)return loading()?emptyBox("Cargando…",""):emptyBox("Sin nadadores","Agrega nadadores en el Plantel.");
+  const L=S.nad.map(n=>({n,st:rdStats(n)})).sort((a,b)=>(b.st.pct||0)-(a.st.pct||0)||a.n.nombre.localeCompare(b.n.nombre,"es"));
+  const conM=L.filter(x=>x.st.pct!=null),fn=x=>x.n.nombre.split(" ")[0];
+  const g1=conM.length?`<div class="tb-card"><h3>Distancia a la meta (prueba principal)</h3><div class="tb-bars">${conM.map(x=>`<div class="tb-bar"><span class="nm" title="${esc(x.n.nombre)}">${esc(fn(x))}</span><span class="tr"><i style="width:${Math.max(4,Math.min(100,(x.st.pct-85)/15*100))}%;background:${pctCol(x.st.pct)}"></i></span><b>${x.st.pct.toFixed(1)}%</b></div>`).join("")}</div><div class="small muted" style="margin-top:6px">Escala 85–100 %. Verde ≥ 98 · amarillo 95–98 · rojo &lt; 95 · azul = lograda</div></div>`
+    :`<div class="tb-card"><h3>Distancia a la meta</h3><div class="muted small">Carga metas en las fichas (Agregar marcas y metas) para ver este gráfico.</div></div>`;
+  const mj=L.filter(x=>x.st.mej).sort((a,b)=>b.st.mej.pct-a.st.mej.pct).slice(0,6);
+  const g2=`<div class="tb-card"><h3>Mayor mejora (90 días)</h3>${mj.length?`<div class="tb-bars">${mj.map(x=>`<div class="tb-bar" title="${esc(x.st.mej.prueba)}"><span class="nm">${esc(fn(x))}</span><span class="tr"><i style="width:${Math.max(4,x.st.mej.pct/mj[0].st.mej.pct*100)}%"></i></span><b>−${x.st.mej.s.toFixed(2)}</b></div><div class="small muted" style="margin:-4px 0 2px 80px">${esc(x.st.mej.prueba)} · ${x.st.mej.pct.toFixed(1)} %</div>`).join("")}</div>`:`<div class="muted small">Aún no hay PB nuevos respecto a marcas de hace más de 90 días.</div>`}</div>`;
+  const T={up:["Mejorando","#2E9E6A"],flat:["Estable","#3A7BD5"],down:["Empeorando","#D0574F"],none:["Sin datos","#8A96A3"]};
+  const g3=donutSVG(Object.entries(T).map(([k,[l,c]])=>({l,c,v:L.filter(x=>(x.st.tend||"none")===k).length})),"Tendencia (últimos 3 en su prueba)");
+  const arrow={up:'<b class="up">↑</b>',down:'<b class="down">↓</b>',flat:"→"};
+  const rows=L.map(({n,st})=>{const d=st.pb!=null&&st.meta!=null?st.pb-st.meta:null,r50=st.meta!=null&&distOf(st.prueba)>=50?st.meta/(distOf(st.prueba)/50):null,
+    dl=st.last?Math.round((Date.parse(today()+"T12:00:00")-Date.parse((st.last.fecha||today())+"T12:00:00"))/864e5):null;
+    return `<tr><td><a href="#ficha-${encodeURIComponent(n.id)}"><b>${esc(n.nombre)}</b></a></td><td>${esc(st.prueba||"—")}${st.pis==="50"?' <span class="small muted">larga</span>':""}</td>
+    <td class="num time">${st.pb!=null?fmtT(st.pb):"—"}</td><td class="num time">${st.meta!=null?fmtT(st.meta):"—"}</td>
+    <td class="num">${d==null?"—":d<=0?'<b class="up">lograda</b>':`−${d.toFixed(2)} s<div class="small muted">${st.pct.toFixed(1)} %</div>`}</td>
+    <td class="num">${st.last?`${fmtT(st.last.seg)}<div class="small muted">${st.last.tipo==="control"?"control":"torneo"} · hace ${dl} d</div>`:"—"}</td>
+    <td class="num">${st.tend?arrow[st.tend]:"—"}</td><td class="num">${r50!=null?r50.toFixed(2):"—"}</td>
+    <td class="tb-cl" style="background:${SEM[st.sem][1]}">${SEM[st.sem][0]}</td></tr>`}).join("");
+  const keys=[...new Set(S.nad.flatMap(n=>Object.keys(n.metas||{})))].sort((a,b)=>ordPrueba(a)-ordPrueba(b)||a.localeCompare(b));
+  const heat=keys.length?`<section class="card"><h3>Mapa de calor: % de la meta en cada prueba</h3><div class="tablewrap"><table class="tb-t heat"><thead><tr><th>Nadador</th>${keys.map(k=>`<th class="num">${esc(k.split("|")[0])}${k.endsWith("|50")?"<br><span class='small muted'>larga</span>":""}</th>`).join("")}</tr></thead><tbody>
+    ${L.filter(x=>Object.keys(x.n.metas||{}).length).map(({n,st})=>`<tr><td><b>${esc(n.nombre)}</b></td>${keys.map(k=>{const m=n.metas&&n.metas[k]?parseT(n.metas[k].total):null,l=st.by[k],pb=l&&l.length?Math.min(...l.map(r=>r.seg)):null,p=m!=null&&pb!=null?m/pb*100:null;
+      return `<td class="num" style="background:${p==null?"transparent":pctCol(p)+"33"}" title="${m!=null?"Meta "+fmtT(m):""}${pb!=null?" · PB "+fmtT(pb):""}">${p==null?(m!=null?'<span class="small muted">sin marca</span>':""):`<b style="color:${pctCol(p)}">${Math.min(p,100).toFixed(1)}%</b>`}</td>`}).join("")}</tr>`).join("")}</tbody></table></div></section>`:"";
+  return `<section class="card"><div class="head"><div><h2>Rendimiento hacia Temuco</h2><div class="small muted">PB actual vs meta en su prueba principal · ${L.length} nadadores</div></div></div>
+    <div class="tb-grid">${g1}${g2}${g3}</div></section>
+  <section class="card"><h3>Rendimiento por nadador</h3><div class="tablewrap"><table class="tb-t"><thead><tr><th>Nadador</th><th>Prueba principal</th><th class="num">PB</th><th class="num">Meta</th><th class="num">Falta</th><th class="num">Último</th><th class="num">Tend.</th><th class="num" title="Ritmo objetivo por 50 según la meta">Ritmo/50</th><th>Estado</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="note">Prueba principal: la primera de "Pruebas principales" de la ficha que tenga meta; si no, la meta más cercana a lograrse. % = meta ÷ PB. Tendencia: primero vs último de los últimos 3 resultados en esa prueba (torneos y controles), ±0,3 %. Mejora 90 días: mejor marca reciente vs la mejor anterior a 90 días, en cualquier prueba.</div></section>${heat}`},
+  bind(){}};
 /* ---------- TABLERO DEL EQUIPO (acceso, asistencia, informes, videos, PB, metas, clasificación) ---------- */
 function tabStats(n){const hoy=today(),d28=addDias(hoy,-28),d30=addDias(hoy,-30),d90=addDias(hoy,-90);
   const acceso=n.uid?"activo":(n.email?"invitado":"sin");
